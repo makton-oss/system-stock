@@ -629,6 +629,7 @@ app.post("/webhook", async (req, res) => {
     body.user_id ||
     ""
   ).split("-")[0];
+  console.log("BODY:", JSON.stringify(body, null, 2));
 
   // ======================
   // CHECK USER
