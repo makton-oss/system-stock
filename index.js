@@ -394,7 +394,7 @@ async function formatLogs(rows) {
       ":" +
       d.getMinutes().toString().padStart(2, "0");
 
-    const name = map[r.chat_id] || r.chat_id;
+    const name = toProperCase(map[r.chat_id] || r.chat_id);
 
     reply += `${date} ${time}
 CMD: ${r.command}
