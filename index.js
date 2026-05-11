@@ -750,7 +750,7 @@ app.post("/webhook", async (req, res) => {
 	const name = parts[3];
 
 	if (!target || !targetRole || !name) {
-		await reply(chatId, "❌ FORMAT: SETROLE 60123456789 admin amin"");
+		await reply(chatId, "❌ FORMAT: SETROLE 60123456789 admin amin");
 		return res.status(200).end();
 	}
 
