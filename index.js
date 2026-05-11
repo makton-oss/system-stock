@@ -315,6 +315,18 @@ async function getUserDisplay(chatId) {
   };
 }
 
+function formatLogDateTime(date = new Date()) {
+  const d = new Date(date);
+
+  const day = d.getDate();
+  const month = d.getMonth() + 1;
+
+  const hours = d.getHours().toString().padStart(2, "0");
+  const minutes = d.getMinutes().toString().padStart(2, "0");
+
+  return `${day}/${month} ${hours}:${minutes}`;
+}
+
 function formatStock(rows) {
 
   if (!rows || rows.length === 0) {
@@ -322,7 +334,7 @@ function formatStock(rows) {
   }
 
   let reply = `📦 STOCK\n`;
-  reply += `${new Date().toLocaleString()}\n\n`;
+  reply += `${formatLogDateTime()}\n\n`;
 
   rows.forEach(r => {
     reply += `${toProperCase(r.item)} : ${r.qty}\n`;
@@ -386,7 +398,7 @@ async function formatLogs(rows) {
 
     reply += `${date} ${time}
 CMD: ${r.command}
-ITEM: ${r.details || "-"}
+${r.details || "-"}
 BY: ${name} (${r.chat_id})
 
 `;
