@@ -1214,7 +1214,7 @@ app.post("/webhook", async (req, res) => {
 
   await sendWhatsApp(chatId, report);
 
-  return res.status(200).end(););
+  return res.status(200).end();
 }
 
   // ======================
