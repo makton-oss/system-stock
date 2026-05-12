@@ -1,5 +1,6 @@
 const express = require("express");
 const { DateTime } = require("luxon");
+const WebSocket = require("ws");
 require("dotenv").config();
 
 const app = express();
@@ -18,7 +19,12 @@ const { createClient } = require("@supabase/supabase-js");
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
+  process.env.SUPABASE_SERVICE_ROLE_KEY,
+  {
+    realtime: {
+      transport: WebSocket
+    }
+  }
 );
 if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
   console.error("❌ ENV MISSING");
