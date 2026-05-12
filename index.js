@@ -1,7 +1,6 @@
 const express = require("express");
+const { DateTime } = require("luxon");
 require("dotenv").config();
-console.log("SUPABASE_URL =", process.env.SUPABASE_URL);
-console.log("SERVICE_ROLE =", process.env.SUPABASE_SERVICE_ROLE_KEY ? "OK" : "MISSING");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -9,7 +8,6 @@ const PORT = process.env.PORT || 3000;
 // ======================
 // MIDDLEWARE
 // ======================
-app.use(express.text({ type: "*/*" }));
 app.use(express.json({ strict: false }));
 app.use(express.urlencoded({ extended: true }));
 
@@ -23,12 +21,17 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-  console.log("ENV MISSING");
+  console.error("❌ ENV MISSING");
+  process.exit(1);
 }
 
 // ======================
 // HELPER
 // ======================
+function nowMY() {
+  return DateTime.now().setZone("Asia/Kuala_Lumpur");
+}
+
 function parseItems(parts) {
   let items = {};
 
@@ -224,7 +227,7 @@ function parseMonthInput(input) {
 
     return {
       start: new Date(now.getFullYear(), now.getMonth(), 1),
-      end: new Date(now.getFullYear(), now.getMonth() + 1, 0)
+      end: new Date(now.getFullYear(), now.getMonth() + 1, 1)
     };
   }
 
@@ -255,7 +258,7 @@ function parseMonthInput(input) {
 
   return {
     start: new Date(year, month, 1),
-    end: new Date(year, month + 1, 0)
+    end: new Date(year, month + 1, 1)
   };
 }
 
@@ -315,16 +318,14 @@ async function getUserDisplay(chatId) {
   };
 }
 
-function formatLogDateTime(date = new Date()) {
-  const d = new Date(date);
+function formatLogDateTime(date = null) {
 
-  const day = d.getDate();
-  const month = d.getMonth() + 1;
+  const d = date
+    ? DateTime.fromJSDate(new Date(date))
+        .setZone("Asia/Kuala_Lumpur")
+    : nowMY();
 
-  const hours = d.getHours().toString().padStart(2, "0");
-  const minutes = d.getMinutes().toString().padStart(2, "0");
-
-  return `${day}/${month} ${hours}:${minutes}`;
+  return d.toFormat("d/M HH:mm");
 }
 
 function formatStock(rows) {
@@ -386,13 +387,12 @@ async function formatLogs(rows) {
 
   for (const r of rows) {
 
-    const d = new Date(r.created_at);
+    const d = DateTime
+	  .fromISO(r.created_at)
+	  .setZone("Asia/Kuala_Lumpur");
 
-    const date = `${d.getDate()}/${d.getMonth() + 1}`;
-    const time =
-      d.getHours().toString().padStart(2, "0") +
-      ":" +
-      d.getMinutes().toString().padStart(2, "0");
+	const date = d.toFormat("d/M");
+	const time = d.toFormat("HH:mm");
 
     const name = toProperCase(map[r.chat_id] || r.chat_id);
 
@@ -460,7 +460,7 @@ async function checkRole(chat_id, allowed) {
 // ======================
 async function sendWhatsApp(phoneNumber, text) {
   try {
-    await fetch(process.env.BOTCOMMERCE_URL, {
+    const response = await fetch(process.env.BOTCOMMERCE_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
@@ -472,6 +472,11 @@ async function sendWhatsApp(phoneNumber, text) {
         message: text
       })
     });
+	
+	if (!response.ok) {
+	  const errText = await response.text();
+	  console.log("BOTCOMMERCE ERROR:", errText);
+	}
   } catch (err) {
     console.log("SEND FAIL:", err);
   }
@@ -736,6 +741,9 @@ app.post("/webhook", async (req, res) => {
 
   console.log("TYPE:", type, "CHAT:", chatId);
   
+  // ======================
+  // HELP
+  // ======================
   if (type === "HELP") {
 
   const { role } = await checkRole(chatId, ["staff", "manager", "admin"]);
@@ -883,6 +891,7 @@ app.post("/webhook", async (req, res) => {
 
     let summary = "";
     let invalid = [];
+	const validItems = [];
 
     for (const item of Object.keys(items)) {
 
@@ -899,22 +908,30 @@ app.post("/webhook", async (req, res) => {
 
       let qty = items[item];
 
-      await supabase
-        .from("requests")
-        .insert({
-          item,
-          qty,
-          status: "pending",
-          type: "in"
-        });
-
-      summary += `${item} x${qty}\n`;
+		validItems.push({
+		  item,
+		  qty
+		});
     }
 
     if (invalid.length > 0) {
 	  await reply(chatId, `❌ ITEM TAK WUJUD:\n${invalid.join("\n")}`);
 	  return res.status(200).end();
     }
+	
+	for (const v of validItems) {
+
+	  await supabase
+		.from("requests")
+		.insert({
+		  item: v.item,
+		  qty: v.qty,
+		  status: "pending",
+		  type: "in"
+		});
+
+	  summary += `${v.item} x${v.qty}\n`;
+	}
 
     await notifyManagers(
       `📥 STOCK IN\n${summary}\nBY: ${chatId}`,
@@ -951,6 +968,7 @@ app.post("/webhook", async (req, res) => {
 
     let summary = "";
     let invalid = [];
+	const validItems = [];
 
     for (const item of Object.keys(items)) {
 
@@ -967,22 +985,30 @@ app.post("/webhook", async (req, res) => {
 
       let qty = items[item];
 
-      await supabase
-        .from("requests")
-        .insert({
-          item,
-          qty,
-          status: "pending",
-          type: "out"
-        });
-
-      summary += `${item} x${qty}\n`;
+		validItems.push({
+		  item,
+		  qty
+		});
     }
 
     if (invalid.length > 0) {
 		await reply(chatId, `❌ ITEM TAK WUJUD:\n${invalid.join("\n")}`);
 		return res.status(200).end();
     }
+	
+	for (const v of validItems) {
+
+	  await supabase
+		.from("requests")
+		.insert({
+		  item: v.item,
+		  qty: v.qty,
+		  status: "pending",
+		  type: "out"
+		});
+
+	  summary += `${v.item} x${v.qty}\n`;
+	}
 
     await notifyManagers(
       `📤 REQUEST OUT\n${summary}\nBY: ${chatId}`,
