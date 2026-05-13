@@ -720,7 +720,6 @@ app.post("/webhook", async (req, res) => {
     "";
 
   if (!message) {
-    await reply(chatId, "");
 	return res.status(200).end();
   }
 
