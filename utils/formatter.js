@@ -202,6 +202,17 @@ function formatStaff(rows) {
   return reply;
 }
 
+// ======================
+// PROPER CASE
+// ======================
+function toProperCase(str = "") {
+  return str
+    .toString()
+    .toLowerCase()
+    .split(" ")
+    .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
+}
 
 module.exports = {
   getRoleGuide,
@@ -212,7 +223,8 @@ module.exports = {
   formatStock,
   formatPending,
   formatLogs,
-  formatStaff
+  formatStaff,
+  toProperCase
 };
 	
 	

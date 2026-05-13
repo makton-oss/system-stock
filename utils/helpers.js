@@ -74,18 +74,6 @@ function nowMY() {
 }
 
 // ======================
-// PROPER CASE
-// ======================
-function toProperCase(str = "") {
-  return str
-    .toString()
-    .toLowerCase()
-    .split(" ")
-    .map(w => w.charAt(0).toUpperCase() + w.slice(1))
-    .join(" ");
-}
-
-// ======================
 // ROLE GUIDE
 // ======================
 const ROLE_GUIDE = {
@@ -329,7 +317,6 @@ module.exports = {
   safeQty,
   isLowStock,
   nowMY,
-  toProperCase,
   ROLE_GUIDE,
   parseMonthInput,
   checkRole
