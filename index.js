@@ -38,21 +38,6 @@ function nowMY() {
   return DateTime.now().setZone("Asia/Kuala_Lumpur");
 }
 
-function parseItems(parts) {
-  let items = {};
-
-  for (let i = 1; i < parts.length; i += 2) {
-    let item = parts[i]?.toLowerCase();
-    let qty = parseInt(parts[i + 1]);
-
-    if (!item || isNaN(qty)) return null;
-
-    items[item] = (items[item] || 0) + qty;
-  }
-
-  return items;
-}
-
 function toProperCase(str) {
   return str
     .toLowerCase()
@@ -888,37 +873,35 @@ app.post("/webhook", async (req, res) => {
 		return res.status(200).end();
     }
 
-    const items = parseItems(parts);
+    const item = parts[1]?.toLowerCase();
+	const qty = parseInt(parts[2]);
 
-    if (!items) {
-		await reply(chatId, "❌ FORMAT SALAH");
-		return res.status(200).end();
-    }
+	if (!item || isNaN(qty)) {
+	  await reply(chatId, "❌ FORMAT: IN ayam 5");
+	  return res.status(200).end();
+	}
 
-    let summary = "";
-    let invalid = [];
-	const validItems = [];
+    const { data: stock } = await supabase
+	  .from("stock")
+	  .select("item")
+	  .eq("item", item)
+	  .maybeSingle();
 
-    for (const item of Object.keys(items)) {
+	if (!stock) {
+	  await reply(chatId, `❌ ITEM TAK WUJUD: ${item}`);
+	  return res.status(200).end();
+	}
 
-      const { data: stock } = await supabase
-        .from("stock")
-        .select("item")
-        .eq("item", item)
-        .maybeSingle();
+	await supabase
+	  .from("requests")
+	  .insert({
+		item,
+		qty,
+		status: "pending",
+		type: "in"
+	  });
 
-      if (!stock) {
-        invalid.push(item);
-        continue;
-      }
-
-      let qty = items[item];
-
-		validItems.push({
-		  item,
-		  qty
-		});
-    }
+	const summary = `${item} x${qty}`;
 
     if (invalid.length > 0) {
 	  await reply(chatId, `❌ ITEM TAK WUJUD:\n${invalid.join("\n")}`);
@@ -965,37 +948,35 @@ app.post("/webhook", async (req, res) => {
 		return res.status(200).end();
     }
 
-    const items = parseItems(parts);
+    const item = parts[1]?.toLowerCase();
+	const qty = parseInt(parts[2]);
 
-    if (!items) {
-		await reply(chatId, "❌ FORMAT SALAH");
-		return res.status(200).end();
-    }
+	if (!item || isNaN(qty)) {
+	  await reply(chatId, "❌ FORMAT: OUT ayam 5");
+	  return res.status(200).end();
+	}
 
-    let summary = "";
-    let invalid = [];
-	const validItems = [];
+    const { data: stock } = await supabase
+	  .from("stock")
+	  .select("item")
+	  .eq("item", item)
+	  .maybeSingle();
 
-    for (const item of Object.keys(items)) {
+	if (!stock) {
+	  await reply(chatId, `❌ ITEM TAK WUJUD: ${item}`);
+	  return res.status(200).end();
+	}
 
-      const { data: stock } = await supabase
-        .from("stock")
-        .select("item")
-        .eq("item", item)
-        .maybeSingle();
+	await supabase
+	  .from("requests")
+	  .insert({
+		item,
+		qty,
+		status: "pending",
+		type: "out"
+	  });
 
-      if (!stock) {
-        invalid.push(item);
-        continue;
-      }
-
-      let qty = items[item];
-
-		validItems.push({
-		  item,
-		  qty
-		});
-    }
+	const summary = `${item} x${qty}`;
 
     if (invalid.length > 0) {
 		await reply(chatId, `❌ ITEM TAK WUJUD:\n${invalid.join("\n")}`);
