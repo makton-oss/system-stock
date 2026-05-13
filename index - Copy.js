@@ -2,8 +2,7 @@ const express = require("express");
 const { DateTime } = require("luxon");
 const WebSocket = require("ws");
 require("dotenv").config();
-const { end, handleDbError, deny, normalizeItem, safeQty, isLowStock, nowMY, toProperCase, ROLE_GUIDE, parseMonthInput, checkRole } = require("./utils/helpers");
-const { getRoleGuide, formatLowStockAlert, writeLog, getUserDisplay, formatLogDateTime, formatStock, formatPending, formatLogs, formatStaff } = require("./utils/formatter");
+const { ok, handleDbError, deny, normalizeItem, safeQty, isLowStock } = require("./utils/helpers");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -34,6 +33,429 @@ if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
 }
 
 // ======================
+// HELPER
+// ======================
+function nowMY() {
+  return DateTime.now().setZone("Asia/Kuala_Lumpur");
+}
+
+function toProperCase(str) {
+  return str
+    .toLowerCase()
+    .split(" ")
+    .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
+}
+
+const ROLE_GUIDE = {
+
+  staff: `
+📦 STAFF GUIDE
+
+Hai 👋
+Sistem ni untuk update stok harian sahaja.
+
+────────────────────
+
+📥 Bila barang baru sampai:
+IN ayam 10
+IN ikan 5
+
+✅ Maksud:
+Tambah stok dalam sistem
+
+────────────────────
+
+📤 Bila barang guna / jual:
+OUT ayam 2
+OUT ikan 1
+
+✅ Maksud:
+Kurangkan stok dalam sistem
+
+────────────────────
+
+📦 Nak tengok stok semasa:
+STOCK
+
+────────────────────
+
+📋 Nak tengok permintaan pending:
+LIST
+
+────────────────────
+
+💡 TIPS MUDAH:
+• IN = barang masuk
+• OUT = barang keluar
+• Ikut contoh sahaja 👍
+
+❓ Kalau lupa command:
+HELP
+`,
+
+  manager: `
+📊 MANAGER GUIDE
+
+Hai 👋
+Anda boleh semak & luluskan request staf.
+
+────────────────────
+
+📋 Semak semua request:
+LIST
+
+────────────────────
+
+✅ Luluskan semua request:
+APPROVE
+
+✅ Luluskan satu request:
+APPROVE 12
+
+────────────────────
+
+❌ Tolak semua request:
+REJECT
+
+❌ Tolak satu request:
+REJECT 12
+
+────────────────────
+
+📦 Semak stok semasa:
+STOCK
+
+────────────────────
+
+📊 Laporan bulanan:
+REPORT current
+
+📊 Laporan bulan tertentu:
+REPORT feb-26
+
+────────────────────
+
+👥 Semak staff:
+STAFF
+
+────────────────────
+
+💡 TIPS MUDAH:
+• APPROVE = setuju request
+• REJECT = batalkan request
+• Semak LIST dulu sebelum approve 👍
+
+❓ Kalau lupa command:
+HELP
+`,
+
+  admin: `
+🛠 ADMIN GUIDE
+
+Hai 👋
+Anda mempunyai akses penuh sistem.
+
+────────────────────
+
+👤 Tambah / tukar role user:
+SETROLE 60123456789 manager ali
+
+────────────────────
+
+🗑 Buang user:
+REMOVEROLE 60123456789
+
+────────────────────
+
+👥 Semak semua staff:
+STAFF
+
+────────────────────
+
+📜 Semak log sistem:
+LOG
+
+────────────────────
+
+📦 Semak stok:
+STOCK
+
+────────────────────
+
+📊 Laporan bulanan:
+REPORT current
+
+📊 Laporan bulan tertentu:
+REPORT feb-26
+
+────────────────────
+
+➕ Tambah item baru:
+ADDITEM ayam
+
+────────────────────
+
+🗑 Buang item:
+REMOVEITEM ayam
+
+────────────────────
+
+💡 TIPS PENTING:
+• Pastikan nombor phone betul
+• Semak role sebelum SETROLE
+• Manager boleh approve request staf
+
+❓ Kalau lupa command:
+HELP
+`
+};
+
+function parseMonthInput(input) {
+
+  if (!input || input.toLowerCase() === "current") {
+
+    const now = new Date();
+
+    return {
+      start: new Date(now.getFullYear(), now.getMonth(), 1),
+      end: new Date(now.getFullYear(), now.getMonth() + 1, 1)
+    };
+  }
+
+  const months = {
+    jan: 0,
+    feb: 1,
+    mar: 2,
+    apr: 3,
+    may: 4,
+    jun: 5,
+    jul: 6,
+    aug: 7,
+    sep: 8,
+    oct: 9,
+    nov: 10,
+    dec: 11
+  };
+
+  const [m, y] = input.toLowerCase().split("-");
+
+  const month = months[m];
+
+  const year = 2000 + parseInt(y);
+
+  if (month === undefined || isNaN(year)) {
+    return null;
+  }
+
+  return {
+    start: new Date(year, month, 1),
+    end: new Date(year, month + 1, 1)
+  };
+}
+
+// ======================
+// FORMATTER
+// ======================
+function getRoleGuide(role) {
+  return ROLE_GUIDE[role] || "";
+}
+
+function formatLowStockAlert(item, qty, minQty) {
+  return `⚠️ LOW STOCK ALERT
+
+ITEM: ${toProperCase(item)}
+BALANCE: ${qty}
+MINIMUM: ${minQty}`;
+}
+
+async function writeLog(chatId, role, command, details = "") {
+  try {
+    await supabase.from("logs").insert({
+      chat_id: chatId,
+      role,
+      command,
+      details
+    });
+
+    // keep last 50 logs
+    const { data } = await supabase
+      .from("logs")
+      .select("id")
+      .order("id", { ascending: false });
+
+    if (data && data.length > 50) {
+      const idsToDelete = data.slice(50).map(x => x.id);
+
+      await supabase
+        .from("logs")
+        .delete()
+        .in("id", idsToDelete);
+    }
+
+  } catch (err) {
+    console.log("LOG ERROR:", err);
+  }
+}
+
+async function getUserDisplay(chatId) {
+  const { data } = await supabase
+    .from("users")
+    .select("nickname, chat_id")
+    .eq("chat_id", chatId)
+    .single();
+
+  if (!data) {
+    return {
+      nickname: "-",
+      chat_id: "-"
+    };
+  }
+
+  return {
+    nickname: data.nickname || "-",
+    chat_id: data.chat_id
+  };
+}
+
+function formatLogDateTime(date = null) {
+
+  const d = date
+    ? DateTime.fromJSDate(new Date(date))
+        .setZone("Asia/Kuala_Lumpur")
+    : nowMY();
+
+  return d.toFormat("d/M HH:mm");
+}
+
+function formatStock(rows) {
+
+  if (!rows || rows.length === 0) {
+    return "📦 STOCK KOSONG";
+  }
+
+  let reply = `📦 STOCK\n`;
+  reply += `${formatLogDateTime()}\n\n`;
+
+  rows.forEach(r => {
+    reply += `${toProperCase(r.item)} : ${r.qty}\n`;
+  });
+
+  return reply;
+}
+
+function formatPending(rows) {
+
+  if (!rows || rows.length === 0) {
+    return "📭 TIADA REQUEST";
+  }
+
+  let reply = `📋 PENDING LIST\n\n`;
+
+  rows.forEach(r => {
+
+    reply +=
+`ID ${r.id}
+TYPE : ${r.type?.toUpperCase()}
+ITEM : ${toProperCase(r.item)}
+QTY  : ${r.qty}
+
+`;
+
+  });
+
+  return reply;
+}
+
+async function formatLogs(rows) {
+
+  if (!rows?.length) return "📜 LOG KOSONG";
+
+  const userIds = [...new Set(rows.map(r => r.chat_id))];
+
+  const { data: users } = await supabase
+    .from("users")
+    .select("chat_id, nickname")
+    .in("chat_id", userIds);
+
+  const map = {};
+  users?.forEach(u => {
+    map[u.chat_id] = u.nickname;
+  });
+
+  let reply = "📜 LOG\n\n";
+
+  for (const r of rows) {
+
+    const d = DateTime
+	  .fromISO(r.created_at)
+	  .setZone("Asia/Kuala_Lumpur");
+
+	const date = d.toFormat("d/M");
+	const time = d.toFormat("HH:mm");
+
+    const name = toProperCase(map[r.chat_id] || r.chat_id);
+
+    reply += `${date} ${time}
+CMD: ${r.command}
+${r.details || "-"}
+BY: ${name} (${r.chat_id})
+
+`;
+  }
+
+  return reply;
+}
+
+function formatStaff(rows) {
+
+  if (!rows || rows.length === 0) {
+    return "👥 STAFF KOSONG";
+  }
+
+  let reply = "👥 STAFF LIST\n\n";
+
+  rows.forEach(r => {
+
+    let name = r.nickname || "-";
+    let id = r.chat_id;
+    let role = r.role?.toUpperCase();
+
+    reply +=
+`👤 ${toProperCase(name)}
+📱 ${id}
+🏷️ ${role}
+
+`;
+  });
+
+  return reply;
+}
+
+// ======================
+// ROLE CHECK
+// ======================
+async function checkRole(chat_id, allowed) {
+  const { data } = await supabase
+    .from("users")
+    .select("role")
+    .eq("chat_id", chat_id)
+    .single();
+
+  if (!data) {
+    return {
+      ok: false,
+      role: null
+    };
+  }
+
+  return {
+    ok: allowed.includes(data.role),
+    role: data.role
+  };
+}
+
+// ======================
 // WHATSAPP SENDER
 // ======================
 async function sendWhatsApp(phoneNumber, text) {
@@ -54,7 +476,6 @@ async function sendWhatsApp(phoneNumber, text) {
 	if (!response.ok) {
 	  const errText = await response.text();
 	  console.log("BOTCOMMERCE ERROR:", errText);
-	  throw new Error(errText);
 	}
   } catch (err) {
     console.log("SEND FAIL:", err);
@@ -297,7 +718,7 @@ app.post("/webhook", async (req, res) => {
 
   // ❌ NOT REGISTERED
   if (!user) {
-    return end(res);
+    return res.end();
   }
 
   let message =
@@ -308,7 +729,7 @@ app.post("/webhook", async (req, res) => {
     "";
 
   if (!message) {
-	return end(res);
+	return res.status(200).end();
   }
 
   message = message.replace(/,/g, " ");
@@ -339,8 +760,8 @@ app.post("/webhook", async (req, res) => {
     const { ok } = await checkRole(chatId, ["admin"]);
 
 	if (!ok) {
-		await deny(chatId, reply);
-		return end(res);
+	  await reply(chatId, "❌ ADMIN SAHAJA");
+	  return res.status(200).end();
 	}
 
 	const target = (parts[1] || "").split("-")[0];
@@ -349,7 +770,7 @@ app.post("/webhook", async (req, res) => {
 
 	if (!target || !targetRole || !name) {
 		await reply(chatId, "❌ FORMAT: SETROLE 60123456789 admin amin");
-		return end(res);
+		return res.status(200).end();
 	}
 
 	const { data: existing } = await supabase
@@ -388,7 +809,7 @@ app.post("/webhook", async (req, res) => {
 	);
 
 	await reply(chatId, `✅ ${target} → ${targetRole} (${name})`);
-	return end(res);
+	return res.status(200).end();
   }
 
   // ======================
@@ -399,8 +820,8 @@ app.post("/webhook", async (req, res) => {
     const { ok, role } = await checkRole(chatId, ["admin"]);
 
     if (!ok) {
-		await deny(chatId, reply);
-		return end(res);
+		await reply(chatId, "❌ ADMIN SAHAJA");
+		return res.status(200).end();
     }
 
     const target = (parts[1] || "").split("-")[0];
@@ -418,7 +839,7 @@ app.post("/webhook", async (req, res) => {
     );
 	
 	await reply(chatId, `🗑️ REMOVED ${target}`);
-	return end(res);
+	return res.status(200).end();
   }
 
   // ======================
@@ -429,8 +850,8 @@ app.post("/webhook", async (req, res) => {
     const { ok, role } = await checkRole(chatId, ["admin"]);
 
     if (!ok) {
-		await deny(chatId, reply);
-		return end(res);
+		await reply(chatId, "❌ ADMIN SAHAJA");
+		return res.status(200).end();
     }
 
     const { data: rows } = await supabase
@@ -442,7 +863,7 @@ app.post("/webhook", async (req, res) => {
 
     await sendWhatsApp(chatId, text);
 
-    return end(res);
+    return res.status(200).end();
   }
 
   // ======================
@@ -456,8 +877,7 @@ app.post("/webhook", async (req, res) => {
     );
 
     if (!ok) {
-		await deny(chatId, reply);
-		return end(res);
+		return deny(chatId, reply);
     }
 
     const item = parts[1]?.toLowerCase();
@@ -465,7 +885,7 @@ app.post("/webhook", async (req, res) => {
 
 	if (!item || isNaN(qty)) {
 	  await reply(chatId, "❌ FORMAT: IN ayam 5");
-	  return end(res);
+	  return ok(res);
 	}
 
     const { data: stock } = await supabase
@@ -476,7 +896,7 @@ app.post("/webhook", async (req, res) => {
 
 	if (!stock) {
 	  await reply(chatId, `❌ ITEM TAK WUJUD: ${item}`);
-	  return end(res);
+	  return res.status(200).end();
 	}
 
 	const { error } = await supabase
@@ -489,7 +909,7 @@ app.post("/webhook", async (req, res) => {
 	  });
 
 	if (await handleDbError(error, chatId, reply)) {
-	  return end(res);
+	  return ok(res);
 	}
 
 	const summary = `${item} x${qty}`;
@@ -502,7 +922,7 @@ app.post("/webhook", async (req, res) => {
     await writeLog(chatId, user?.role || "unknown", "IN", summary.trim());
 
     await reply(chatId, "✅ REQUEST SENT");
-	return end(res);
+	return ok(res);
   }
 
   // ======================
@@ -516,8 +936,7 @@ app.post("/webhook", async (req, res) => {
     );
 
     if (!ok) {
-		await deny(chatId, reply);
-		return end(res);
+		return deny(chatId, reply);
     }
 
     const item = parts[1]?.toLowerCase();
@@ -525,7 +944,7 @@ app.post("/webhook", async (req, res) => {
 
 	if (!item || isNaN(qty)) {
 	  await reply(chatId, "❌ FORMAT: OUT ayam 5");
-	  return end(res);
+	  return ok(res);
 	}
 
     const { data: stock } = await supabase
@@ -536,7 +955,7 @@ app.post("/webhook", async (req, res) => {
 
 	if (!stock) {
 	  await reply(chatId, `❌ ITEM TAK WUJUD: ${item}`);
-	  return end(res);
+	  return res.status(200).end();
 	}
 
 	const { error } = await supabase
@@ -549,7 +968,7 @@ app.post("/webhook", async (req, res) => {
 	  });
 
 	if (await handleDbError(error, chatId, reply)) {
-	  return end(res);
+	  return ok(res);
 	}
 
 	const summary = `${item} x${qty}`;
@@ -562,7 +981,7 @@ app.post("/webhook", async (req, res) => {
     await writeLog(chatId, user?.role || "unknown", "OUT", summary.trim());
 
     await reply(chatId, "✅ REQUEST SENT");
-	return end(res);
+	return ok(res);
   }
 
   // ======================
@@ -577,14 +996,14 @@ app.post("/webhook", async (req, res) => {
 
     if (!ok) {
 		await reply(chatId, "❌ NO ACCESS");
-		return end(res);
+		return res.status(200).end();
     }
 
     const item = parts[1]?.toLowerCase();
 
     if (!item) {
 		await reply(chatId, "❌ FORMAT: ADDITEM ayam");
-		return end(res);
+		return res.status(200).end();
     }
 
     const { data: exist } = await supabase
@@ -595,7 +1014,7 @@ app.post("/webhook", async (req, res) => {
 
     if (exist) {
 		await reply(chatId, `⚠️ ITEM SUDAH ADA: ${item}`);
-		return end(res);
+		return res.status(200).end();
     }
 
     const { error } = await supabase
@@ -606,7 +1025,7 @@ app.post("/webhook", async (req, res) => {
 	  });
 
 	if (await handleDbError(error, chatId, reply)) {
-	  return end(res);
+	  return ok(res);
 	}
 
     await writeLog(
@@ -617,7 +1036,7 @@ app.post("/webhook", async (req, res) => {
     );
 
 	await reply(chatId, `✅ ITEM ADDED: ${item}`);
-	return end(res);
+	return res.status(200).end();
   }
 
   // ======================
@@ -631,15 +1050,15 @@ app.post("/webhook", async (req, res) => {
     );
 
     if (!ok) {
-		await deny(chatId, reply);
-		return end(res);
+		await reply(chatId, "❌ NO ACCESS");
+		return res.status(200).end();
     }
 
     const item = parts[1]?.toLowerCase();
 
     if (!item) {
 		await reply(chatId, "❌ FORMAT: REMOVEITEM ayam");
-		return end(res);
+		return res.status(200).end();
     }
 
     await supabase
@@ -661,7 +1080,7 @@ app.post("/webhook", async (req, res) => {
     );
 
 	await reply(chatId, `🗑️ ITEM REMOVED: ${item}`);
-	return end(res);
+	return res.status(200).end();
   }
 
   // ======================
@@ -675,8 +1094,8 @@ app.post("/webhook", async (req, res) => {
     );
 
     if (!ok) {
-		await deny(chatId, reply);
-		return end(res);
+		await reply(chatId, "❌ NO ACCESS");
+		return res.status(200).end();
     }
 
     const { data: rows } = await supabase
@@ -692,7 +1111,7 @@ app.post("/webhook", async (req, res) => {
 
     await sendWhatsApp(chatId, text);
 
-    return end(res);
+    return res.status(200).end();
   }
 
   // ======================
@@ -706,8 +1125,8 @@ app.post("/webhook", async (req, res) => {
     );
 
     if (!ok) {
-		await deny(chatId, reply);
-		return end(res);
+		await reply(chatId, "❌ NO ACCESS");
+		return res.status(200).end();
     }
 
     const { data: rows } = await supabase
@@ -721,7 +1140,7 @@ app.post("/webhook", async (req, res) => {
       formatPending(rows)
     );
 
-    return end(res);
+    return res.status(200).end();
   }
 
   // ======================
@@ -735,8 +1154,8 @@ app.post("/webhook", async (req, res) => {
     );
 
     if (!ok) {
-		await deny(chatId, reply);
-		return end(res);
+		await reply(chatId, "❌ NO ACCESS");
+		return res.status(200).end();
     }
 
     const { data: rows } = await supabase
@@ -748,7 +1167,7 @@ app.post("/webhook", async (req, res) => {
 
     await sendWhatsApp(chatId, text);
 
-    return end(res);
+    return res.status(200).end();
   }
 
   // ======================
@@ -762,8 +1181,8 @@ app.post("/webhook", async (req, res) => {
     );
 
     if (!ok) {
-		await deny(chatId, reply);
-		return end(res);
+		await reply(chatId, "❌ NO ACCESS");
+		return res.status(200).end();
     }
 
     const { data: rows } = await supabase
@@ -776,7 +1195,7 @@ app.post("/webhook", async (req, res) => {
 
 	await sendWhatsApp(chatId, text);
 
-    return end(res);
+    return res.status(200).end();
   }
   
   // ======================
@@ -790,8 +1209,8 @@ app.post("/webhook", async (req, res) => {
 	  );
 
 	  if (!ok) {
-		await deny(chatId, reply);
-		return end(res);
+		await reply(chatId, "❌ NO ACCESS");
+		return res.status(200).end();
 	  }
 
   const monthInput = parts[1] || "current";
@@ -800,7 +1219,7 @@ app.post("/webhook", async (req, res) => {
 
   await sendWhatsApp(chatId, report);
 
-  return end(res);
+  return res.status(200).end();
 }
 
   // ======================
@@ -814,8 +1233,8 @@ app.post("/webhook", async (req, res) => {
     );
 
     if (!ok) {
-		await deny(chatId, reply);
-		return end(res);
+		await reply(chatId, "❌ NO ACCESS");
+		return res.status(200).end();
     }
 
     if (parts[1]) {
@@ -824,7 +1243,7 @@ app.post("/webhook", async (req, res) => {
 
       if (isNaN(id)) {
 		await reply(chatId, "❌ ID MESTI NOMBOR");
-		return end(res);
+		return res.status(200).end();
       }
 
       return processRejectSingle(
@@ -853,8 +1272,8 @@ app.post("/webhook", async (req, res) => {
     );
 
     if (!ok) {
-		await deny(chatId, reply);
-		return end(res);
+		await reply(chatId, "❌ NO ACCESS");
+		return res.status(200).end();
     }
 
     if (parts[1]) {
@@ -863,7 +1282,7 @@ app.post("/webhook", async (req, res) => {
 
       if (isNaN(id)) {
         await reply(chatId, "❌ ID MESTI NOMBOR");
-		return end(res);
+		return res.status(200).end();
       }
 
       return processApproveSingle(
@@ -891,7 +1310,7 @@ app.post("/webhook", async (req, res) => {
   // UNKNOWN
   // ======================
   else {
-	return end(res);
+	return res.status(200).end();
 
   }
 
@@ -904,7 +1323,7 @@ async function processApprove(rows, res, chatId, role) {
 
   if (!rows?.length) {
 		await reply(chatId, "📭 TIADA DATA");
-		return end(res);
+		return res.status(200).end();
   }
 
   let summary = {};
@@ -933,7 +1352,7 @@ async function processApprove(rows, res, chatId, role) {
 	  .from("stock")
 	  .select("qty, min_qty")
 	  .eq("item", row.item)
-	  .maybeSingle();
+	  .single();
 
 	if ( latestStock && latestStock.qty <= latestStock.min_qty) {
 	  await notifyManagers( formatLowStockAlert( row.item, latestStock.qty, latestStock.min_qty));
@@ -961,7 +1380,7 @@ async function processApprove(rows, res, chatId, role) {
   await writeLog(chatId, role, "APPROVE", logDetails.join(" | "));
 
   await reply(chatId, reply);
-  return end(res);
+  return res.status(200).end();
 }
 
 // =====================================================
@@ -973,16 +1392,16 @@ async function processApproveSingle(id, res, chatId, role) {
     .from("requests")
     .select("*")
     .eq("id", id)
-    .maybeSingle();
+    .single();
 
   if (!row) {
     await reply(chatId, "❌ ID TIDAK WUJUD");
-	return end(res);
+	return res.status(200).end();
   }
 
   if (row.status !== "pending") {
 	await reply(chatId, `❌ ID ${id} SUDAH ${row.status.toUpperCase()}`);
-	return end(res);
+	return res.status(200).end();
   }
 
   // update stock
@@ -1006,7 +1425,7 @@ async function processApproveSingle(id, res, chatId, role) {
 	  .from("stock")
 	  .select("qty, min_qty")
 	  .eq("item", row.item)
-	  .maybeSingle();
+	  .single();
 
 	if ( latestStock && latestStock.qty <= latestStock.min_qty) {
 	  await notifyManagers( formatLowStockAlert( row.item, latestStock.qty, latestStock.min_qty));
@@ -1027,7 +1446,7 @@ async function processApproveSingle(id, res, chatId, role) {
   );
 
   await reply(chatId, `✅ APPROVED\n\nID ${id}\n${row.item} ${sign}${row.qty}`);
-  return end(res);
+  return res.status(200).end();
 }
 
 
@@ -1043,7 +1462,7 @@ async function processRejectAll(res, chatId, role) {
 
   if (!rows?.length) {
 	await reply(chatId, "📭 TIADA REQUEST PENDING");
-	return end(res);
+	return res.status(200).end();
   }
 
   await supabase
@@ -1054,7 +1473,7 @@ async function processRejectAll(res, chatId, role) {
   await writeLog(chatId, role, "REJECT", `${rows.length} request`);
 
   await reply(chatId, `❌ REJECTED\n\nTotal: ${rows.length} request`);
-  return end(res);
+  return res.status(200).end();
 }
 
 // =====================================================
@@ -1066,16 +1485,16 @@ async function processRejectSingle(id, res, chatId, role) {
     .from("requests")
     .select("*")
     .eq("id", id)
-    .maybeSingle();
+    .single();
 
   if (!row) {
     await reply(chatId, "❌ ID TIDAK WUJUD");
-	return end(res);
+	return res.status(200).end();
   }
 
   if (row.status !== "pending") {
 	await reply(chatId, `❌ ID ${id} SUDAH ${row.status.toUpperCase()}`);
-	return end(res);
+	return res.status(200).end();
   }
 
   await supabase
@@ -1091,7 +1510,7 @@ async function processRejectSingle(id, res, chatId, role) {
   );
 
   await reply(chatId, `❌ REJECTED\n\nID ${id}\n${row.item} x${row.qty}`);
-  return end(res);
+  return res.status(200).end();
 }
 
 // ======================
