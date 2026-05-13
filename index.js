@@ -2,6 +2,7 @@ const express = require("express");
 const { DateTime } = require("luxon");
 const WebSocket = require("ws");
 require("dotenv").config();
+const { ok, handleDbError, deny, normalizeItem, safeQty, isLowStock } = require("./utils/helpers");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -258,6 +259,14 @@ function parseMonthInput(input) {
 // ======================
 function getRoleGuide(role) {
   return ROLE_GUIDE[role] || "";
+}
+
+function formatLowStockAlert(item, qty, minQty) {
+  return `⚠️ LOW STOCK ALERT
+
+ITEM: ${toProperCase(item)}
+BALANCE: ${qty}
+MINIMUM: ${minQty}`;
 }
 
 async function writeLog(chatId, role, command, details = "") {
@@ -868,8 +877,7 @@ app.post("/webhook", async (req, res) => {
     );
 
     if (!ok) {
-		await reply(chatId, "❌ NO ACCESS");
-		return res.status(200).end();
+		return deny(chatId, reply);
     }
 
     const item = parts[1]?.toLowerCase();
@@ -877,7 +885,7 @@ app.post("/webhook", async (req, res) => {
 
 	if (!item || isNaN(qty)) {
 	  await reply(chatId, "❌ FORMAT: IN ayam 5");
-	  return res.status(200).end();
+	  return ok(res);
 	}
 
     const { data: stock } = await supabase
@@ -891,7 +899,7 @@ app.post("/webhook", async (req, res) => {
 	  return res.status(200).end();
 	}
 
-	await supabase
+	const { error } = await supabase
 	  .from("requests")
 	  .insert({
 		item,
@@ -899,6 +907,10 @@ app.post("/webhook", async (req, res) => {
 		status: "pending",
 		type: "in"
 	  });
+
+	if (await handleDbError(error, chatId, reply)) {
+	  return ok(res);
+	}
 
 	const summary = `${item} x${qty}`;
 
@@ -910,7 +922,7 @@ app.post("/webhook", async (req, res) => {
     await writeLog(chatId, user?.role || "unknown", "IN", summary.trim());
 
     await reply(chatId, "✅ REQUEST SENT");
-	return res.status(200).end();
+	return ok(res);
   }
 
   // ======================
@@ -924,8 +936,7 @@ app.post("/webhook", async (req, res) => {
     );
 
     if (!ok) {
-		await reply(chatId, "❌ NO ACCESS");
-		return res.status(200).end();
+		return deny(chatId, reply);
     }
 
     const item = parts[1]?.toLowerCase();
@@ -933,7 +944,7 @@ app.post("/webhook", async (req, res) => {
 
 	if (!item || isNaN(qty)) {
 	  await reply(chatId, "❌ FORMAT: OUT ayam 5");
-	  return res.status(200).end();
+	  return ok(res);
 	}
 
     const { data: stock } = await supabase
@@ -947,7 +958,7 @@ app.post("/webhook", async (req, res) => {
 	  return res.status(200).end();
 	}
 
-	await supabase
+	const { error } = await supabase
 	  .from("requests")
 	  .insert({
 		item,
@@ -955,6 +966,10 @@ app.post("/webhook", async (req, res) => {
 		status: "pending",
 		type: "out"
 	  });
+
+	if (await handleDbError(error, chatId, reply)) {
+	  return ok(res);
+	}
 
 	const summary = `${item} x${qty}`;
 
@@ -966,7 +981,7 @@ app.post("/webhook", async (req, res) => {
     await writeLog(chatId, user?.role || "unknown", "OUT", summary.trim());
 
     await reply(chatId, "✅ REQUEST SENT");
-	return res.status(200).end();
+	return ok(res);
   }
 
   // ======================
@@ -1002,12 +1017,16 @@ app.post("/webhook", async (req, res) => {
 		return res.status(200).end();
     }
 
-    await supabase
-      .from("stock")
-      .insert({
-        item,
-        qty: 0
-      });
+    const { error } = await supabase
+	  .from("stock")
+	  .insert({
+		item,
+		qty: 0
+	  });
+
+	if (await handleDbError(error, chatId, reply)) {
+	  return ok(res);
+	}
 
     await writeLog(
       chatId,
@@ -1314,21 +1333,35 @@ async function processApprove(rows, res, chatId, role) {
 
     // update stock
     if (row.type === "out") {
-      await supabase.rpc("decrease_stock", {
-        p_item: row.item,
-        p_qty: row.qty
-      });
-    } else {
-      await supabase.rpc("increase_stock", {
-        p_item: row.item,
-        p_qty: row.qty
-      });
-    }
+	  await supabase.rpc("decrease_stock", {
+		p_item: row.item,
+		p_qty: row.qty
+	  });
+	} else {
+	  await supabase.rpc("increase_stock", {
+		p_item: row.item,
+		p_qty: row.qty
+	  });
+	}
 
-    await supabase
-      .from("requests")
-      .update({ status: "approved" })
-      .eq("id", row.id);
+	// ======================
+	// LOW STOCK CHECK
+	// ======================
+
+	const { data: latestStock } = await supabase
+	  .from("stock")
+	  .select("qty, min_qty")
+	  .eq("item", row.item)
+	  .single();
+
+	if ( latestStock && latestStock.qty <= latestStock.min_qty) {
+	  await notifyManagers( formatLowStockAlert( row.item, latestStock.qty, latestStock.min_qty));
+	}
+
+	await supabase
+	  .from("requests")
+	  .update({ status: "approved" })
+	  .eq("id", row.id);
 
     summary[row.item] =
       (summary[row.item] || 0) +
@@ -1371,22 +1404,37 @@ async function processApproveSingle(id, res, chatId, role) {
 	return res.status(200).end();
   }
 
-  if (row.type === "out") {
-    await supabase.rpc("decrease_stock", {
-      p_item: row.item,
-      p_qty: row.qty
-    });
-  } else {
-    await supabase.rpc("increase_stock", {
-      p_item: row.item,
-      p_qty: row.qty
-    });
-  }
+  // update stock
+    if (row.type === "out") {
+	  await supabase.rpc("decrease_stock", {
+		p_item: row.item,
+		p_qty: row.qty
+	  });
+	} else {
+	  await supabase.rpc("increase_stock", {
+		p_item: row.item,
+		p_qty: row.qty
+	  });
+	}
 
-  await supabase
-    .from("requests")
-    .update({ status: "approved" })
-    .eq("id", id);
+	// ======================
+	// LOW STOCK CHECK
+	// ======================
+
+	const { data: latestStock } = await supabase
+	  .from("stock")
+	  .select("qty, min_qty")
+	  .eq("item", row.item)
+	  .single();
+
+	if ( latestStock && latestStock.qty <= latestStock.min_qty) {
+	  await notifyManagers( formatLowStockAlert( row.item, latestStock.qty, latestStock.min_qty));
+	}
+
+	await supabase
+	  .from("requests")
+	  .update({ status: "approved" })
+	  .eq("id", row.id);
 
   const sign = row.type === "out" ? "-" : "+";
 
