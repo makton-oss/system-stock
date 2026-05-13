@@ -903,25 +903,6 @@ app.post("/webhook", async (req, res) => {
 
 	const summary = `${item} x${qty}`;
 
-    if (invalid.length > 0) {
-	  await reply(chatId, `❌ ITEM TAK WUJUD:\n${invalid.join("\n")}`);
-	  return res.status(200).end();
-    }
-	
-	for (const v of validItems) {
-
-	  await supabase
-		.from("requests")
-		.insert({
-		  item: v.item,
-		  qty: v.qty,
-		  status: "pending",
-		  type: "in"
-		});
-
-	  summary += `${v.item} x${v.qty}\n`;
-	}
-
     await notifyManagers(
       `📥 STOCK IN\n${summary}\nBY: ${chatId}`,
       chatId
@@ -977,25 +958,6 @@ app.post("/webhook", async (req, res) => {
 	  });
 
 	const summary = `${item} x${qty}`;
-
-    if (invalid.length > 0) {
-		await reply(chatId, `❌ ITEM TAK WUJUD:\n${invalid.join("\n")}`);
-		return res.status(200).end();
-    }
-	
-	for (const v of validItems) {
-
-	  await supabase
-		.from("requests")
-		.insert({
-		  item: v.item,
-		  qty: v.qty,
-		  status: "pending",
-		  type: "out"
-		});
-
-	  summary += `${v.item} x${v.qty}\n`;
-	}
 
     await notifyManagers(
       `📤 REQUEST OUT\n${summary}\nBY: ${chatId}`,
