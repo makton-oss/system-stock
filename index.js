@@ -2,6 +2,8 @@ const express = require("express");
 const { DateTime } = require("luxon");
 const WebSocket = require("ws");
 require("dotenv").config();
+
+const supabase = require("./services/db");
 const { end, handleDbError, deny, normalizeItem, safeQty, isLowStock, nowMY, toProperCase, ROLE_GUIDE, parseMonthInput, checkRole } = require("./utils/helpers");
 const { getRoleGuide, formatLowStockAlert, writeLog, getUserDisplay, formatLogDateTime, formatStock, formatPending, formatLogs, formatStaff } = require("./utils/formatter");
 
@@ -13,25 +15,6 @@ const PORT = process.env.PORT || 3000;
 // ======================
 app.use(express.json({ strict: false }));
 app.use(express.urlencoded({ extended: true }));
-
-// ======================
-// DATABASE
-// ======================
-const { createClient } = require("@supabase/supabase-js");
-
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY,
-  {
-    realtime: {
-      transport: WebSocket
-    }
-  }
-);
-if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-  console.error("❌ ENV MISSING");
-  process.exit(1);
-}
 
 // ======================
 // WHATSAPP SENDER

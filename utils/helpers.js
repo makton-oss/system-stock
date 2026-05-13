@@ -1,3 +1,5 @@
+const supabase = require("../services/db");
+
 // ======================
 // RESPONSE
 // ======================
