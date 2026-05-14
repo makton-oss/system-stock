@@ -108,7 +108,7 @@ Category: ${toProperCase(r.category)}
 Min Qty: ${r.min_qty}
 Cost: RM${Number(r.cost_price).toFixed(2)}
 
-		`;
+`;
 	});
 
 	return reply;
@@ -129,8 +129,7 @@ function formatPending(rows) {
 
     reply +=
 `ID ${r.id}
-TYPE : ${r.type?.toUpperCase()}
-ITEM : ${toProperCase(r.item)}
+TYPE : ${r.type?.toUpperCase()} ${toProperCase(r.item)}
 QTY  : ${r.qty}
 
 `;
