@@ -1055,16 +1055,16 @@ async function processApprove(rows, res, chatId, role) {
     // update stock
     if (row.type === "out") {
 	  await supabase.rpc("decrease_stock", {
-		p_item: row.item,
-		p_qty: row.qty
-		p_outlet_id: row.outlet_id
-	  });
+		  p_item: row.item,
+		  p_qty: row.qty,
+		  p_outlet_id: row.outlet_id,
+		});
 	} else {
 	  await supabase.rpc("increase_stock", {
-		p_item: row.item,
-		p_qty: row.qty
-		p_outlet_id: row.outlet_id
-	  });
+		  p_item: row.item,
+		  p_qty: row.qty,
+		  p_outlet_id: row.outlet_id,
+		});
 	}
 	
 	await supabase
@@ -1173,13 +1173,13 @@ async function processApproveSingle(id, res, chatId, role) {
     if (row.type === "out") {
 	  await supabase.rpc("decrease_stock", {
 		p_item: row.item,
-		p_qty: row.qty
+		p_qty: row.qty,
 		p_outlet_id: row.outlet_id
 	  });
 	} else {
 	  await supabase.rpc("increase_stock", {
 		p_item: row.item,
-		p_qty: row.qty
+		p_qty: row.qty,
 		p_outlet_id: row.outlet_id
 	  });
 	}
