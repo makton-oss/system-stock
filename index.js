@@ -1019,6 +1019,25 @@ async function processApprove(rows, res, chatId, role) {
 		p_qty: row.qty
 	  });
 	}
+	
+	await supabase
+	  .from("stock_movements")
+	  .insert({
+
+		outlet_id: row.outlet_id,
+
+		item_id: row.item_id,
+
+		request_id: row.id,
+
+		item: row.item,
+
+		qty: row.qty,
+
+		type: row.type,
+
+		created_by: chatId
+	  });
 
 	// ======================
 	// LOW STOCK CHECK
@@ -1111,6 +1130,25 @@ async function processApproveSingle(id, res, chatId, role) {
 		p_qty: row.qty
 	  });
 	}
+	
+	await supabase
+	  .from("stock_movements")
+	  .insert({
+
+		outlet_id: row.outlet_id,
+
+		item_id: row.item_id,
+
+		request_id: row.id,
+
+		item: row.item,
+
+		qty: row.qty,
+
+		type: row.type,
+
+		created_by: chatId
+	  });
 
 	// ======================
 	// LOW STOCK CHECK

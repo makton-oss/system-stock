@@ -102,7 +102,7 @@ function formatStock(rows) {
 
 	rows.forEach(r => {
 		reply +=
-`${toProperCase(r.item_name)}
+		`${toProperCase(r.item_name)}
 Qty: ${r.qty}
 Category: ${toProperCase(r.category)}
 Min Qty: ${r.min_qty}
