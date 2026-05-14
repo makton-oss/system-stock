@@ -445,30 +445,30 @@ app.post("/webhook", async (req, res) => {
 	// ======================
 	else if (type === "STAFF") {
 
-	  const { ok } = await checkRole(chatId, ["admin", "manager"]);
+		const { ok, role } = await checkRole(chatId, ["admin", "manager"]);
 
-	  if (!ok) {
-		await deny(chatId, reply);
+		if (!ok) {
+			await deny(chatId, reply);
+			return end(res);
+		}
+
+		let query = supabase
+			.from("users")
+			.select("*")
+			.order("role");
+
+		if (user.role !== "admin") {
+			query = query.eq("outlet_id", user.outlet_id);
+		}
+
+		const { data: rows } = await query;
+
+		let text = formatStaff(rows);
+
+		await sendWhatsApp(chatId, text);
+
 		return end(res);
 	  }
-
-	  let query = supabase
-		.from("users")
-		.select("*")
-		.order("role");
-
-	  if (user.role !== "admin") {
-		query = query.eq("outlet_id", user.outlet_id);
-	  }
-
-	  const { data: rows } = await query;
-
-	  let text = formatStaff(rows);
-
-	  await sendWhatsApp(chatId, text);
-
-	  return end(res);
-	}
 
   // ======================
   // IN
@@ -615,97 +615,90 @@ app.post("/webhook", async (req, res) => {
   // ======================
   else if (type === "ADDITEM") {
 
-	  const { ok } = await checkRole(chatId, ["admin", "manager"]);
+    const { ok, role } = await checkRole(
+      chatId,
+      ["admin", "manager"]
+    );
 
-	  if (!ok) {
+    if (!ok) {
 		await reply(chatId, "❌ NO ACCESS");
 		return end(res);
-	  }
+    }
 
-	  const nameParts = parts.slice(1, -4);
-	  const item = normalizeItem(nameParts.join(" "));
+    const nameParts = parts.slice(1, -3);
+	const item = normalizeItem(nameParts.join(" "));
 
-	  const category = parts.at(-4)?.toLowerCase();
-	  const minQty = parseInt(parts.at(-3));
-	  const costPrice = parseFloat(parts.at(-2));
-	  const outletName = parts.at(-1);
+	const category = parts.at(-3).toLowerCase();
+	const minQty = parseInt(parts.at(-2));
+	const costPrice = parseFloat(parts.at(-1));
 
-	  if (!item || !category || isNaN(minQty) || isNaN(costPrice) || !outletName) {
-		await reply(chatId, "❌ FORMAT: ADDITEM ayam dara basah 10 12.5 muiz");
-		return end(res);
-	  }
-
-	  // ✅ cari outlet
-	  const { data: outlet } = await supabase
-		.from("outlets")
-		.select("id")
-		.eq("name", outletName)
-		.maybeSingle();
-
-	  if (!outlet) {
-		await reply(chatId, "❌ OUTLET TAK WUJUD");
-		return end(res);
-	  }
-
-	  // ✅ check item master (stock_items)
-	  const { data: existingItem } = await supabase
-		.from("stock_items")
-		.select("*")
-		.eq("name", item)
-		.maybeSingle();
-
-	  let itemId;
-
-	  if (existingItem) {
-		itemId = existingItem.id;
-	  } else {
-		const { data: newItem } = await supabase
-		  .from("stock_items")
-		  .insert({
-			name: item,
-			category,
-			min_qty: minQty,
-			cost_price: costPrice
-		  })
-		  .select()
-		  .single();
-
-		itemId = newItem.id;
-	  }
-
-	  // ✅ check stock dalam outlet tu dah ada ke belum
-	  const { data: existingStock } = await supabase
-		.from("stock")
-		.select("*")
-		.eq("item", item)
-		.eq("outlet_id", outlet.id)
-		.maybeSingle();
-
-	  if (existingStock) {
-		await reply(chatId, `⚠️ ITEM DAH ADA DALAM OUTLET: ${item} (${outletName})`);
-		return end(res);
-	  }
-
-	  // ✅ insert stock
-	  const { error } = await supabase
-		.from("stock")
-		.insert({
-		  item,
-		  item_id: itemId,
-		  qty: 0,
-		  outlet_id: outlet.id
-		});
-
-	  if (await handleDbError(error, chatId, reply)) {
-		return end(res);
-	  }
-
-	  await writeLog(chatId, user.role, "ADDITEM", `${item} (${outletName})`);
-
-	  await reply(chatId, `✅ ITEM ADDED: ${item} (${outletName})`);
-
+    if (!item || !category || isNaN(minQty) || isNaN(costPrice)) {
+	  await reply(chatId, "❌ FORMAT: ADDITEM ayam dara basah 5 12.50");
 	  return end(res);
 	}
+
+    const { data: exist } = await supabase
+      .from("stock")
+      .select("*")
+      .eq("item", item)
+      .maybeSingle();
+
+    if (exist) {
+		await reply(chatId, `⚠️ ITEM SUDAH ADA: ${item}`);
+		return end(res);
+    }
+
+    const { data: existingItem } = await supabase
+	  .from("stock_items")
+	  .select("*")
+	  .eq("name", item)
+	  .maybeSingle();
+
+	let itemId;
+
+	if (existingItem) {
+
+	  itemId = existingItem.id;
+
+	} else {
+
+	  const { data: newItem } = await supabase
+		.from("stock_items")
+		.insert({
+		  name: item,
+		  category,
+		  min_qty: minQty,
+		  cost_price: costPrice
+		})
+		.select()
+		.single();
+
+	  itemId = newItem.id;
+	}
+
+	const { error } = await supabase
+	  .from("stock")
+	  .insert({
+		item,
+		item_id: itemId,
+		qty: 0,
+		outlet_id: user.outlet_id
+	  });
+
+	if (await handleDbError(error, chatId, reply)) {
+	  return end(res);
+	}
+
+    await writeLog(
+      chatId,
+      role,
+      "ADDITEM",
+      item
+    );
+
+	await reply(chatId, `✅ ITEM ADDED: ${item}`);
+	return end(res);
+  }
 
   // ======================
   // REMOVEITEM
@@ -766,13 +759,11 @@ app.post("/webhook", async (req, res) => {
 		return end(res);
     }
 
-    let query = supabase.from("stock").select("*");
-
-	if (user.role !== "admin") {
-	  query = query.eq("outlet_id", user.outlet_id);
-	}
-
-	const { data: rows } = await query;
+    const { data: rows } = await supabase
+      .from("stock")
+      .select("item")
+	  .eq("outlet_id", user.outlet_id)
+      .order("item");
 
     let text = "📦 ITEM LIST\n\n";
 
@@ -800,13 +791,12 @@ app.post("/webhook", async (req, res) => {
 		return end(res);
     }
 
-    let query = supabase.from("stock").select("*");
-
-	if (user.role !== "admin") {
-	  query = query.eq("outlet_id", user.outlet_id);
-	}
-
-	const { data: rows } = await query;
+    const { data: rows } = await supabase
+      .from("requests")
+      .select("*")
+      .eq("status", "pending")
+	  .eq("outlet_id", user.outlet_id)
+      .order("id");
 
     await sendWhatsApp(
       chatId,
@@ -1066,13 +1056,13 @@ async function processApprove(rows, res, chatId, role) {
     if (row.type === "out") {
 	  await supabase.rpc("decrease_stock", {
 		p_item: row.item,
-		p_qty: row.qty,
+		p_qty: row.qty
 		p_outlet_id: row.outlet_id
 	  });
 	} else {
 	  await supabase.rpc("increase_stock", {
 		p_item: row.item,
-		p_qty: row.qty,
+		p_qty: row.qty
 		p_outlet_id: row.outlet_id
 	  });
 	}
@@ -1183,13 +1173,13 @@ async function processApproveSingle(id, res, chatId, role) {
     if (row.type === "out") {
 	  await supabase.rpc("decrease_stock", {
 		p_item: row.item,
-		p_qty: row.qty,
+		p_qty: row.qty
 		p_outlet_id: row.outlet_id
 	  });
 	} else {
 	  await supabase.rpc("increase_stock", {
 		p_item: row.item,
-		p_qty: row.qty,
+		p_qty: row.qty
 		p_outlet_id: row.outlet_id
 	  });
 	}
