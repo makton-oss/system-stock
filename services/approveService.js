@@ -1,0 +1,107 @@
+const supabase = require("./db");
+
+async function approveRequests(rows, chatId) {
+
+  let summary = {};
+  let logDetails = [];
+
+  for (const row of rows) {
+
+    // ======================
+    // GET BEFORE STOCK
+    // ======================
+    const { data: before } = await supabase
+      .from("stock")
+      .select("qty, stock_items(min_qty)")
+      .eq("item", row.item)
+      .eq("outlet_id", row.outlet_id)
+      .maybeSingle();
+
+    if (!before) continue;
+
+    // ======================
+    // UPDATE STOCK (RPC)
+    // ======================
+    if (row.type === "out") {
+      await supabase.rpc("decrease_stock", {
+        p_item: row.item,
+        p_qty: row.qty,
+        p_outlet_id: row.outlet_id
+      });
+    } else {
+      await supabase.rpc("increase_stock", {
+        p_item: row.item,
+        p_qty: row.qty,
+        p_outlet_id: row.outlet_id
+      });
+    }
+
+    // ======================
+    // INSERT MOVEMENT
+    // ======================
+    await supabase.from("stock_movements").insert({
+      outlet_id: row.outlet_id,
+      item_id: row.item_id,
+      request_id: row.id,
+      item: row.item,
+      qty: row.qty,
+      type: row.type,
+      created_by: chatId
+    });
+
+    // ======================
+    // GET AFTER STOCK
+    // ======================
+    const { data: after } = await supabase
+      .from("stock")
+      .select("qty, stock_items(min_qty)")
+      .eq("item", row.item)
+      .eq("outlet_id", row.outlet_id)
+      .maybeSingle();
+
+    const minQty = after?.stock_items?.min_qty || 0;
+
+    // ======================
+    // LOW STOCK CHECK
+    // ======================
+    const isLow =
+      before.qty > minQty &&
+      after.qty <= minQty;
+
+    // ======================
+    // UPDATE REQUEST
+    // ======================
+    await supabase
+      .from("requests")
+      .update({
+        status: "approved",
+        processed_by: chatId,
+        processed_at: new Date().toISOString()
+      })
+      .eq("id", row.id)
+      .eq("status", "processing");
+
+    // ======================
+    // SUMMARY
+    // ======================
+    summary[row.item] =
+      (summary[row.item] || 0) +
+      (row.type === "out" ? -row.qty : row.qty);
+
+    logDetails.push(`ID${row.id} ${row.item}`);
+
+    // return low stock info
+    if (isLow) {
+      row._lowStock = {
+        item: row.item,
+        qty: after.qty,
+        min: minQty,
+        outlet_id: row.outlet_id
+      };
+    }
+  }
+
+  return { summary, logDetails, rows };
+}
+
+module.exports = { approveRequests };

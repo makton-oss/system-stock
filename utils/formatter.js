@@ -59,7 +59,12 @@ async function getUserDisplay(chatId) {
     .from("users")
     .select("nickname, chat_id")
     .eq("chat_id", chatId)
-    .single();
+    .maybeSingle();
+	
+  if (error) {
+	  console.log("USER DISPLAY ERROR:", error);
+	  return { nickname: "-", chat_id: "-" };
+	}
 
   if (!data) {
     return {

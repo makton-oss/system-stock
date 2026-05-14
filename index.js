@@ -6,6 +6,8 @@ require("dotenv").config();
 const supabase = require("./services/db");
 const { end, handleDbError, deny, normalizeItem, safeQty, isLowStock } = require("./utils/helpers");
 const { getRoleGuide, formatLowStockAlert, writeLog, getUserDisplay, formatLogDateTime, formatStock, formatPending, formatLogs, formatStaff, toProperCase, nowMY, ROLE_GUIDE, parseMonthInput, checkRole } = require("./utils/formatter");
+const handlerMap = require("./core/handlerMap");
+const { createContext } = require("./core/context");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -46,33 +48,36 @@ async function sendWhatsApp(phoneNumber, text) {
 
 async function notifyManagers(text, outletId, excludeChatId = null) {
 
-  const { data: rows } = await supabase
+  const { data: rows, error } = await supabase
     .from("users")
     .select("chat_id, nickname")
     .eq("role", "manager")
-	.eq("outlet_id", outletId);
+    .eq("outlet_id", outletId);
 
-  if (!rows || rows.length === 0) return;
+  if (error || !rows?.length) return;
 
   const targets = rows.filter(
-	  u => !excludeChatId || u.chat_id !== excludeChatId
-	);
+    u => !excludeChatId || u.chat_id !== excludeChatId
+  );
 
-	const batchSize = 5;
+  const batchSize = 5;
 
-	for (let i = 0; i < targets.length; i += batchSize) {
+  for (let i = 0; i < targets.length; i += batchSize) {
 
-	  const batch = targets.slice(i, i + batchSize);
+    const batch = targets.slice(i, i + batchSize);
 
-	  await Promise.all(
-		batch.map(u =>
-		  sendWhatsApp(u.chat_id, text)
-		)
-	  );
+    const results = await Promise.allSettled(
+      batch.map(u => sendWhatsApp(u.chat_id, text))
+    );
 
-	  // optional small delay
-	  await new Promise(r => setTimeout(r, 500));
-	}
+    results.forEach((r, idx) => {
+      if (r.status === "rejected") {
+        console.log("FAILED SEND:", batch[idx].chat_id, r.reason);
+      }
+    });
+
+    await new Promise(r => setTimeout(r, 500));
+  }
 }
 
 async function reply(chatId, text) {
@@ -101,56 +106,22 @@ async function generateMonthlyReport(monthInput, outletId) {
   // FETCH ALL ANALYTICS
   // ======================
 
-  const [
-    inventory,
-    fast,
-    slow,
-    dead,
-    trend
-  ] = await Promise.all([
+  const results = await Promise.all([
+	  supabase.rpc("get_inventory_value_by_date", { p_start: start, p_end: end, p_outlet_id: outletId }),
+	  supabase.rpc("get_fast_moving_by_date", { p_start: start, p_end: end }),
+	  supabase.rpc("get_slow_moving_by_date", { p_start: start, p_end: end }),
+	  supabase.rpc("get_dead_stock_by_date", { p_start: start, p_end: end }),
+	  supabase.rpc("get_monthly_trend_by_date", { p_start: start, p_end: end })
+	]);
 
-    supabase.rpc(
-      "get_inventory_value_by_date",
-      {
-        p_start: start,
-        p_end: end,
-		p_outlet_id: outletId
-      }
-    ),
+	for (const r of results) {
+	  if (r.error) {
+		console.log("REPORT ERROR:", r.error);
+		return "❌ REPORT ERROR";
+	  }
+	}
 
-    supabase.rpc(
-      "get_fast_moving_by_date",
-      {
-        p_start: start,
-        p_end: end
-      }
-    ),
-
-    supabase.rpc(
-      "get_slow_moving_by_date",
-      {
-        p_start: start,
-        p_end: end
-      }
-    ),
-
-    supabase.rpc(
-      "get_dead_stock_by_date",
-      {
-        p_start: start,
-        p_end: end
-      }
-    ),
-
-    supabase.rpc(
-      "get_monthly_trend_by_date",
-      {
-        p_start: start,
-        p_end: end
-      }
-    )
-
-  ]);
+	const [inventory, fast, slow, dead, trend] = results;
 
   // ======================
   // EXTRACT DATA
@@ -260,15 +231,9 @@ OUT: ${r.total_out}
 // ======================
 app.post("/webhook", async (req, res) => {
 
-  let body = {};
-
-  try {
-    body = typeof req.body === "string"
-      ? JSON.parse(req.body)
-      : req.body || {};
-  } catch {
-    return res.status(200).send("ok");
-  }
+  let body = typeof req.body === "string"
+    ? JSON.parse(req.body)
+    : req.body || {};
 
   const chatId = (
     body.chat_id ||
@@ -277,757 +242,38 @@ app.post("/webhook", async (req, res) => {
     ""
   ).split("-")[0];
 
-  // ======================
-  // CHECK USER
-  // ======================
   const { data: user } = await supabase
-	  .from("users")
-	  .select(`
-		*,
-		outlets(name)
-	  `)
-	  .eq("chat_id", chatId)
-	  .maybeSingle();
+    .from("users")
+    .select("*, outlets(name)")
+    .eq("chat_id", chatId)
+    .maybeSingle();
 
-  // ❌ NOT REGISTERED
-  if (!user) {
-    return end(res);
-  }
+  if (!user) return res.end();
 
   let message =
     body.user_message ||
     body.message ||
     body.text ||
-    body.postbackid ||
     "";
 
-  if (!message) {
-	return end(res);
-  }
-
-  message = message.replace(/,/g, " ");
+  if (!message) return res.end();
 
   const parts = message.trim().split(/\s+/);
-
   const type = parts[0]?.toUpperCase();
 
-  console.log("TYPE:", type, "CHAT:", chatId);
-  
-  // ======================
-  // HELP
-  // ======================
-  if (type === "HELP") {
-
-  const { role } = await checkRole(chatId, ["staff", "manager", "admin"]);
-
-  let guide = getRoleGuide(role);
-
-  return sendWhatsApp(chatId, guide);
-}
-
-	// ======================
-	// SETROLE
-	// ======================
-	if (type === "SETROLE") {
-
-		const { ok } = await checkRole(chatId, ["admin"]);
-
-		if (!ok) {
-			await deny(chatId, reply);
-			return end(res);
-		}
-
-		const target = (parts[1] || "").split("-")[0];
-		const targetRole = parts[2];
-		const name = parts[3];
-		const outletName = parts[4];
-		
-		let outletId = null;
-
-		if (targetRole !== "admin") {
-
-		  if (!outletName) {
-			await reply(chatId, "❌ PERLU OUTLET");
-			return end(res);
-		  }
-
-		  const { data: outlet } = await supabase
-			.from("outlets")
-			.select("id")
-			.eq("name", outletName)
-			.maybeSingle();
-
-		  if (!outlet) {
-			await reply(chatId, "❌ OUTLET TAK WUJUD");
-			return end(res);
-		  }
-
-		  outletId = outlet.id;
-		}
-
-		if (!target || !targetRole || !name) {
-			await reply(chatId, "❌ FORMAT: SETROLE 60123456789 admin amin bta");
-			return end(res);
-		}
-
-		const { data: existing } = await supabase
-		  .from("users")
-		  .select("*")
-		  .eq("chat_id", target)
-		  .maybeSingle();
-
-		await supabase
-		  .from("users")
-		  .upsert({
-			chat_id: target,
-			role: targetRole,
-			nickname: name,
-			outlet_id: outletId
-		  });
-
-		const guide = getRoleGuide(targetRole);
-
-		const msg = existing
-		  ? `🔄 ROLE UPDATE
-
-		${existing.role.toUpperCase()} → ${targetRole.toUpperCase()}
-		${guide}`
-		  : `👋 WELCOME
-
-		ROLE: ${targetRole.toUpperCase()}
-		${guide}`;
-
-		await sendWhatsApp(target, msg);
-
-		await writeLog(
-		  chatId,
-		  "admin",
-		  "SETROLE",
-		  `${target} -> ${targetRole}`
-		);
-
-		await reply(chatId, `✅ ${target} → ${targetRole} (${name})`);
-		return end(res);
-	  }
-
-  // ======================
-  // REMOVEROLE
-  // ======================
-  else if (type === "REMOVEROLE") {
-
-    const { ok, role } = await checkRole(chatId, ["admin"]);
-
-    if (!ok) {
-		await deny(chatId, reply);
-		return end(res);
-    }
-
-    const target = (parts[1] || "").split("-")[0];
-
-    await supabase
-      .from("users")
-      .delete()
-      .eq("chat_id", target);
-
-    await writeLog(
-      chatId,
-      "admin",
-      "REMOVEROLE",
-      target
-    );
-	
-	await reply(chatId, `🗑️ REMOVED ${target}`);
-	return end(res);
-  }
-
-	// ======================
-	// STAFF
-	// ======================
-	else if (type === "STAFF") {
-
-		const { ok, role } = await checkRole(chatId, ["admin", "manager"]);
-
-		if (!ok) {
-			await deny(chatId, reply);
-			return end(res);
-		}
-
-		let query = supabase
-			.from("users")
-			.select("*")
-			.order("role");
-
-		if (user.role !== "admin") {
-			query = query.eq("outlet_id", user.outlet_id);
-		}
-
-		const { data: rows } = await query;
-
-		let text = formatStaff(rows);
-
-		await sendWhatsApp(chatId, text);
-
-		return end(res);
-	  }
-
-  // ======================
-  // IN
-  // ======================
-  else if (type === "IN") {
-
-    const { ok, role } = await checkRole(
-      chatId,
-      ["staff", "manager"]
-    );
-
-    if (!ok) {
-		await deny(chatId, reply);
-		return end(res);
-    }
-	
-	const qty = safeQty(parts.at(-1));
-	const item = normalizeItem( parts.slice(1, -1).join(" "));
-
-	if (!item || qty === null) {
-	  await reply(chatId, "❌ FORMAT: IN ayam 5");
-	  return end(res);
-	}
-
-    const { data: stock } = await supabase
-		.from("stock")
-		.select(`
-		  *,
-		  stock_items(*)
-		`)
-		.eq("outlet_id", user.outlet_id)
-		.eq("item", item)
-		.maybeSingle();
-
-	if (!stock) {
-	  await reply(chatId, `❌ ITEM TAK WUJUD: ${item}`);
-	  return end(res);
-	}
-
-	const { error } = await supabase
-	  .from("requests")
-	  .insert({
-		item,
-		item_id: stock.item_id,
-		qty,
-		status: "pending",
-		type: "in",
-		outlet_id: user.outlet_id,
-		requested_by: chatId
-	  });
-
-	if (await handleDbError(error, chatId, reply)) {
-	  return end(res);
-	}
-
-	const summary = `${item} x${qty}`;
-	const displayUser = await getUserDisplay(chatId);
-	const by = `${toProperCase(displayUser.nickname)} (${displayUser.chat_id})`;
-
-    await notifyManagers(
-      `📥 STOCK IN - ${toProperCase(user.outlets?.name || "Outlet")}\n\n${summary}\nBY: ${by}`,
-      user.outlet_id,
-	  chatId
-    );
-
-    await writeLog(chatId, user?.role || "unknown", "IN", summary.trim());
-
-    await reply(chatId, "✅ REQUEST SENT");
-	return end(res);
-  }
-
-  // ======================
-  // OUT
-  // ======================
-  else if (type === "OUT") {
-
-    const { ok, role } = await checkRole(
-      chatId,
-      ["staff", "manager"]
-    );
-
-    if (!ok) {
-		await deny(chatId, reply);
-		return end(res);
-    }
-
-	const qty = safeQty(parts.at(-1));
-	const item = normalizeItem( parts.slice(1, -1).join(" "));
-
-	if (!item || qty === null) {
-	  await reply(chatId, "❌ FORMAT: OUT ayam 5");
-	  return end(res);
-	}
-
-    const { data: stock } = await supabase
-		.from("stock")
-		.select(`
-		  *,
-		  stock_items(*)
-		`)
-		.eq("outlet_id", user.outlet_id)
-		.eq("item", item)
-		.maybeSingle();
-
-	if (!stock) {
-	  await reply(chatId, `❌ ITEM TAK WUJUD: ${item}`);
-	  return end(res);
-	}
-
-	const { error } = await supabase
-	  .from("requests")
-	  .insert({
-		item,
-		item_id: stock.item_id,
-		qty,
-		status: "pending",
-		type: "out",
-		outlet_id: user.outlet_id,
-		requested_by: chatId
-	  });
-
-	if (await handleDbError(error, chatId, reply)) {
-	  return end(res);
-	}
-
-	const summary = `${item} x${qty}`;
-	const displayUser = await getUserDisplay(chatId);
-	const by = `${toProperCase(displayUser.nickname)} (${displayUser.chat_id})`;
-
-    await notifyManagers(
-      `📤 REQUEST OUT - ${toProperCase(user.outlets?.name || "Outlet")}\n\n${summary}\nBY: ${by}`,
-      user.outlet_id,
-	  chatId
-    );
-
-    await writeLog(chatId, user?.role || "unknown", "OUT", summary.trim());
-
-    await reply(chatId, "✅ REQUEST SENT");
-	return end(res);
-  }
-
-  // ======================
-  // ADDITEM
-  // ======================
-  else if (type === "ADDITEM") {
-
-    const { ok, role } = await checkRole(
-      chatId,
-      ["admin", "manager"]
-    );
-
-    if (!ok) {
-		await reply(chatId, "❌ NO ACCESS");
-		return end(res);
-    }
-
-    const nameParts = parts.slice(1, -3);
-	const item = normalizeItem(nameParts.join(" "));
-
-	const category = parts.at(-3).toLowerCase();
-	const minQty = parseInt(parts.at(-2));
-	const costPrice = parseFloat(parts.at(-1));
-
-    if (!item || !category || isNaN(minQty) || isNaN(costPrice)) {
-	  await reply(chatId, "❌ FORMAT: ADDITEM ayam dara basah 5 12.50");
-	  return end(res);
-	}
-
-    const { data: exist } = await supabase
-      .from("stock")
-      .select("*")
-      .eq("item", item)
-      .maybeSingle();
-
-    if (exist) {
-		await reply(chatId, `⚠️ ITEM SUDAH ADA: ${item}`);
-		return end(res);
-    }
-
-    const { data: existingItem } = await supabase
-	  .from("stock_items")
-	  .select("*")
-	  .eq("name", item)
-	  .maybeSingle();
-
-	let itemId;
-
-	if (existingItem) {
-
-	  itemId = existingItem.id;
-
-	} else {
-
-	  const { data: newItem } = await supabase
-		.from("stock_items")
-		.insert({
-		  name: item,
-		  category,
-		  min_qty: minQty,
-		  cost_price: costPrice
-		})
-		.select()
-		.single();
-
-	  itemId = newItem.id;
-	}
-
-	const { error } = await supabase
-	  .from("stock")
-	  .insert({
-		item,
-		item_id: itemId,
-		qty: 0,
-		outlet_id: user.outlet_id
-	  });
-
-	if (await handleDbError(error, chatId, reply)) {
-	  return end(res);
-	}
-
-    await writeLog(
-      chatId,
-      role,
-      "ADDITEM",
-      item
-    );
-
-	await reply(chatId, `✅ ITEM ADDED: ${item}`);
-	return end(res);
-  }
-
-  // ======================
-  // REMOVEITEM
-  // ======================
-  else if (type === "REMOVEITEM") {
-
-    const { ok, role } = await checkRole(
-      chatId,
-      ["admin", "manager"]
-    );
-
-    if (!ok) {
-		await deny(chatId, reply);
-		return end(res);
-    }
-
-    const item = parts[1]?.toLowerCase();
-
-    if (!item) {
-		await reply(chatId, "❌ FORMAT: REMOVEITEM ayam");
-		return end(res);
-    }
-
-    await supabase
-      .from("stock")
-      .delete()
-      .eq("item", item);
-
-    await supabase
-      .from("requests")
-      .delete()
-      .eq("item", item)
-      .eq("status", "pending");
-
-    await writeLog(
-      chatId,
-      role,
-      "REMOVEITEM",
-      item
-    );
-
-	await reply(chatId, `🗑️ ITEM REMOVED: ${item}`);
-	return end(res);
-  }
-
-  // ======================
-  // ITEM
-  // ======================
-  else if (type === "ITEM") {
-
-    const { ok, role } = await checkRole(
-      chatId,
-      ["staff", "manager", "admin"]
-    );
-
-    if (!ok) {
-		await deny(chatId, reply);
-		return end(res);
-    }
-
-    const { data: rows } = await supabase
-      .from("stock")
-      .select("item")
-	  .eq("outlet_id", user.outlet_id)
-      .order("item");
-
-    let text = "📦 ITEM LIST\n\n";
-
-    rows.forEach(r => {
-      text += `• ${toProperCase(r.item)}\n`;
-    });
-
-    await sendWhatsApp(chatId, text);
-
-    return end(res);
-  }
-
-  // ======================
-  // LIST
-  // ======================
-  else if (type === "LIST") {
-
-    const { ok, role } = await checkRole(
-      chatId,
-      ["staff", "manager", "admin"]
-    );
-
-    if (!ok) {
-		await deny(chatId, reply);
-		return end(res);
-    }
-
-    const { data: rows } = await supabase
-      .from("requests")
-      .select("*")
-      .eq("status", "pending")
-	  .eq("outlet_id", user.outlet_id)
-      .order("id");
-
-    await sendWhatsApp(
-      chatId,
-      formatPending(rows)
-    );
-
-    return end(res);
-  }
-
-  // ======================
-  // STOCK
-  // ======================
-  else if (type === "STOCK") {
-
-    const { ok, role } = await checkRole(
-      chatId,
-      ["staff", "manager", "admin"]
-    );
-
-    if (!ok) {
-		await deny(chatId, reply);
-		return end(res);
-    }
-
-    const { data: rows } = await supabase
-	  .from("stock")
-	  .select(`
-		  *,
-		  outlets(name),
-		  stock_items(
-			id,
-			name,
-			category,
-			cost_price
-		  )
-		`)
-	  .eq("outlet_id", user.outlet_id)
-	  .order("item");
-
-	const formatted = rows.map(r => ({
-	  ...r,
-
-	  outlet_name: r.outlets?.name,
-
-	  item_name: r.stock_items?.name,
-
-	  category: r.stock_items?.category,
-
-	  min_qty: r.min_qty,
-
-	  cost_price: r.stock_items?.cost_price
-	}));
-	
-    let text = formatStock(formatted);
-
-    await sendWhatsApp(chatId, text);
-
-    return end(res);
-  }
-
-  // ======================
-  // LOG
-  // ======================
-  else if (type === "LOG") {
-
-    const { ok, role } = await checkRole(
-      chatId,
-      ["admin"]
-    );
-
-    if (!ok) {
-		await deny(chatId, reply);
-		return end(res);
-    }
-
-    const { data: rows } = await supabase
-      .from("logs")
-      .select("*")
-      .order("id", { ascending: false })
-      .limit(50);
-
-	const text = await formatLogs(rows);
-
-	await sendWhatsApp(chatId, text);
-
-    return end(res);
-  }
-  
-  // ======================
-  // REPORT
-  // ======================
-  else if (type === "REPORT") {
-
-	  const { ok } = await checkRole(
-		chatId,
-		["manager", "admin"]
-	  );
-
-	  if (!ok) {
-		await deny(chatId, reply);
-		return end(res);
-	  }
-
-  const monthInput = parts[1] || "current";
-
-  const report = await generateMonthlyReport(monthInput, user.outlet_id);
-
-  await sendWhatsApp(chatId, report);
-
-  return end(res);
-}
-
-	// ======================
-	// REJECT
-	// ======================
-	else if (type === "REJECT") {
-
-	  const { ok, role } = await checkRole(
-		chatId,
-		["manager"]
-	  );
-
-	  if (!ok) {
-		await deny(chatId, reply);
-		return end(res);
-	  }
-
-	  const arg = parts[1]?.toUpperCase();
-
-	  // ======================
-	  // REJECT ALL
-	  // ======================
-	  if (arg === "ALL") {
-
-		  const { data: rows } = await supabase
-			.from("requests")
-			.update({ status: "processing" })
-			.eq("status", "pending")
-			.eq("outlet_id", user.outlet_id)
-			.select();
-
-		  return processRejectAll(
-			rows,
-			res,
-			chatId,
-			role
-		  );
-		}
-
-	  // ======================
-	  // REJECT SINGLE
-	  // ======================
-	  const id = parseInt(parts[1]);
-
-	  if (isNaN(id)) {
-		await reply(chatId, "❌ FORMAT:\nREJECT ALL\nREJECT 12");
-		return end(res);
-	  }
-
-	  return processRejectSingle(
-		id,
-		res,
-		chatId,
-		role
-	  );
-	}
-
-	// ======================
-	// APPROVE
-	// ======================
-	else if (type === "APPROVE") {
-
-	  const { ok, role } = await checkRole(
-		chatId,
-		["manager"]
-	  );
-
-	  if (!ok) {
-		await deny(chatId, reply);
-		return end(res);
-	  }
-
-	  const arg = parts[1]?.toUpperCase();
-
-	  // ======================
-	  // APPROVE ALL
-	  // ======================
-	  if (arg === "ALL") {
-
-		  const { data: rows } = await supabase
-			.from("requests")
-			.update({ status: "processing" })
-			.eq("status", "pending")
-			.eq("status", "pending")
-			.eq("outlet_id", user.outlet_id)
-			.select();
-
-		  return processApprove(
-			rows,
-			res,
-			chatId,
-			role
-		  );
-		}
-
-	  // ======================
-	  // APPROVE SINGLE
-	  // ======================
-	  const id = parseInt(parts[1]);
-
-	  if (isNaN(id)) {
-		await reply(chatId, "❌ FORMAT:\nAPPROVE ALL\nAPPROVE 12");
-		return end(res);
-	  }
-
-	  return processApproveSingle(
-		id,
-		res,
-		chatId,
-		role
-	  );
-	}
-
-  // ======================
-  // UNKNOWN
-  // ======================
-  else {
-	return end(res);
-
-  }
-
+  const handler = handlerMap[type];
+
+  if (!handler) return res.end();
+
+  const ctx = createContext({
+    chatId,
+    user,
+    parts,
+    res,
+    reply
+  });
+
+  return handler(ctx);
 });
 
 // ======================
@@ -1211,6 +457,7 @@ async function processApproveSingle(id, res, chatId, role) {
 	  .from("stock")
 	  .select("qty, stock_items(min_qty)")
 	  .eq("item", row.item)
+	  .eq("outlet_id", row.outlet_id)
 	  .maybeSingle();
 
 	const minQty = afterStock?.stock_items?.min_qty || 0;
