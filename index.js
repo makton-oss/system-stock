@@ -1,20 +1,13 @@
 const express = require("express");
-const { DateTime } = require("luxon");
-const WebSocket = require("ws");
 require("dotenv").config();
 
 const supabase = require("./services/db");
-const { end, handleDbError, deny, normalizeItem, safeQty, isLowStock } = require("./utils/helpers");
-const { getRoleGuide, formatLowStockAlert, writeLog, getUserDisplay, formatLogDateTime, formatStock, formatPending, formatLogs, formatStaff, toProperCase, nowMY, ROLE_GUIDE, parseMonthInput, checkRole } = require("./utils/formatter");
 const handlerMap = require("./core/handlerMap");
 const { createContext } = require("./core/context");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// ======================
-// MIDDLEWARE
-// ======================
 app.use(express.json({ strict: false }));
 app.use(express.urlencoded({ extended: true }));
 
@@ -25,9 +18,7 @@ async function sendWhatsApp(phoneNumber, text) {
   try {
     const response = await fetch(process.env.BOTCOMMERCE_URL, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         apiToken: process.env.BOTCOMMERCE_API,
         phone_number_id: process.env.PHONE_NUMBER_ID,
@@ -35,53 +26,21 @@ async function sendWhatsApp(phoneNumber, text) {
         message: text
       })
     });
-	
-	if (!response.ok) {
-	  const errText = await response.text();
-	  console.log("BOTCOMMERCE ERROR:", errText);
-	  throw new Error(errText);
-	}
+
+    if (!response.ok) {
+      const errText = await response.text();
+      console.log("BOTCOMMERCE ERROR:", errText);
+      throw new Error(errText);
+    }
+
   } catch (err) {
     console.log("SEND FAIL:", err);
   }
 }
 
-async function notifyManagers(text, outletId, excludeChatId = null) {
-
-  const { data: rows, error } = await supabase
-    .from("users")
-    .select("chat_id, nickname")
-    .eq("role", "manager")
-    .eq("outlet_id", outletId);
-
-  if (error || !rows?.length) return;
-
-  const targets = rows.filter(
-    u => !excludeChatId || u.chat_id !== excludeChatId
-  );
-
-  const batchSize = 5;
-
-  for (let i = 0; i < targets.length; i += batchSize) {
-
-    const batch = targets.slice(i, i + batchSize);
-
-    const results = await Promise.allSettled(
-      batch.map(u => sendWhatsApp(u.chat_id, text))
-    );
-
-    results.forEach((r, idx) => {
-      if (r.status === "rejected") {
-        console.log("FAILED SEND:", batch[idx].chat_id, r.reason);
-      }
-    });
-
-    await new Promise(r => setTimeout(r, 500));
-  }
-}
-
 async function reply(chatId, text) {
   try {
+    console.log("REPLY TO:", chatId, "|", text.slice(0, 50));
     await sendWhatsApp(chatId, text);
   } catch (err) {
     console.error("REPLY ERROR:", err);
@@ -104,14 +63,27 @@ app.post("/webhook", async (req, res) => {
     ""
   ).split("-")[0];
 
-  const { data: user } = await supabase
+  if (!chatId) return res.end();
+
+  // ======================
+  // USER FETCH
+  // ======================
+  const { data: user, error: userError } = await supabase
     .from("users")
     .select("*, outlets(name)")
     .eq("chat_id", chatId)
     .maybeSingle();
 
+  if (userError) {
+    console.log("USER FETCH ERROR:", userError);
+    return res.end();
+  }
+
   if (!user) return res.end();
 
+  // ======================
+  // MESSAGE PARSE
+  // ======================
   let message =
     body.user_message ||
     body.message ||
@@ -122,6 +94,8 @@ app.post("/webhook", async (req, res) => {
 
   const parts = message.trim().split(/\s+/);
   const type = parts[0]?.toUpperCase();
+
+  if (!type) return res.end();
 
   const handler = handlerMap[type];
 
@@ -135,7 +109,13 @@ app.post("/webhook", async (req, res) => {
     reply
   });
 
-  return handler(ctx);
+  try {
+    return await handler(ctx);
+  } catch (err) {
+    console.error("HANDLER ERROR:", err);
+    await reply(chatId, "❌ SYSTEM ERROR");
+    return res.end();
+  }
 });
 
 app.listen(PORT, () => {
