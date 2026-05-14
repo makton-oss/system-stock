@@ -286,7 +286,7 @@ LIST
 ────────────────────
 
 ✅ Luluskan semua request:
-APPROVE
+APPROVE ALL
 
 ✅ Luluskan satu request:
 APPROVE 12
@@ -294,7 +294,7 @@ APPROVE 12
 ────────────────────
 
 ❌ Tolak semua request:
-REJECT
+REJECT ALL
 
 ❌ Tolak satu request:
 REJECT 12

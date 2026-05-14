@@ -61,7 +61,7 @@ async function notifyManagers(text, excludeChatId = null) {
 
     await sendWhatsApp(
       u.chat_id,
-      `${text}\n\n👤 ${display}`
+      `${text}`
     );
   }
 }
@@ -409,7 +409,7 @@ app.post("/webhook", async (req, res) => {
   // ======================
   else if (type === "STAFF") {
 
-    const { ok, role } = await checkRole(chatId, ["admin"]);
+    const { ok, role } = await checkRole(chatId, ["admin", "manager"]);
 
     if (!ok) {
 		await deny(chatId, reply);
@@ -476,9 +476,11 @@ app.post("/webhook", async (req, res) => {
 	}
 
 	const summary = `${item} x${qty}`;
+	const displayUser = await getUserDisplay(chatId);
+	const by = `${toProperCase(displayUser.nickname)} (${displayUser.chat_id})`;
 
     await notifyManagers(
-      `📥 STOCK IN\n${summary}\nBY: ${chatId}`,
+      `📥 STOCK IN\n${summary}\nBY: ${by}`,
       chatId
     );
 
@@ -536,9 +538,11 @@ app.post("/webhook", async (req, res) => {
 	}
 
 	const summary = `${item} x${qty}`;
+	const displayUser = await getUserDisplay(chatId);
+	const by = `${toProperCase(displayUser.nickname)} (${displayUser.chat_id})`;
 
     await notifyManagers(
-      `📤 REQUEST OUT\n${summary}\nBY: ${chatId}`,
+      `📤 REQUEST OUT\n${summary}\nBY: ${by}`,
       chatId
     );
 
@@ -786,89 +790,111 @@ app.post("/webhook", async (req, res) => {
   return end(res);
 }
 
-  // ======================
-  // REJECT
-  // ======================
-  else if (type === "REJECT") {
+	// ======================
+	// REJECT
+	// ======================
+	else if (type === "REJECT") {
 
-    const { ok, role } = await checkRole(
-      chatId,
-      ["admin", "manager"]
-    );
+	  const { ok, role } = await checkRole(
+		chatId,
+		["admin", "manager"]
+	  );
 
-    if (!ok) {
+	  if (!ok) {
 		await deny(chatId, reply);
 		return end(res);
-    }
+	  }
 
-    if (parts[1]) {
+	  const arg = parts[1]?.toUpperCase();
 
-      const id = parseInt(parts[1]);
+	  // ======================
+	  // REJECT ALL
+	  // ======================
+	  if (arg === "ALL") {
 
-      if (isNaN(id)) {
-		await reply(chatId, "❌ ID MESTI NOMBOR");
+		const { data: rows } = await supabase
+		  .from("requests")
+		  .select("*")
+		  .eq("status", "pending");
+
+		return processRejectAll(
+		  rows,
+		  res,
+		  chatId,
+		  role
+		);
+	  }
+
+	  // ======================
+	  // REJECT SINGLE
+	  // ======================
+	  const id = parseInt(parts[1]);
+
+	  if (isNaN(id)) {
+		await reply(chatId, "❌ FORMAT:\nREJECT ALL\nREJECT 12");
 		return end(res);
-      }
+	  }
 
-      return processRejectSingle(
-        id,
-        res,
-        chatId,
-        role
-      );
-    }
+	  return processRejectSingle(
+		id,
+		res,
+		chatId,
+		role
+	  );
+	}
 
-    return processRejectAll(
-      res,
-      chatId,
-      role
-    );
-  }
+	// ======================
+	// APPROVE
+	// ======================
+	else if (type === "APPROVE") {
 
-  // ======================
-  // APPROVE
-  // ======================
-  else if (type === "APPROVE") {
+	  const { ok, role } = await checkRole(
+		chatId,
+		["admin", "manager"]
+	  );
 
-    const { ok, role } = await checkRole(
-      chatId,
-      ["admin", "manager"]
-    );
-
-    if (!ok) {
+	  if (!ok) {
 		await deny(chatId, reply);
 		return end(res);
-    }
+	  }
 
-    if (parts[1]) {
+	  const arg = parts[1]?.toUpperCase();
 
-      const id = parseInt(parts[1]);
+	  // ======================
+	  // APPROVE ALL
+	  // ======================
+	  if (arg === "ALL") {
 
-      if (isNaN(id)) {
-        await reply(chatId, "❌ ID MESTI NOMBOR");
+		const { data: rows } = await supabase
+		  .from("requests")
+		  .select("*")
+		  .eq("status", "pending");
+
+		return processApprove(
+		  rows,
+		  res,
+		  chatId,
+		  role
+		);
+	  }
+
+	  // ======================
+	  // APPROVE SINGLE
+	  // ======================
+	  const id = parseInt(parts[1]);
+
+	  if (isNaN(id)) {
+		await reply(chatId, "❌ FORMAT:\nAPPROVE ALL\nAPPROVE 12");
 		return end(res);
-      }
+	  }
 
-      return processApproveSingle(
-        id,
-        res,
-        chatId,
-        role
-      );
-    }
-
-    const { data: rows } = await supabase
-      .from("requests")
-      .select("*")
-      .eq("status", "pending");
-
-    return processApprove(
-      rows,
-      res,
-      chatId,
-      role
-    );
-  }
+	  return processApproveSingle(
+		id,
+		res,
+		chatId,
+		role
+	  );
+	}
 
   // ======================
   // UNKNOWN
@@ -935,7 +961,7 @@ async function processApprove(rows, res, chatId, role) {
     logDetails.push(`ID${row.id} ${row.item} ${sign}${row.qty}`);
   }
 
-  let reply = "✅ APPROVED\n\n";
+  let text = "✅ APPROVED\n\n";
 
   Object.entries(summary).forEach(([i, q]) => {
     reply += `${i} ${q > 0 ? "+" : ""}${q}\n`;
@@ -943,7 +969,7 @@ async function processApprove(rows, res, chatId, role) {
 
   await writeLog(chatId, role, "APPROVE", logDetails.join(" | "));
 
-  await reply(chatId, reply);
+  await reply(chatId, text);
   return end(res);
 }
 
@@ -1012,7 +1038,6 @@ async function processApproveSingle(id, res, chatId, role) {
   await reply(chatId, `✅ APPROVED\n\nID ${id}\n${row.item} ${sign}${row.qty}`);
   return end(res);
 }
-
 
 // =====================================================
 // REJECT ALL
