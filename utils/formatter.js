@@ -100,7 +100,20 @@ function formatStock(rows) {
 	let reply = `📦 STOCK\n🏪 ${toProperCase(outlet)}\n`;
 	reply += `${formatLogDateTime()}\n\n`;
 
-	rows.forEach(r => {reply += `${toProperCase(r.item)} : ${r.qty}\n`;
+	rows.forEach(r => {
+		const lowMark =
+		  r.qty <= r.min_qty
+			? " ⚠️"
+			: "";
+
+		reply +=
+		`${toProperCase(r.item_name)}
+		Qty: ${r.qty}
+		Category: ${toProperCase(r.category)}
+		Min Qty: ${r.min_qty}
+		Cost: RM${Number(r.cost_price).toFixed(2)}${lowMark}
+
+		`;
 	});
 
 	return reply;

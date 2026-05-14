@@ -459,11 +459,14 @@ app.post("/webhook", async (req, res) => {
 	}
 
     const { data: stock } = await supabase
-	  .from("stock")
-	  .select("item")
-	  .eq("item", item)
-	  .eq("outlet_id", user.outlet_id)
-	  .maybeSingle();
+		.from("stock")
+		.select(`
+		  *,
+		  stock_items(*)
+		`)
+		.eq("outlet_id", user.outlet_id)
+		.eq("stock_items.name", item)
+		.maybeSingle();
 
 	if (!stock) {
 	  await reply(chatId, `❌ ITEM TAK WUJUD: ${item}`);
@@ -474,6 +477,7 @@ app.post("/webhook", async (req, res) => {
 	  .from("requests")
 	  .insert({
 		item,
+		item_id: stock.item_id,
 		qty,
 		status: "pending",
 		type: "in",
@@ -524,11 +528,14 @@ app.post("/webhook", async (req, res) => {
 	}
 
     const { data: stock } = await supabase
-	  .from("stock")
-	  .select("item")
-	  .eq("item", item)
-	  .eq("outlet_id", user.outlet_id)
-	  .maybeSingle();
+		.from("stock")
+		.select(`
+		  *,
+		  stock_items(*)
+		`)
+		.eq("outlet_id", user.outlet_id)
+		.eq("stock_items.name", item)
+		.maybeSingle();
 
 	if (!stock) {
 	  await reply(chatId, `❌ ITEM TAK WUJUD: ${item}`);
@@ -539,6 +546,7 @@ app.post("/webhook", async (req, res) => {
 	  .from("requests")
 	  .insert({
 		item,
+		item_id: stock.item_id,
 		qty,
 		status: "pending",
 		type: "out",
@@ -598,10 +606,39 @@ app.post("/webhook", async (req, res) => {
 		return end(res);
     }
 
-    const { error } = await supabase
+    const { data: existingItem } = await supabase
+	  .from("stock_items")
+	  .select("*")
+	  .eq("name", item)
+	  .maybeSingle();
+
+	let itemId;
+
+	if (existingItem) {
+
+	  itemId = existingItem.id;
+
+	} else {
+
+	  const { data: newItem } = await supabase
+		.from("stock_items")
+		.insert({
+		  name: item,
+		  category: "kering",
+		  min_qty: 0,
+		  cost_price: 0
+		})
+		.select()
+		.single();
+
+	  itemId = newItem.id;
+	}
+
+	await supabase
 	  .from("stock")
 	  .insert({
 		item,
+		item_id: itemId,
 		qty: 0,
 		outlet_id: user.outlet_id
 	  });
@@ -745,15 +782,31 @@ app.post("/webhook", async (req, res) => {
     const { data: rows } = await supabase
 	  .from("stock")
 	  .select(`
-		*,
-		outlets(name)
-	  `)
+		  *,
+		  outlets(name),
+		  stock_items(
+			id,
+			name,
+			category,
+			min_qty,
+			cost_price
+		  )
+		`)
 	  .eq("outlet_id", user.outlet_id)
 	  .order("item");
 
 	const formatted = rows.map(r => ({
 	  ...r,
-	  outlet_name: r.outlets?.name
+
+	  outlet_name: r.outlets?.name,
+
+	  item_name: r.stock_items?.name,
+
+	  category: r.stock_items?.category,
+
+	  min_qty: r.stock_items?.min_qty,
+
+	  cost_price: r.stock_items?.cost_price
 	}));
 	
     let text = formatStock(formatted);
@@ -974,7 +1027,7 @@ async function processApprove(rows, res, chatId, role) {
 
 	const { data: afterStock } = await supabase
 	  .from("stock")
-	  .select("qty, min_qty")
+	  .select("qty, stock_items(min_qty)")
 	  .eq("item", row.item)
 	  .maybeSingle();
 
