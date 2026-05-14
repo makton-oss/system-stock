@@ -53,17 +53,25 @@ async function notifyManagers(text, excludeChatId = null) {
 
   if (!rows || rows.length === 0) return;
 
-  for (const u of rows) {
+  const targets = rows.filter(
+	  u => !excludeChatId || u.chat_id !== excludeChatId
+	);
 
-    if (excludeChatId && u.chat_id === excludeChatId) continue;
+	const batchSize = 5;
 
-    const display = u.nickname || u.chat_id;
+	for (let i = 0; i < targets.length; i += batchSize) {
 
-    await sendWhatsApp(
-      u.chat_id,
-      `${text}`
-    );
-  }
+	  const batch = targets.slice(i, i + batchSize);
+
+	  await Promise.all(
+		batch.map(u =>
+		  sendWhatsApp(u.chat_id, text)
+		)
+	  );
+
+	  // optional small delay
+	  await new Promise(r => setTimeout(r, 500));
+	}
 }
 
 async function reply(chatId, text) {
@@ -175,9 +183,7 @@ ${monthInput.toUpperCase()}
     totalValue += Number(r.total_value);
 
     text +=
-`${toProperCase(r.item)}
-Qty: ${r.qty}
-RM${Number(r.total_value).toFixed(2)}
+`${toProperCase(r.item)} Qty: ${r.qty} RM${Number(r.total_value).toFixed(2)}
 
 `;
   });
@@ -442,11 +448,11 @@ app.post("/webhook", async (req, res) => {
 		await deny(chatId, reply);
 		return end(res);
     }
+	
+	const qty = safeQty(parts.at(-1));
+	const item = normalizeItem( parts.slice(1, -1).join(" "));
 
-    const item = parts[1]?.toLowerCase();
-	const qty = parseInt(parts[2]);
-
-	if (!item || isNaN(qty)) {
+	if (!item || qty === null) {
 	  await reply(chatId, "❌ FORMAT: IN ayam 5");
 	  return end(res);
 	}
@@ -480,7 +486,7 @@ app.post("/webhook", async (req, res) => {
 	const by = `${toProperCase(displayUser.nickname)} (${displayUser.chat_id})`;
 
     await notifyManagers(
-      `📥 STOCK IN\n${summary}\nBY: ${by}`,
+      `📥 STOCK IN\n\n${summary}\nBY: ${by}`,
       chatId
     );
 
@@ -505,10 +511,10 @@ app.post("/webhook", async (req, res) => {
 		return end(res);
     }
 
-    const item = parts[1]?.toLowerCase();
-	const qty = parseInt(parts[2]);
+	const qty = safeQty(parts.at(-1));
+	const item = normalizeItem( parts.slice(1, -1).join(" "));
 
-	if (!item || isNaN(qty)) {
+	if (!item || qty === null) {
 	  await reply(chatId, "❌ FORMAT: OUT ayam 5");
 	  return end(res);
 	}
@@ -542,7 +548,7 @@ app.post("/webhook", async (req, res) => {
 	const by = `${toProperCase(displayUser.nickname)} (${displayUser.chat_id})`;
 
     await notifyManagers(
-      `📤 REQUEST OUT\n${summary}\nBY: ${by}`,
+      `📤 REQUEST OUT\n\n${summary}\nBY: ${by}`,
       chatId
     );
 
@@ -812,18 +818,19 @@ app.post("/webhook", async (req, res) => {
 	  // ======================
 	  if (arg === "ALL") {
 
-		const { data: rows } = await supabase
-		  .from("requests")
-		  .select("*")
-		  .eq("status", "pending");
+		  const { data: rows } = await supabase
+			.from("requests")
+			.update({ status: "processing" })
+			.eq("status", "pending")
+			.select();
 
-		return processRejectAll(
-		  rows,
-		  res,
-		  chatId,
-		  role
-		);
-	  }
+		  return processRejectAll(
+			rows,
+			res,
+			chatId,
+			role
+		  );
+		}
 
 	  // ======================
 	  // REJECT SINGLE
@@ -865,18 +872,19 @@ app.post("/webhook", async (req, res) => {
 	  // ======================
 	  if (arg === "ALL") {
 
-		const { data: rows } = await supabase
-		  .from("requests")
-		  .select("*")
-		  .eq("status", "pending");
+		  const { data: rows } = await supabase
+			.from("requests")
+			.update({ status: "processing" })
+			.eq("status", "pending")
+			.select();
 
-		return processApprove(
-		  rows,
-		  res,
-		  chatId,
-		  role
-		);
-	  }
+		  return processApprove(
+			rows,
+			res,
+			chatId,
+			role
+		  );
+		}
 
 	  // ======================
 	  // APPROVE SINGLE
@@ -920,6 +928,12 @@ async function processApprove(rows, res, chatId, role) {
   let logDetails = [];
 
   for (const row of rows) {
+	  
+	const { data: beforeStock } = await supabase
+	  .from("stock")
+	  .select("qty, min_qty")
+	  .eq("item", row.item)
+	  .maybeSingle();
 
     // update stock
     if (row.type === "out") {
@@ -938,24 +952,39 @@ async function processApprove(rows, res, chatId, role) {
 	// LOW STOCK CHECK
 	// ======================
 
-	const { data: latestStock } = await supabase
+	const { data: afterStock } = await supabase
 	  .from("stock")
 	  .select("qty, min_qty")
 	  .eq("item", row.item)
 	  .maybeSingle();
 
-	if ( latestStock && latestStock.qty <= latestStock.min_qty) {
-	  await notifyManagers( formatLowStockAlert( row.item, latestStock.qty, latestStock.min_qty));
+	if (
+	  beforeStock &&
+	  afterStock &&
+	  beforeStock.qty > beforeStock.min_qty &&
+	  afterStock.qty <= afterStock.min_qty
+	) {
+
+	  await notifyManagers(
+		formatLowStockAlert(
+		  row.item,
+		  afterStock.qty,
+		  afterStock.min_qty
+		)
+	  );
 	}
 
 	await supabase
 	  .from("requests")
 	  .update({ status: "approved" })
-	  .eq("id", row.id);
+	  .eq("id", row.id)
+	  .eq("status", "processing");;
 
     summary[row.item] =
-      (summary[row.item] || 0) +
-      (row.type === "out" ? -row.qty : row.qty);
+	  (summary[row.item] || 0) +
+	  (row.type === "out"
+		? -Number(row.qty)
+		: Number(row.qty));
 
     const sign = row.type === "out" ? "-" : "+";
     logDetails.push(`ID${row.id} ${row.item} ${sign}${row.qty}`);
@@ -964,7 +993,7 @@ async function processApprove(rows, res, chatId, role) {
   let text = "✅ APPROVED\n\n";
 
   Object.entries(summary).forEach(([i, q]) => {
-    reply += `${i} ${q > 0 ? "+" : ""}${q}\n`;
+    text += `${i} ${q > 0 ? "+" : ""}${q}\n`;
   });
 
   await writeLog(chatId, role, "APPROVE", logDetails.join(" | "));
@@ -979,22 +1008,25 @@ async function processApprove(rows, res, chatId, role) {
 async function processApproveSingle(id, res, chatId, role) {
 
   const { data: row } = await supabase
-    .from("requests")
-    .select("*")
-    .eq("id", id)
-    .maybeSingle();
+	  .from("requests")
+	  .update({ status: "processing" })
+	  .eq("id", id)
+	  .eq("status", "pending")
+	  .select()
+	  .maybeSingle();
 
-  if (!row) {
-    await reply(chatId, "❌ ID TIDAK WUJUD");
-	return end(res);
-  }
+	if (!row) {
+	  await reply(chatId, `❌ ID ${id} TIADA / SUDAH DIPROSES`);
+	  return end(res);
+	}
+	
+	const { data: beforeStock } = await supabase
+	  .from("stock")
+	  .select("qty, min_qty")
+	  .eq("item", row.item)
+	  .maybeSingle();
 
-  if (row.status !== "pending") {
-	await reply(chatId, `❌ ID ${id} SUDAH ${row.status.toUpperCase()}`);
-	return end(res);
-  }
-
-  // update stock
+	// update stock
     if (row.type === "out") {
 	  await supabase.rpc("decrease_stock", {
 		p_item: row.item,
@@ -1011,20 +1043,33 @@ async function processApproveSingle(id, res, chatId, role) {
 	// LOW STOCK CHECK
 	// ======================
 
-	const { data: latestStock } = await supabase
+	const { data: afterStock } = await supabase
 	  .from("stock")
 	  .select("qty, min_qty")
 	  .eq("item", row.item)
 	  .maybeSingle();
 
-	if ( latestStock && latestStock.qty <= latestStock.min_qty) {
-	  await notifyManagers( formatLowStockAlert( row.item, latestStock.qty, latestStock.min_qty));
+	if (
+	  beforeStock &&
+	  afterStock &&
+	  beforeStock.qty > beforeStock.min_qty &&
+	  afterStock.qty <= afterStock.min_qty
+	) {
+
+	  await notifyManagers(
+		formatLowStockAlert(
+		  row.item,
+		  afterStock.qty,
+		  afterStock.min_qty
+		)
+	  );
 	}
 
 	await supabase
 	  .from("requests")
 	  .update({ status: "approved" })
-	  .eq("id", row.id);
+	  .eq("id", row.id)
+	  .eq("status", "processing");
 
   const sign = row.type === "out" ? "-" : "+";
 
@@ -1042,7 +1087,7 @@ async function processApproveSingle(id, res, chatId, role) {
 // =====================================================
 // REJECT ALL
 // =====================================================
-async function processRejectAll(res, chatId, role) {
+async function processRejectAll(row, res, chatId, role) {
 
   const { data: rows } = await supabase
     .from("requests")
@@ -1055,9 +1100,13 @@ async function processRejectAll(res, chatId, role) {
   }
 
   await supabase
-    .from("requests")
-    .update({ status: "rejected" })
-    .eq("status", "pending");
+	  .from("requests")
+	  .update({ status: "rejected" })
+	  .in(
+		"id",
+		rows.map(r => r.id)
+	  )
+	  .eq("status", "processing");
 
   await writeLog(chatId, role, "REJECT", `${rows.length} request`);
 
@@ -1071,25 +1120,23 @@ async function processRejectAll(res, chatId, role) {
 async function processRejectSingle(id, res, chatId, role) {
 
   const { data: row } = await supabase
-    .from("requests")
-    .select("*")
-    .eq("id", id)
-    .maybeSingle();
+	  .from("requests")
+	  .update({ status: "processing" })
+	  .eq("id", id)
+	  .eq("status", "pending")
+	  .select()
+	  .maybeSingle();
 
-  if (!row) {
-    await reply(chatId, "❌ ID TIDAK WUJUD");
-	return end(res);
-  }
-
-  if (row.status !== "pending") {
-	await reply(chatId, `❌ ID ${id} SUDAH ${row.status.toUpperCase()}`);
-	return end(res);
-  }
+	if (!row) {
+	  await reply(chatId, `❌ ID ${id} TIADA / SUDAH DIPROSES`);
+	  return end(res);
+	}
 
   await supabase
-    .from("requests")
-    .update({ status: "rejected" })
-    .eq("id", id);
+	  .from("requests")
+	  .update({ status: "rejected" })
+	  .eq("id", row.id)
+	  .eq("status", "processing");
 
   await writeLog(
     chatId,
