@@ -8,5 +8,8 @@ module.exports = {
   APPROVE: require("../handlers/approve"),
   REJECT: require("../handlers/reject"),
   REPORT: require("../handlers/report"),
-  HELP: require("../handlers/help")
+  HELP: require("../handlers/help"),
+  STAFF: require("../handlers/staff"),
+  LOG: require("../handlers/log"),
+  ITEM: require("../handlers/item")
 };
