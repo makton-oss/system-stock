@@ -49,7 +49,8 @@ async function notifyManagers(text, excludeChatId = null) {
   const { data: rows } = await supabase
     .from("users")
     .select("chat_id, nickname")
-    .eq("role", "manager");
+    .eq("role", "manager")
+	.eq("outlet_id", user.outlet_id);
 
   if (!rows || rows.length === 0) return;
 
@@ -461,6 +462,7 @@ app.post("/webhook", async (req, res) => {
 	  .from("stock")
 	  .select("item")
 	  .eq("item", item)
+	  .eq("outlet_id", user.outlet_id)
 	  .maybeSingle();
 
 	if (!stock) {
@@ -474,7 +476,9 @@ app.post("/webhook", async (req, res) => {
 		item,
 		qty,
 		status: "pending",
-		type: "in"
+		type: "in",
+		outlet_id: user.outlet_id,
+		requested_by: chatId
 	  });
 
 	if (await handleDbError(error, chatId, reply)) {
@@ -523,6 +527,7 @@ app.post("/webhook", async (req, res) => {
 	  .from("stock")
 	  .select("item")
 	  .eq("item", item)
+	  .eq("outlet_id", user.outlet_id)
 	  .maybeSingle();
 
 	if (!stock) {
@@ -536,7 +541,9 @@ app.post("/webhook", async (req, res) => {
 		item,
 		qty,
 		status: "pending",
-		type: "out"
+		type: "out",
+		outlet_id: user.outlet_id,
+		requested_by: chatId
 	  });
 
 	if (await handleDbError(error, chatId, reply)) {
@@ -595,7 +602,8 @@ app.post("/webhook", async (req, res) => {
 	  .from("stock")
 	  .insert({
 		item,
-		qty: 0
+		qty: 0,
+		outlet_id: user.outlet_id
 	  });
 
 	if (await handleDbError(error, chatId, reply)) {
@@ -675,6 +683,7 @@ app.post("/webhook", async (req, res) => {
     const { data: rows } = await supabase
       .from("stock")
       .select("item")
+	  .eq("outlet_id", user.outlet_id)
       .order("item");
 
     let text = "📦 ITEM LIST\n\n";
@@ -707,6 +716,7 @@ app.post("/webhook", async (req, res) => {
       .from("requests")
       .select("*")
       .eq("status", "pending")
+	  .eq("outlet_id", user.outlet_id)
       .order("id");
 
     await sendWhatsApp(
@@ -733,11 +743,20 @@ app.post("/webhook", async (req, res) => {
     }
 
     const { data: rows } = await supabase
-      .from("stock")
-      .select("*")
-      .order("item");
+	  .from("stock")
+	  .select(`
+		*,
+		outlets(name)
+	  `)
+	  .eq("outlet_id", user.outlet_id)
+	  .order("item");
 
-    let text = formatStock(rows);
+	const formatted = rows.map(r => ({
+	  ...r,
+	  outlet_name: r.outlets?.name
+	}));
+	
+    let text = formatStock(formatted);
 
     await sendWhatsApp(chatId, text);
 
@@ -915,7 +934,7 @@ app.post("/webhook", async (req, res) => {
 });
 
 // ======================
-// APPROVE ENGINE
+// APPROVE ALL
 // ======================
 async function processApprove(rows, res, chatId, role) {
 
@@ -933,6 +952,7 @@ async function processApprove(rows, res, chatId, role) {
 	  .from("stock")
 	  .select("qty, min_qty")
 	  .eq("item", row.item)
+	  .eq("outlet_id", row.outlet_id)
 	  .maybeSingle();
 
     // update stock
@@ -976,7 +996,7 @@ async function processApprove(rows, res, chatId, role) {
 
 	await supabase
 	  .from("requests")
-	  .update({ status: "approved" })
+	  .update({ status: "approved", processed_by: chatId, processed_at: new Date().toISOString() })
 	  .eq("id", row.id)
 	  .eq("status", "processing");;
 
@@ -1024,6 +1044,7 @@ async function processApproveSingle(id, res, chatId, role) {
 	  .from("stock")
 	  .select("qty, min_qty")
 	  .eq("item", row.item)
+	  .eq("outlet_id", row.outlet_id)
 	  .maybeSingle();
 
 	// update stock
@@ -1067,7 +1088,7 @@ async function processApproveSingle(id, res, chatId, role) {
 
 	await supabase
 	  .from("requests")
-	  .update({ status: "approved" })
+	  .update({ status: "approved", processed_by: chatId, processed_at: new Date().toISOString() })
 	  .eq("id", row.id)
 	  .eq("status", "processing");
 
@@ -1101,11 +1122,12 @@ async function processRejectAll(row, res, chatId, role) {
 
   await supabase
 	  .from("requests")
-	  .update({ status: "rejected" })
+	  .update({ status: "rejected", processed_by: chatId, processed_at: new Date().toISOString() })
 	  .in(
 		"id",
 		rows.map(r => r.id)
 	  )
+	  .eq("outlet_id", row.outlet_id)
 	  .eq("status", "processing");
 
   await writeLog(chatId, role, "REJECT", `${rows.length} request`);
@@ -1134,8 +1156,9 @@ async function processRejectSingle(id, res, chatId, role) {
 
   await supabase
 	  .from("requests")
-	  .update({ status: "rejected" })
+	  .update({ status: "rejected", processed_by: chatId, processed_at: new Date().toISOString() })
 	  .eq("id", row.id)
+	  .eq("outlet_id", row.outlet_id)
 	  .eq("status", "processing");
 
   await writeLog(

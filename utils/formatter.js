@@ -91,19 +91,19 @@ function formatLogDateTime(date = null) {
 // STOCK FORMAT
 // ======================
 function formatStock(rows) {
+	const outlet = rows[0]?.outlet_name || "-";
 
-  if (!rows || rows.length === 0) {
-    return "📦 STOCK KOSONG";
-  }
+	if (!rows || rows.length === 0) {
+		return "📦 STOCK KOSONG";
+	}
 
-  let reply = `📦 STOCK\n`;
-  reply += `${formatLogDateTime()}\n\n`;
+	let reply = `📦 STOCK\n🏪 ${toProperCase(outlet)}\n`;
+	reply += `${formatLogDateTime()}\n\n`;
 
-  rows.forEach(r => {
-    reply += `${toProperCase(r.item)} : ${r.qty}\n`;
-  });
+	rows.forEach(r => {reply += `${toProperCase(r.item)} : ${r.qty}\n`;
+	});
 
-  return reply;
+	return reply;
 }
 
 // ======================
