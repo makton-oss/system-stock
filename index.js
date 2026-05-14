@@ -44,13 +44,13 @@ async function sendWhatsApp(phoneNumber, text) {
   }
 }
 
-async function notifyManagers(text, excludeChatId = null) {
+async function notifyManagers(text, outletId, excludeChatId = null) {
 
   const { data: rows } = await supabase
     .from("users")
     .select("chat_id, nickname")
     .eq("role", "manager")
-	.eq("outlet_id", user.outlet_id);
+	.eq("outlet_id", outletId);
 
   if (!rows || rows.length === 0) return;
 
@@ -280,10 +280,13 @@ app.post("/webhook", async (req, res) => {
   // CHECK USER
   // ======================
   const { data: user } = await supabase
-    .from("users")
-    .select("*")
-    .eq("chat_id", chatId)
-    .maybeSingle();
+	  .from("users")
+	  .select(`
+		*,
+		outlets(name)
+	  `)
+	  .eq("chat_id", chatId)
+	  .maybeSingle();
 
   // ❌ NOT REGISTERED
   if (!user) {
@@ -465,7 +468,7 @@ app.post("/webhook", async (req, res) => {
 		  stock_items(*)
 		`)
 		.eq("outlet_id", user.outlet_id)
-		.eq("stock_items.name", item)
+		.eq("item", item)
 		.maybeSingle();
 
 	if (!stock) {
@@ -494,8 +497,9 @@ app.post("/webhook", async (req, res) => {
 	const by = `${toProperCase(displayUser.nickname)} (${displayUser.chat_id})`;
 
     await notifyManagers(
-      `📥 STOCK IN\n\n${summary}\nBY: ${by}`,
-      chatId
+      `📥 STOCK IN - ${toProperCase(user.outlets?.name || "Outlet")}\n\n${summary}\nBY: ${by}`,
+      user.outlet_id,
+	  chatId
     );
 
     await writeLog(chatId, user?.role || "unknown", "IN", summary.trim());
@@ -534,7 +538,7 @@ app.post("/webhook", async (req, res) => {
 		  stock_items(*)
 		`)
 		.eq("outlet_id", user.outlet_id)
-		.eq("stock_items.name", item)
+		.eq("item", item)
 		.maybeSingle();
 
 	if (!stock) {
@@ -563,8 +567,9 @@ app.post("/webhook", async (req, res) => {
 	const by = `${toProperCase(displayUser.nickname)} (${displayUser.chat_id})`;
 
     await notifyManagers(
-      `📤 REQUEST OUT\n\n${summary}\nBY: ${by}`,
-      chatId
+      `📤 REQUEST OUT - ${toProperCase(user.outlets?.name || "Outlet")}\n\n${summary}\nBY: ${by}`,
+      user.outlet_id,
+	  chatId
     );
 
     await writeLog(chatId, user?.role || "unknown", "OUT", summary.trim());
@@ -634,7 +639,7 @@ app.post("/webhook", async (req, res) => {
 	  itemId = newItem.id;
 	}
 
-	await supabase
+	const { error } = await supabase
 	  .from("stock")
 	  .insert({
 		item,
@@ -1002,7 +1007,7 @@ async function processApprove(rows, res, chatId, role) {
 	  
 	const { data: beforeStock } = await supabase
 	  .from("stock")
-	  .select("qty, min_qty")
+	  .select("qty, stock_items(min_qty)")
 	  .eq("item", row.item)
 	  .eq("outlet_id", row.outlet_id)
 	  .maybeSingle();
@@ -1049,19 +1054,22 @@ async function processApprove(rows, res, chatId, role) {
 	  .eq("item", row.item)
 	  .maybeSingle();
 
+	const minQty = afterStock?.stock_items?.min_qty || 0;
+
 	if (
 	  beforeStock &&
 	  afterStock &&
-	  beforeStock.qty > beforeStock.min_qty &&
-	  afterStock.qty <= afterStock.min_qty
+	  beforeStock.qty > minQty &&
+	  afterStock.qty <= minQty
 	) {
 
 	  await notifyManagers(
 		formatLowStockAlert(
 		  row.item,
 		  afterStock.qty,
-		  afterStock.min_qty
-		)
+		  afterStock.stock_items?.min_qty || 0
+		),
+		row.outlet_id
 	  );
 	}
 
@@ -1113,7 +1121,7 @@ async function processApproveSingle(id, res, chatId, role) {
 	
 	const { data: beforeStock } = await supabase
 	  .from("stock")
-	  .select("qty, min_qty")
+	  .select("qty, stock_items(min_qty)")
 	  .eq("item", row.item)
 	  .eq("outlet_id", row.outlet_id)
 	  .maybeSingle();
@@ -1156,23 +1164,26 @@ async function processApproveSingle(id, res, chatId, role) {
 
 	const { data: afterStock } = await supabase
 	  .from("stock")
-	  .select("qty, min_qty")
+	  .select("qty, stock_items(min_qty)")
 	  .eq("item", row.item)
 	  .maybeSingle();
+
+	const minQty = afterStock?.stock_items?.min_qty || 0;
 
 	if (
 	  beforeStock &&
 	  afterStock &&
-	  beforeStock.qty > beforeStock.min_qty &&
-	  afterStock.qty <= afterStock.min_qty
+	  beforeStock.qty > minQty &&
+	  afterStock.qty <= minQty
 	) {
 
 	  await notifyManagers(
 		formatLowStockAlert(
 		  row.item,
 		  afterStock.qty,
-		  afterStock.min_qty
-		)
+		  afterStock.stock_items?.min_qty || 0
+		),
+		row.outlet_id
 	  );
 	}
 
@@ -1198,27 +1209,26 @@ async function processApproveSingle(id, res, chatId, role) {
 // =====================================================
 // REJECT ALL
 // =====================================================
-async function processRejectAll(row, res, chatId, role) {
-
-  const { data: rows } = await supabase
-    .from("requests")
-    .select("*")
-    .eq("status", "pending");
+async function processRejectAll(rows, res, chatId, role) {
 
   if (!rows?.length) {
-	await reply(chatId, "📭 TIADA REQUEST PENDING");
-	return end(res);
+    await reply(chatId, "📭 TIADA REQUEST PENDING");
+    return end(res);
   }
 
+  const ids = rows.map(r => r.id);
+  const outletId = rows[0].outlet_id;
+
   await supabase
-	  .from("requests")
-	  .update({ status: "rejected", processed_by: chatId, processed_at: new Date().toISOString() })
-	  .in(
-		"id",
-		rows.map(r => r.id)
-	  )
-	  .eq("outlet_id", row.outlet_id)
-	  .eq("status", "processing");
+    .from("requests")
+    .update({
+      status: "rejected",
+      processed_by: chatId,
+      processed_at: new Date().toISOString()
+    })
+    .in("id", ids)
+    .eq("outlet_id", outletId)
+    .eq("status", "processing");
 
   await writeLog(chatId, role, "REJECT", `${rows.length} request`);
 
