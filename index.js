@@ -788,7 +788,6 @@ app.post("/webhook", async (req, res) => {
 			id,
 			name,
 			category,
-			min_qty,
 			cost_price
 		  )
 		`)
@@ -804,7 +803,7 @@ app.post("/webhook", async (req, res) => {
 
 	  category: r.stock_items?.category,
 
-	  min_qty: r.stock_items?.min_qty,
+	  min_qty: r.min_qty,
 
 	  cost_price: r.stock_items?.cost_price
 	}));
