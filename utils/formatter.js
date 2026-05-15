@@ -55,7 +55,7 @@ async function writeLog(chatId, role, command, details = "") {
 // GET USER DISPLAY NAME
 // ======================
 async function getUserDisplay(chatId) {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("users")
     .select("nickname, chat_id")
     .eq("chat_id", chatId)
