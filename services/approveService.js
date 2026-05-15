@@ -52,6 +52,7 @@ async function approveRequests(rows, chatId) {
 		p_outlet_id: row.outlet_id
 	  });
 	}
+	console.log("RPC RESULT:", data, error);
 
     // ======================
     // INSERT MOVEMENT
