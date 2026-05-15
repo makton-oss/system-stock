@@ -40,19 +40,25 @@ async function approveRequests(rows, chatId) {
     // UPDATE STOCK (RPC)
     // ======================
     if (row.type === "out") {
-	  await supabase.rpc("decrease_stock", {
-		p_item_id: row.item_id,
+
+	  const { data, error } = await supabase.rpc("decrease_stock", {
+		p_item: row.item, // 🔥 FIX SINI
 		p_qty: row.qty,
 		p_outlet_id: row.outlet_id
 	  });
+
+	  console.log("DECREASE RESULT:", data, error);
+
 	} else {
-	  await supabase.rpc("increase_stock", {
-		p_item_id: row.item_id,
+
+	  const { data, error } = await supabase.rpc("increase_stock", {
+		p_item: row.item, // 🔥 FIX SINI
 		p_qty: row.qty,
 		p_outlet_id: row.outlet_id
 	  });
+
+	  console.log("INCREASE RESULT:", data, error);
 	}
-	console.log("RPC RESULT:", data, error);
 
     // ======================
     // INSERT MOVEMENT
