@@ -10,16 +10,15 @@ module.exports = withRole(["manager"], async (ctx) => {
   const arg = parts[1]?.toUpperCase();
 
   // ======================
-  // BUILD QUERY
+  // FETCH ONLY
   // ======================
   let query = supabase
     .from("requests")
-    .update({ status: "processing" })
-    .eq("status", "pending")
+    .select("*")
+    .eq("status", "processing")
     .eq("outlet_id", user.outlet_id);
 
   if (arg !== "ALL") {
-
     const id = parseInt(parts[1]);
 
     if (isNaN(id)) {
@@ -30,48 +29,35 @@ module.exports = withRole(["manager"], async (ctx) => {
     query = query.eq("id", id);
   }
 
-  const { data: rows } = await query.select();
+  const { data: rows, error } = await query;
+
+  if (error) {
+    console.log("REJECT ERROR:", error);
+    await reply(chatId, "❌ ERROR");
+    return res.end();
+  }
 
   if (!rows?.length) {
-    await reply(chatId, "📭 TIADA REQUEST");
+    await reply(chatId, "📭 TIADA DATA");
     return res.end();
   }
 
   // ======================
   // PROCESS
   // ======================
-  const result = await rejectRequests(rows, chatId);
-
-  if (result.error) {
-    console.log("REJECT ERROR:", result.error);
-    await reply(chatId, "❌ DB ERROR");
-    return res.end();
-  }
+  const { logDetails } = await rejectRequests(rows, chatId);
 
   // ======================
   // RESPONSE
   // ======================
-  if (arg === "ALL") {
+  let text = "❌ REJECTED\n\n";
 
-    await writeLog(chatId, "manager", "REJECT", `${rows.length} request`);
+  logDetails.forEach(l => {
+    text += `${l}\n`;
+  });
 
-    await reply(chatId, `❌ REJECTED\n\nTotal: ${rows.length}`);
-    return res.end();
-  }
-
-  const row = rows[0];
-
-  await writeLog(
-    chatId,
-    "manager",
-    "REJECT",
-    `ID${row.id} ${row.item} x${row.qty}`
-  );
-
-  await reply(
-    chatId,
-    `❌ REJECTED\n\nID ${row.id}\n${row.item} x${row.qty}`
-  );
+  await writeLog(chatId, "manager", "REJECT", logDetails.join(" | "));
+  await reply(chatId, text);
 
   return res.end();
 });

@@ -2,6 +2,7 @@ const { withRole } = require("../core/withRole");
 const supabase = require("../services/db");
 const { approveRequests } = require("../services/approveService");
 const { writeLog, formatLowStockAlert } = require("../utils/formatter");
+const { notifyManagers } = require("../utils/helpers");
 
 module.exports = withRole(["manager"], async (ctx) => {
 
@@ -10,12 +11,12 @@ module.exports = withRole(["manager"], async (ctx) => {
   const arg = parts[1]?.toUpperCase();
 
   // ======================
-  // FETCH REQUEST
+  // FETCH ONLY (NO UPDATE HERE)
   // ======================
   let query = supabase
     .from("requests")
-    .update({ status: "processing" })
-    .eq("status", "pending")
+    .select("*")
+    .eq("status", "processing")
     .eq("outlet_id", user.outlet_id);
 
   if (arg !== "ALL") {
@@ -29,7 +30,13 @@ module.exports = withRole(["manager"], async (ctx) => {
     query = query.eq("id", id);
   }
 
-  const { data: rows } = await query.select();
+  const { data: rows, error } = await query;
+
+  if (error) {
+    console.log("APPROVE ERROR:", error);
+    await reply(chatId, "❌ ERROR");
+    return res.end();
+  }
 
   if (!rows?.length) {
     await reply(chatId, "📭 TIADA DATA");
@@ -37,7 +44,7 @@ module.exports = withRole(["manager"], async (ctx) => {
   }
 
   // ======================
-  // PROCESS
+  // PROCESS (SAFE)
   // ======================
   const { summary, logDetails, rows: processed } =
     await approveRequests(rows, chatId);
@@ -46,17 +53,21 @@ module.exports = withRole(["manager"], async (ctx) => {
   // LOW STOCK ALERT
   // ======================
   for (const r of processed) {
-    if (r._lowStock) {
-      await reply(
-        chatId,
-        formatLowStockAlert(
-          r._lowStock.item,
-          r._lowStock.qty,
-          r._lowStock.min
-        )
-      );
-    }
-  }
+
+	  if (!r._lowStock) continue;
+
+	  const alertText = formatLowStockAlert(
+		r._lowStock.item,
+		r._lowStock.qty,
+		r._lowStock.min
+	  );
+
+	  // 🔥 notify semua manager outlet sama
+	  await notifyManagers(
+		alertText,
+		r._lowStock.outlet_id
+	  );
+	}
 
   // ======================
   // RESPONSE

@@ -8,12 +8,29 @@ async function approveRequests(rows, chatId) {
   for (const row of rows) {
 
     // ======================
+    // 🔥 LOCK ROW (ANTI DOUBLE APPROVE)
+    // ======================
+    const { data: updated } = await supabase
+      .from("requests")
+      .update({
+        status: "approved",
+        processed_by: chatId,
+        processed_at: new Date().toISOString()
+      })
+      .eq("id", row.id)
+      .eq("status", "processing") // 🔥 critical lock
+      .select();
+
+    // kalau dah approve by orang lain → skip
+    if (!updated?.length) continue;
+
+    // ======================
     // GET BEFORE STOCK
     // ======================
     const { data: before } = await supabase
       .from("stock")
       .select("qty, stock_items(min_qty)")
-      .eq("item", row.item)
+      .eq("item_id", row.item_id)
       .eq("outlet_id", row.outlet_id)
       .maybeSingle();
 
@@ -24,13 +41,13 @@ async function approveRequests(rows, chatId) {
     // ======================
     if (row.type === "out") {
       await supabase.rpc("decrease_stock", {
-        p_item: row.item,
+        p_item_id: row.item_id,
         p_qty: row.qty,
         p_outlet_id: row.outlet_id
       });
     } else {
       await supabase.rpc("increase_stock", {
-        p_item: row.item,
+        p_item_id: row.item_id,
         p_qty: row.qty,
         p_outlet_id: row.outlet_id
       });
@@ -55,7 +72,7 @@ async function approveRequests(rows, chatId) {
     const { data: after } = await supabase
       .from("stock")
       .select("qty, stock_items(min_qty)")
-      .eq("item", row.item)
+      .eq("item_id", row.item_id)
       .eq("outlet_id", row.outlet_id)
       .maybeSingle();
 
@@ -69,19 +86,6 @@ async function approveRequests(rows, chatId) {
       after.qty <= minQty;
 
     // ======================
-    // UPDATE REQUEST
-    // ======================
-    await supabase
-      .from("requests")
-      .update({
-        status: "approved",
-        processed_by: chatId,
-        processed_at: new Date().toISOString()
-      })
-      .eq("id", row.id)
-      .eq("status", "processing");
-
-    // ======================
     // SUMMARY
     // ======================
     summary[row.item] =
@@ -90,7 +94,6 @@ async function approveRequests(rows, chatId) {
 
     logDetails.push(`ID${row.id} ${row.item}`);
 
-    // return low stock info
     if (isLow) {
       row._lowStock = {
         item: row.item,

@@ -2,23 +2,34 @@ const supabase = require("./db");
 
 async function rejectRequests(rows, chatId) {
 
-  const ids = rows.map(r => r.id);
-  const outletId = rows[0]?.outlet_id;
+  let logDetails = [];
 
-  const { error } = await supabase
-    .from("requests")
-    .update({
-      status: "rejected",
-      processed_by: chatId,
-      processed_at: new Date().toISOString()
-    })
-    .in("id", ids)
-    .eq("outlet_id", outletId)
-    .eq("status", "processing");
+  for (const row of rows) {
 
-  if (error) return { error };
+    // ======================
+    // 🔥 LOCK ROW (ANTI DOUBLE REJECT)
+    // ======================
+    const { data: updated } = await supabase
+      .from("requests")
+      .update({
+        status: "rejected",
+        processed_by: chatId,
+        processed_at: new Date().toISOString()
+      })
+      .eq("id", row.id)
+      .eq("status", "processing") // 🔥 critical lock
+      .select();
 
-  return { success: true, count: rows.length };
+    // kalau dah process → skip
+    if (!updated?.length) continue;
+
+    // ======================
+    // LOG
+    // ======================
+    logDetails.push(`ID${row.id} ${row.item}`);
+  }
+
+  return { logDetails, rows };
 }
 
 module.exports = { rejectRequests };
