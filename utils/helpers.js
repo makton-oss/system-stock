@@ -59,30 +59,33 @@ async function sendWhatsApp(phoneNumber, text) {
 // ======================
 async function notifyManagers(text, outletId, excludeChatId = null) {
 
-  const { data: rows, error } = await supabase
+  const { data: rows } = await supabase
     .from("users")
-    .select("chat_id")
+    .select("chat_id, nickname")
     .eq("role", "manager")
-    .eq("outlet_id", outletId);
+	.eq("outlet_id", outletId);
 
-  if (error || !rows?.length) return;
+  if (!rows || rows.length === 0) return;
 
   const targets = rows.filter(
-    u => !excludeChatId || u.chat_id !== excludeChatId
-  );
+	  u => !excludeChatId || u.chat_id !== excludeChatId
+	);
 
-  const batchSize = 5;
+	const batchSize = 5;
 
-  for (let i = 0; i < targets.length; i += batchSize) {
+	for (let i = 0; i < targets.length; i += batchSize) {
 
-    const batch = targets.slice(i, i + batchSize);
+	  const batch = targets.slice(i, i + batchSize);
 
-    await Promise.allSettled(
-      batch.map(u => sendWhatsApp(u.chat_id, text))
-    );
+	  await Promise.all(
+		batch.map(u =>
+		  sendWhatsApp(u.chat_id, text)
+		)
+	  );
 
-    await new Promise(r => setTimeout(r, 500));
-  }
+	  // optional small delay
+	  await new Promise(r => setTimeout(r, 500));
+	}
 }
 
 module.exports = {
