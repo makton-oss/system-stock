@@ -1,20 +1,17 @@
 const { withRole } = require("../core/withRole");
 const supabase = require("../services/db");
+const { formatItemList } = require("../utils/formatter");
 
 module.exports = withRole(["manager","admin"], async (ctx) => {
 
   const { chatId, reply, res } = ctx;
 
   const { data } = await supabase
-    .from("stock_items")
-    .select("*");
+	  .from("stock_items")
+	  .select("name, outlets(name)")
+	  .eq("outlet_id", ctx.user.outlet_id);
 
-  let text = "📦 ITEM LIST\n\n";
-
-  data.forEach(i => {
-    text += `${i.name}\n`;
-  });
-
-  await reply(chatId, text);
+  await reply(chatId, formatItemList(data));
+  
   return res.end();
 });

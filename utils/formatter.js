@@ -93,6 +93,25 @@ function formatLogDateTime(date = null) {
 }
 
 // ======================
+// ITEM FORMAT
+// ======================
+function formatItemList(rows) {
+
+  if (!rows?.length) return "📦 ITEM KOSONG";
+
+  const outlet = rows[0]?.outlets?.name || "-";
+
+  let reply = `📦 ITEM LIST\n${toProperCase(outlet)}\n\n`;
+
+  rows.forEach((r, i) => {
+    const name = toProperCase(r.name || "-");
+    reply += `${i + 1}. ${name}\n`;
+  });
+
+  return reply;
+}
+
+// ======================
 // STOCK FORMAT
 // ======================
 function formatStock(rows) {
@@ -111,7 +130,7 @@ function formatStock(rows) {
     const item = r.stock_items?.name || r.item || "-";
     const category = r.stock_items?.category || "-";
     const cost = Number(r.stock_items?.cost_price || 0);
-    const minQty = r.stock_items?.min_qty || 0;
+    const minQty = r.min_qty || 0;
 
     reply += `${toProperCase(item)}
 Qty: ${r.qty}
@@ -130,21 +149,24 @@ Cost: RM${cost.toFixed(2)}
 // ======================
 function formatPending(rows) {
 
-  if (!rows || rows.length === 0) {
-    return "📭 TIADA REQUEST";
-  }
+  if (!rows?.length) return "📭 TIADA REQUEST";
 
-  let reply = `📋 PENDING LIST\n\n`;
+  const outlet = rows[0]?.outlets?.name || "-";
+
+  let reply = `📋 PENDING LIST\n${toProperCase(outlet)}\n\n`;
 
   rows.forEach(r => {
 
-    reply +=
-`ID ${r.id}
-TYPE : ${r.type?.toUpperCase()} ${toProperCase(r.item)}
-QTY  : ${r.qty}
+    const date = DateTime
+      .fromISO(r.created_at)
+      .setZone("Asia/Kuala_Lumpur")
+      .toFormat("d/M HH:mm");
+
+    reply += `ID ${r.id}
+${r.type?.toUpperCase()} ${toProperCase(r.item)} x ${r.qty}
+${date}
 
 `;
-
   });
 
   return reply;
@@ -482,6 +504,7 @@ module.exports = {
   writeLog,
   getUserDisplay,
   formatLogDateTime,
+  formatItemList,
   formatStock,
   formatPending,
   formatLogs,
