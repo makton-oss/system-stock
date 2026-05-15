@@ -17,7 +17,7 @@ async function createRequest({ item, qty, type, user, chatId }) {
       item,
       item_id: stock.item_id,
       qty,
-      status: "processing",
+      status: "pending",
       type,
       outlet_id: user.outlet_id,
       requested_by: chatId

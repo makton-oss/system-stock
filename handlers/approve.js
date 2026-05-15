@@ -11,7 +11,35 @@ module.exports = withRole(["manager"], async (ctx) => {
   const arg = parts[1]?.toUpperCase();
 
   // ======================
-  // FETCH ONLY (NO UPDATE HERE)
+  // 🔥 STEP 1: LOCK (pending → processing)
+  // ======================
+  if (arg === "ALL") {
+
+    await supabase
+      .from("requests")
+      .update({ status: "processing" })
+      .eq("status", "pending")
+      .eq("outlet_id", user.outlet_id);
+
+  } else {
+
+    const id = parseInt(parts[1]);
+
+    if (isNaN(id)) {
+      await reply(chatId, "❌ FORMAT: APPROVE ALL / APPROVE 12");
+      return res.end();
+    }
+
+    await supabase
+      .from("requests")
+      .update({ status: "processing" })
+      .eq("id", id)
+      .eq("status", "pending");
+
+  }
+
+  // ======================
+  // 🔥 STEP 2: FETCH (processing sahaja)
   // ======================
   let query = supabase
     .from("requests")
@@ -21,12 +49,6 @@ module.exports = withRole(["manager"], async (ctx) => {
 
   if (arg !== "ALL") {
     const id = parseInt(parts[1]);
-
-    if (isNaN(id)) {
-      await reply(chatId, "❌ FORMAT: APPROVE ALL / APPROVE 12");
-      return res.end();
-    }
-
     query = query.eq("id", id);
   }
 
@@ -39,38 +61,37 @@ module.exports = withRole(["manager"], async (ctx) => {
   }
 
   if (!rows?.length) {
-    await reply(chatId, "📭 TIADA DATA");
+    await reply(chatId, "📭 SUDAH PROSES");
     return res.end();
   }
 
   // ======================
-  // PROCESS (SAFE)
+  // 🔥 STEP 3: PROCESS
   // ======================
   const { summary, logDetails, rows: processed } =
     await approveRequests(rows, chatId);
 
   // ======================
-  // LOW STOCK ALERT
+  // 🔥 STEP 4: LOW STOCK ALERT
   // ======================
   for (const r of processed) {
 
-	  if (!r._lowStock) continue;
+    if (!r._lowStock) continue;
 
-	  const alertText = formatLowStockAlert(
-		r._lowStock.item,
-		r._lowStock.qty,
-		r._lowStock.min
-	  );
+    const alertText = formatLowStockAlert(
+      r._lowStock.item,
+      r._lowStock.qty,
+      r._lowStock.min
+    );
 
-	  // 🔥 notify semua manager outlet sama
-	  await notifyManagers(
-		alertText,
-		r._lowStock.outlet_id
-	  );
-	}
+    await notifyManagers(
+      alertText,
+      r._lowStock.outlet_id
+    );
+  }
 
   // ======================
-  // RESPONSE
+  // 🔥 STEP 5: RESPONSE
   // ======================
   let text = "✅ APPROVED\n\n";
 

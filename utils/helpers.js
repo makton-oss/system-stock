@@ -32,8 +32,6 @@ function safeQty(value) {
 // ======================
 async function sendWhatsApp(phoneNumber, text) {
   try {
-    console.log("📤 SEND TO:", phoneNumber);
-
     const response = await fetch(process.env.BOTCOMMERCE_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -46,8 +44,6 @@ async function sendWhatsApp(phoneNumber, text) {
     });
 
     const resText = await response.text();
-
-    console.log("📥 API RESPONSE:", resText);
 
     if (!response.ok) {
       console.log("❌ HTTP ERROR:", resText);
