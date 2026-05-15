@@ -1,7 +1,6 @@
 const { withRole } = require("../core/withRole");
-const { normalizeItem, safeQty } = require("../utils/helpers");
+const { normalizeItem, safeQty, notifyManagers } = require("../utils/helpers");
 const { createRequest } = require("../services/requestService");
-const { notifyManagers } = require("../utils/helpers");
 const { getUserDisplay, toProperCase } = require("../utils/formatter");
 
 module.exports = withRole(["staff", "manager"], async (ctx) => {
@@ -32,22 +31,27 @@ module.exports = withRole(["staff", "manager"], async (ctx) => {
     await reply(chatId, "❌ DB ERROR");
     return res.end();
   }
-  
-	// ======================
-	// NOTIFY MANAGERS
-	// ======================
-	const userInfo = await getUserDisplay(chatId);
 
-	const text = `📥 STOCK OUT - ${toProperCase(user.outlets?.name || "-")}
+  // ======================
+  // NOTIFY MANAGERS
+  // ======================
+  try {
+    const userInfo = await getUserDisplay(chatId);
 
-ID ${result.id} ${toProperCase(item)} x${qty}
+    const text = `📤 STOCK OUT - ${toProperCase(user.outlets?.name || "-")}
+
+ID ${result?.id || "-"} ${toProperCase(item)} x${qty}
 BY: ${toProperCase(userInfo.nickname)} (${chatId})`;
 
-	await notifyManagers(text, user.outlet_id, chatId);
+    await notifyManagers(text, user.outlet_id, chatId);
 
-	// ======================
-	// RESPONSE
-	// ======================
-	await reply(chatId, "✅ REQUEST SENT");
-	return res.end();
+  } catch (err) {
+    console.log("NOTIFY ERROR (OUT):", err);
+  }
+
+  // ======================
+  // RESPONSE
+  // ======================
+  await reply(chatId, "✅ REQUEST SENT");
+  return res.end();
 });

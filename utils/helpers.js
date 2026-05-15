@@ -59,33 +59,59 @@ async function sendWhatsApp(phoneNumber, text) {
 // ======================
 async function notifyManagers(text, outletId, excludeChatId = null) {
 
-  const { data: rows } = await supabase
+  if (!outletId) {
+    console.log("NOTIFY ERROR: outletId missing");
+    return;
+  }
+
+  // 🔥 normalize (elak number vs string mismatch)
+  const normalizedOutletId = String(outletId);
+
+  const { data: rows, error } = await supabase
     .from("users")
-    .select("chat_id, nickname")
-    .eq("role", "manager")
-	.eq("outlet_id", outletId);
+    .select("chat_id, outlet_id")
+    .eq("role", "manager");
 
-  if (!rows || rows.length === 0) return;
+  if (error) {
+    console.log("NOTIFY FETCH ERROR:", error);
+    return;
+  }
 
-  const targets = rows.filter(
-	  u => !excludeChatId || u.chat_id !== excludeChatId
-	);
+  if (!rows?.length) {
+    console.log("NO MANAGERS IN DB");
+    return;
+  }
 
-	const batchSize = 5;
+  // 🔥 STRICT FILTER (outlet match sahaja)
+  const targets = rows.filter(u =>
+    String(u.outlet_id) === normalizedOutletId &&
+    (!excludeChatId || u.chat_id !== excludeChatId)
+  );
 
-	for (let i = 0; i < targets.length; i += batchSize) {
+  if (!targets.length) {
+    console.log("NO MANAGER MATCH OUTLET:", outletId);
+    return;
+  }
 
-	  const batch = targets.slice(i, i + batchSize);
+  const batchSize = 5;
 
-	  await Promise.all(
-		batch.map(u =>
-		  sendWhatsApp(u.chat_id, text)
-		)
-	  );
+  for (let i = 0; i < targets.length; i += batchSize) {
 
-	  // optional small delay
-	  await new Promise(r => setTimeout(r, 500));
-	}
+    const batch = targets.slice(i, i + batchSize);
+
+    const results = await Promise.allSettled(
+      batch.map(u => sendWhatsApp(u.chat_id, text))
+    );
+
+    // 🔥 debug failed send
+    results.forEach((r, idx) => {
+      if (r.status === "rejected") {
+        console.log("FAILED SEND:", batch[idx].chat_id, r.reason);
+      }
+    });
+
+    await new Promise(r => setTimeout(r, 500));
+  }
 }
 
 module.exports = {
