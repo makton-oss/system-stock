@@ -4,39 +4,13 @@ require("dotenv").config();
 const supabase = require("./services/db");
 const handlerMap = require("./core/handlerMap");
 const { createContext } = require("./core/context");
+const { sendWhatsApp } = require("./utils/helpers");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(express.json({ strict: false }));
 app.use(express.urlencoded({ extended: true }));
-
-// ======================
-// WHATSAPP SENDER
-// ======================
-async function sendWhatsApp(phoneNumber, text) {
-  try {
-    const response = await fetch(process.env.BOTCOMMERCE_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        apiToken: process.env.BOTCOMMERCE_API,
-        phone_number_id: process.env.PHONE_NUMBER_ID,
-        phone_number: phoneNumber,
-        message: text
-      })
-    });
-
-    if (!response.ok) {
-      const errText = await response.text();
-      console.log("BOTCOMMERCE ERROR:", errText);
-      throw new Error(errText);
-    }
-
-  } catch (err) {
-    console.log("SEND FAIL:", err);
-  }
-}
 
 async function reply(chatId, text) {
   try {
