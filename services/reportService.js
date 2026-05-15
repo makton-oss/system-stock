@@ -63,7 +63,7 @@ async function generateReport(monthInput, outletId) {
   (inventory.data || []).forEach(r => {
     total += Number(r.total_value);
 
-    text += `${toProperCase(r.item)} x ${r.qty} RM${Number(r.total_value).toFixed(2)}\n\n`;
+    text += `${toProperCase(r.item)} x ${r.qty} RM${Number(r.total_value).toFixed(2)}\n`;
   });
 
   text += `TOTAL: RM${total.toFixed(2)}\n\n`;
