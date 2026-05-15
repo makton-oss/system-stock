@@ -185,6 +185,52 @@ Cost: RM${cost.toFixed(2)}
 }
 
 // ======================
+// STOCK FORMAT ADMIN
+// ======================
+function formatStockAdmin(rows) {
+
+  if (!rows?.length) return "📦 STOCK KOSONG";
+
+  const map = {};
+
+  rows.forEach(r => {
+
+    const outlet = r.outlets?.name || "-";
+
+    if (!map[outlet]) map[outlet] = [];
+
+    map[outlet].push(r);
+  });
+
+  let reply = "📦 STOCK\n";
+
+  Object.entries(map).forEach(([outlet, items]) => {
+
+    reply += `🏪 ${toProperCase(outlet)}\n`;
+    reply += `${formatLogDateTime()}\n\n`;
+
+    items.forEach(r => {
+
+      const item = r.stock_items?.name || r.item;
+      const category = r.stock_items?.category || "-";
+      const cost = Number(r.stock_items?.cost_price || 0);
+      const minQty = r.min_qty || 0;
+
+      reply += `${toProperCase(item)}
+Qty: ${r.qty}
+Category: ${toProperCase(category)}
+Min Qty: ${minQty}
+Cost: RM${cost.toFixed(2)}
+
+`;
+    });
+
+  });
+
+  return reply;
+}
+
+// ======================
 // PENDING FORMAT
 // ======================
 function formatPending(rows) {
@@ -207,6 +253,49 @@ ${r.type?.toUpperCase()} ${toProperCase(r.item)} x ${r.qty}
 ${date}
 
 `;
+  });
+
+  return reply;
+}
+
+// ======================
+// PENDING FORMAT ADMIN
+// ======================
+function formatPendingAdmin(rows) {
+
+  if (!rows?.length) return "📭 TIADA REQUEST";
+
+  const map = {};
+
+  rows.forEach(r => {
+
+    const outlet = r.outlets?.name || "-";
+
+    if (!map[outlet]) map[outlet] = [];
+
+    map[outlet].push(r);
+  });
+
+  let reply = "📋 PENDING LIST\n\n";
+
+  Object.entries(map).forEach(([outlet, list]) => {
+
+    reply += `${toProperCase(outlet)}\n\n`;
+
+    list.forEach(r => {
+
+      const date = DateTime
+        .fromISO(r.created_at)
+        .setZone("Asia/Kuala_Lumpur")
+        .toFormat("d/M HH:mm");
+
+      reply += `ID ${r.id}
+${r.type?.toUpperCase()} ${toProperCase(r.item)} x ${r.qty}
+${date}
+
+`;
+    });
+
   });
 
   return reply;
@@ -258,28 +347,86 @@ BY: ${name} (${r.chat_id})
 // ======================
 // STAFF FORMAT
 // ======================
-function formatStaff(rows) {
+function formatStaffList(rows) {
 
-  if (!rows || rows.length === 0) {
-    return "👥 STAFF KOSONG";
+  if (!rows?.length) return "👥 STAFF KOSONG";
+
+  const outlet = rows[0]?.outlets?.name || "-";
+
+  const managers = rows.filter(r => r.role === "manager");
+  const staff = rows.filter(r => r.role === "staff");
+
+  let reply = `👥 STAFF LIST\n${toProperCase(outlet)}\n\n`;
+
+  if (managers.length) {
+    reply += "Manager\n";
+    managers.forEach((u, i) => {
+      reply += `${i + 1}. ${toProperCase(u.nickname)} - ${u.chat_id}\n`;
+    });
+    reply += "\n";
   }
 
-  let reply = "👥 STAFF LIST\n\n";
+  if (staff.length) {
+    reply += "Staff\n";
+    staff.forEach((u, i) => {
+      reply += `${i + 1}. ${toProperCase(u.nickname)} - ${u.chat_id}\n`;
+    });
+  }
+
+  return reply;
+}
+
+// ======================
+// STAFF FORMAT ADMIN
+// ======================
+function formatStaffListAdmin(rows) {
+
+  if (!rows?.length) return "👥 STAFF KOSONG";
+
+  const map = {};
 
   rows.forEach(r => {
 
-    let name = r.nickname || "-";
-    let id = r.chat_id;
-    let role = r.role?.toUpperCase();
+    const outlet = r.outlets?.name || "-";
 
-    reply +=
-`👤 ${toProperCase(name)}
-📱 ${id}
-🏷️ ${role}
+    if (!map[outlet]) {
+      map[outlet] = {
+        manager: [],
+        staff: []
+      };
+    }
 
-`;
+    if (r.role === "manager") {
+      map[outlet].manager.push(r);
+    } else if (r.role === "staff") {
+      map[outlet].staff.push(r);
+    }
   });
-  
+
+  let reply = "👥 STAFF LIST\n\n";
+
+  Object.entries(map).forEach(([outlet, group]) => {
+
+    reply += `${toProperCase(outlet)}\n\n`;
+
+    if (group.manager.length) {
+      reply += "Manager\n";
+      group.manager.forEach((u, i) => {
+        reply += `${i + 1}. ${toProperCase(u.nickname)} - ${u.chat_id}\n`;
+      });
+      reply += "\n";
+    }
+
+    if (group.staff.length) {
+      reply += "Staff\n";
+      group.staff.forEach((u, i) => {
+        reply += `${i + 1}. ${toProperCase(u.nickname)} - ${u.chat_id}\n`;
+      });
+    }
+
+    reply += "\n";
+  });
+
   return reply;
 }
 
@@ -547,9 +694,12 @@ module.exports = {
   formatItemList,
   formatItemListAdmin,
   formatStock,
+  formatStockAdmin,
   formatPending,
+  formatPendingAdmin,
   formatLogs,
   formatStaff,
+  formatStaffListAdmin,
   toProperCase,
   nowMY,
   ROLE_GUIDE,
