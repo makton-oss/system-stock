@@ -22,7 +22,7 @@ module.exports = withRole(["staff","manager","admin"], async (ctx) => {
         outlet_id,
         outlets(name)
       `)
-      .eq("status", "processing")
+      .eq("status", "pending")
       .order("created_at", { ascending: true });
 
     if (error) {
@@ -49,7 +49,7 @@ module.exports = withRole(["staff","manager","admin"], async (ctx) => {
       outlets(name)
     `)
     .eq("outlet_id", user.outlet_id)
-    .eq("status", "processing")
+    .eq("status", "pending")
     .order("created_at", { ascending: true });
 
   if (error) {
