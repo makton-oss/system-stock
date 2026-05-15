@@ -18,7 +18,7 @@ async function approveRequests(rows, chatId) {
         processed_at: new Date().toISOString()
       })
       .eq("id", row.id)
-      .eq("status", "processing") // 🔥 critical lock
+      .eq("status", "pending") // 🔥 critical lock
       .select();
 
     // kalau dah approve by orang lain → skip
