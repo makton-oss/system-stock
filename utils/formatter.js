@@ -96,27 +96,33 @@ function formatLogDateTime(date = null) {
 // STOCK FORMAT
 // ======================
 function formatStock(rows) {
-	const outlet = rows[0]?.outlet_name || "-";
 
-	if (!rows || rows.length === 0) {
-		return "📦 STOCK KOSONG";
-	}
+  if (!rows || rows.length === 0) {
+    return "📦 STOCK KOSONG";
+  }
 
-	let reply = `📦 STOCK\n🏪 ${toProperCase(outlet)}\n`;
-	reply += `${formatLogDateTime()}\n\n`;
+  const outlet = rows[0]?.outlets?.name || "-";
 
-	rows.forEach(r => {
-		reply +=
-		`${toProperCase(r.item_name)}
+  let reply = `📦 STOCK\n🏪 ${toProperCase(outlet)}\n`;
+  reply += `${formatLogDateTime()}\n\n`;
+
+  rows.forEach(r => {
+
+    const item = r.stock_items?.name || r.item || "-";
+    const category = r.stock_items?.category || "-";
+    const cost = Number(r.stock_items?.cost_price || 0);
+    const minQty = r.stock_items?.min_qty || 0;
+
+    reply += `${toProperCase(item)}
 Qty: ${r.qty}
-Category: ${toProperCase(r.category)}
-Min Qty: ${r.min_qty}
-Cost: RM${Number(r.cost_price).toFixed(2)}
+Category: ${toProperCase(category)}
+Min Qty: ${minQty}
+Cost: RM${cost.toFixed(2)}
 
 `;
-	});
+  });
 
-	return reply;
+  return reply;
 }
 
 // ======================
