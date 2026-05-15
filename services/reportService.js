@@ -63,9 +63,7 @@ async function generateReport(monthInput, outletId) {
   (inventory.data || []).forEach(r => {
     total += Number(r.total_value);
 
-    text += `${toProperCase(r.item)} 
-Qty: ${r.qty}
-RM${Number(r.total_value).toFixed(2)}\n\n`;
+    text += `${toProperCase(r.item)} x ${r.qty} RM${Number(r.total_value).toFixed(2)}\n\n`;
   });
 
   text += `TOTAL: RM${total.toFixed(2)}\n\n`;
@@ -73,29 +71,25 @@ RM${Number(r.total_value).toFixed(2)}\n\n`;
   // FAST
   text += "🔥 FAST MOVING\n\n";
   (fast.data || []).forEach((r, i) => {
-    text += `${i + 1}. ${toProperCase(r.item)}
-Used: ${r.total_out}\n\n`;
+    text += `${i + 1}. ${toProperCase(r.item)} Used: ${r.total_out}\n\n`;
   });
 
   // SLOW
   text += "🐢 SLOW MOVING\n\n";
   (slow.data || []).forEach((r, i) => {
-    text += `${i + 1}. ${toProperCase(r.item)}
-Used: ${r.total_out}\n\n`;
+    text += `${i + 1}. ${toProperCase(r.item)} Used: ${r.total_out}\n\n`;
   });
 
   // DEAD
   text += "💀 DEAD STOCK\n\n";
   (dead.data || []).forEach(r => {
-    text += `${toProperCase(r.item)}
-Balance: ${r.qty}\n\n`;
+    text += `${toProperCase(r.item)} Balance: ${r.qty}\n\n`;
   });
 
   // TREND
   text += "📈 MONTHLY TREND\n\n";
   (trend.data || []).forEach(r => {
-    text += `${toProperCase(r.item)}
-OUT: ${r.total_out}\n\n`;
+    text += `${toProperCase(r.item)} OUT: ${r.total_out}\n\n`;
   });
 
   return { text };

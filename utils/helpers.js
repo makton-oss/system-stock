@@ -75,10 +75,6 @@ async function sendWhatsApp(phoneNumber, text) {
 // NOTIFY MANAGER
 // ======================
 async function notifyManagers(text, outletId, excludeChatId = null) {
-
-  console.log("==== NOTIFY START ====");
-  console.log("OUTLET INPUT:", outletId, typeof outletId);
-
   const { data: rows, error } = await supabase
     .from("users")
     .select("chat_id, outlet_id, role")
@@ -89,31 +85,21 @@ async function notifyManagers(text, outletId, excludeChatId = null) {
     return;
   }
 
-  console.log("ALL MANAGERS:", rows);
-
   if (!rows?.length) {
     console.log("NO MANAGERS IN DB");
     return;
   }
 
   const targets = rows.filter(u => {
-    console.log("COMPARE:", u.outlet_id, typeof u.outlet_id);
-
     return (
       String(u.outlet_id).trim() === String(outletId).trim() &&
       (!excludeChatId || u.chat_id !== excludeChatId)
     );
   });
 
-  console.log("MATCHED:", targets);
-
   if (!targets.length) {
     console.log("❌ NO MANAGER MATCH OUTLET:", outletId);
     return;
-  }
-
-  for (const u of targets) {
-    console.log("SENDING TO:", u.chat_id);
   }
 
   const batchSize = 5;
@@ -134,8 +120,6 @@ async function notifyManagers(text, outletId, excludeChatId = null) {
 
     await new Promise(r => setTimeout(r, 500));
   }
-
-  console.log("==== NOTIFY END ====");
 }
 
 module.exports = {
