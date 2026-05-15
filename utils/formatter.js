@@ -698,7 +698,7 @@ module.exports = {
   formatPending,
   formatPendingAdmin,
   formatLogs,
-  formatStaff,
+  formatStaffList,
   formatStaffListAdmin,
   toProperCase,
   nowMY,
