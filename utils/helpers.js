@@ -32,6 +32,8 @@ function safeQty(value) {
 // ======================
 async function sendWhatsApp(phoneNumber, text) {
   try {
+    console.log("📤 SEND TO:", phoneNumber);
+
     const response = await fetch(process.env.BOTCOMMERCE_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -43,14 +45,29 @@ async function sendWhatsApp(phoneNumber, text) {
       })
     });
 
+    const resText = await response.text();
+
+    console.log("📥 API RESPONSE:", resText);
+
     if (!response.ok) {
-      const errText = await response.text();
-      console.log("BOTCOMMERCE ERROR:", errText);
-      throw new Error(errText);
+      console.log("❌ HTTP ERROR:", resText);
+      return;
+    }
+
+    // 🔥 OPTIONAL: kalau API return JSON status
+    try {
+      const json = JSON.parse(resText);
+
+      if (json.status && json.status !== "success") {
+        console.log("❌ API LOGIC FAIL:", json);
+      }
+
+    } catch {
+      // ignore kalau bukan JSON
     }
 
   } catch (err) {
-    console.log("SEND FAIL:", err);
+    console.log("❌ SEND FAIL:", err);
   }
 }
 
