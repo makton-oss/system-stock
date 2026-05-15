@@ -54,9 +54,9 @@ async function sendWhatsApp(phoneNumber, text) {
     try {
       const json = JSON.parse(resText);
 
-      if (json.status && json.status !== "success") {
-        console.log("❌ API LOGIC FAIL:", json);
-      }
+      if (responseData.status !== "1") {
+		  console.log("❌ API LOGIC FAIL:", responseData);
+		}
 
     } catch {
       // ignore kalau bukan JSON

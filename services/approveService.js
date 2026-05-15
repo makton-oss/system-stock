@@ -1,12 +1,12 @@
 const supabase = require("./db");
 
 async function approveRequests(rows, chatId) {
-
+	console.log("🔥 APPROVE SERVICE MASUK SINI");
   let summary = {};
   let logDetails = [];
 
   for (const row of rows) {
-
+	console.log("🔥 LOOP ROW:", row.id);
     // ======================
     // 🔥 LOCK ROW (ANTI DOUBLE APPROVE)
     // ======================
@@ -35,7 +35,7 @@ async function approveRequests(rows, chatId) {
       .maybeSingle();
 
     if (!before) continue;
-
+	console.log("🔥 BEFORE RPC");
     // ======================
     // UPDATE STOCK (RPC)
     // ======================
