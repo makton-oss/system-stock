@@ -48,7 +48,7 @@ BY: ${toProperCase(userInfo.nickname)} (${chatId})`;
   } catch (err) {
     console.log("NOTIFY ERROR (IN):", err);
   }
-console.log("USER OUTLET:", user.outlet_id);
+
   // ======================
   // RESPONSE
   // ======================

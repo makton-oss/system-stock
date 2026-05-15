@@ -59,17 +59,12 @@ async function sendWhatsApp(phoneNumber, text) {
 // ======================
 async function notifyManagers(text, outletId, excludeChatId = null) {
 
-  if (!outletId) {
-    console.log("NOTIFY ERROR: outletId missing");
-    return;
-  }
-
-  // 🔥 normalize (elak number vs string mismatch)
-  const normalizedOutletId = String(outletId);
+  console.log("==== NOTIFY START ====");
+  console.log("OUTLET INPUT:", outletId, typeof outletId);
 
   const { data: rows, error } = await supabase
     .from("users")
-    .select("chat_id, outlet_id")
+    .select("chat_id, outlet_id, role")
     .eq("role", "manager");
 
   if (error) {
@@ -77,20 +72,31 @@ async function notifyManagers(text, outletId, excludeChatId = null) {
     return;
   }
 
+  console.log("ALL MANAGERS:", rows);
+
   if (!rows?.length) {
     console.log("NO MANAGERS IN DB");
     return;
   }
 
-  // 🔥 STRICT FILTER (outlet match sahaja)
-  const targets = rows.filter(u =>
-    String(u.outlet_id) === normalizedOutletId &&
-    (!excludeChatId || u.chat_id !== excludeChatId)
-  );
+  const targets = rows.filter(u => {
+    console.log("COMPARE:", u.outlet_id, typeof u.outlet_id);
+
+    return (
+      String(u.outlet_id).trim() === String(outletId).trim() &&
+      (!excludeChatId || u.chat_id !== excludeChatId)
+    );
+  });
+
+  console.log("MATCHED:", targets);
 
   if (!targets.length) {
-    console.log("NO MANAGER MATCH OUTLET:", outletId);
+    console.log("❌ NO MANAGER MATCH OUTLET:", outletId);
     return;
+  }
+
+  for (const u of targets) {
+    console.log("SENDING TO:", u.chat_id);
   }
 
   const batchSize = 5;
@@ -103,7 +109,6 @@ async function notifyManagers(text, outletId, excludeChatId = null) {
       batch.map(u => sendWhatsApp(u.chat_id, text))
     );
 
-    // 🔥 debug failed send
     results.forEach((r, idx) => {
       if (r.status === "rejected") {
         console.log("FAILED SEND:", batch[idx].chat_id, r.reason);
@@ -112,6 +117,8 @@ async function notifyManagers(text, outletId, excludeChatId = null) {
 
     await new Promise(r => setTimeout(r, 500));
   }
+
+  console.log("==== NOTIFY END ====");
 }
 
 module.exports = {
