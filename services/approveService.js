@@ -41,13 +41,13 @@ async function approveRequests(rows, chatId) {
     // ======================
     if (row.type === "out") {
       await supabase.rpc("decrease_stock", {
-        p_item_id: row.item_id,
+        p_item: row.item,
         p_qty: row.qty,
         p_outlet_id: row.outlet_id
       });
     } else {
       await supabase.rpc("increase_stock", {
-        p_item_id: row.item_id,
+        p_item: row.item,
         p_qty: row.qty,
         p_outlet_id: row.outlet_id
       });
