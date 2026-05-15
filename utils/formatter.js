@@ -104,8 +104,48 @@ function formatItemList(rows) {
   let reply = `📦 ITEM LIST\n${toProperCase(outlet)}\n\n`;
 
   rows.forEach((r, i) => {
-    const name = toProperCase(r.name || "-");
+    const name = toProperCase(
+      r.stock_items?.name || r.item || "-"
+    );
     reply += `${i + 1}. ${name}\n`;
+  });
+
+  return reply;
+}
+
+// ======================
+// ITEM FORMAT ADMIN
+// ======================
+function formatItemListAdmin(rows) {
+
+  if (!rows?.length) return "📦 ITEM KOSONG";
+
+  // group by outlet
+  const map = {};
+
+  rows.forEach(r => {
+
+    const outlet = r.outlets?.name || "-";
+    const item = r.stock_items?.name || r.item;
+
+    if (!map[outlet]) {
+      map[outlet] = new Set();
+    }
+
+    map[outlet].add(item);
+  });
+
+  let reply = "📦 ITEM LIST\n\n";
+
+  Object.entries(map).forEach(([outlet, items]) => {
+
+    reply += `${toProperCase(outlet)}\n\n`;
+
+    [...items].forEach((item, i) => {
+      reply += `${i + 1}. ${toProperCase(item)}\n`;
+    });
+
+    reply += "\n";
   });
 
   return reply;
@@ -505,6 +545,7 @@ module.exports = {
   getUserDisplay,
   formatLogDateTime,
   formatItemList,
+  formatItemListAdmin,
   formatStock,
   formatPending,
   formatLogs,

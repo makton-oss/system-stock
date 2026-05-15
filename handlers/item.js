@@ -1,17 +1,54 @@
 const { withRole } = require("../core/withRole");
 const supabase = require("../services/db");
-const { formatItemList } = require("../utils/formatter");
+const { formatItemListAdmin, formatItemList } = require("../utils/formatter");
 
-module.exports = withRole(["manager","admin"], async (ctx) => {
+module.exports = withRole(["staff","manager","admin"], async (ctx) => {
 
-  const { chatId, reply, res } = ctx;
+  const { chatId, user, reply, res } = ctx;
 
-  const { data } = await supabase
-	  .from("stock_items")
-	  .select("name, outlets(name)")
-	  .eq("outlet_id", ctx.user.outlet_id);
+  // ======================
+  // ADMIN → ALL OUTLETS
+  // ======================
+  if (user.role === "admin") {
+
+    const { data, error } = await supabase
+      .from("stock")
+      .select(`
+        item,
+        outlet_id,
+        stock_items(name),
+        outlets(name)
+      `)
+      .order("outlet_id", { ascending: true });
+
+    if (error) {
+      console.log("ITEM ERROR:", error);
+      await reply(chatId, "❌ ERROR");
+      return res.end();
+    }
+
+    await reply(chatId, formatItemListAdmin(data));
+    return res.end();
+  }
+
+  // ======================
+  // STAFF / MANAGER
+  // ======================
+  const { data, error } = await supabase
+    .from("stock")
+    .select(`
+      item,
+      stock_items(name),
+      outlets(name)
+    `)
+    .eq("outlet_id", user.outlet_id);
+
+  if (error) {
+    console.log("ITEM ERROR:", error);
+    await reply(chatId, "❌ ERROR");
+    return res.end();
+  }
 
   await reply(chatId, formatItemList(data));
-  
   return res.end();
 });
