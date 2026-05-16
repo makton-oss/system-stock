@@ -63,7 +63,6 @@ module.exports = withRole(["admin"], async (ctx) => {
     .insert({
       name: item,
       category,
-      min_qty: minQty,
       cost_price: cost,
       uom
     })
