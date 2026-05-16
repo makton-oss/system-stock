@@ -688,22 +688,43 @@ async function checkRole(chat_id, allowed) {
 // ======================
 // FORMAT MAIN REPORT
 // ======================
-function formatMainReport(data) {
+function formatMainReport(data, monthLabel) {
 
-  let text = "📊 STOCK REPORT\n\n";
+  let text = `📊 STOCK REPORT - ${monthLabel}\n\n`;
 
-  text += `💰 TOTAL COST\nRM ${data.totalCost.toFixed(2)}\n\n`;
+  Object.entries(data).forEach(([outlet, o]) => {
 
-  text += "📉 TOP ITEM\n";
+    text += `${outlet}\n\n`;
 
-  Object.entries(data.itemMap)
-    .sort((a,b) => b[1] - a[1])
-    .slice(0,5)
-    .forEach(([name, val]) => {
-      text += `${name} RM${val.toFixed(0)}\n`;
+    text += `💰 TOTAL COST\nRM ${o.totalCost.toFixed(0)}\n\n`;
+
+    text += "📉 TOP COST ITEM\n";
+
+    const items = Object.entries(o.itemMap)
+      .sort((a,b) => b[1] - a[1]);
+
+    const top = items.slice(0,2);
+    const others = items.slice(2).reduce((s, [,v]) => s+v, 0);
+
+    top.forEach(([n,v]) => {
+      text += `${n} RM${v.toFixed(0)}\n`;
     });
 
-  text += `\n💸 FLOW\nIN RM${data.flowIn}\nOUT RM${data.flowOut}\nNET RM${data.net}\n`;
+    if (others > 0) {
+      text += `OTHERS RM${others.toFixed(0)}\n`;
+    }
+
+    text += "\n📦 CATEGORY\n";
+
+    Object.entries(o.categoryMap).forEach(([c,v]) => {
+      text += `${c} RM${v.toFixed(0)}\n`;
+    });
+
+    text += `\n💸 FLOW (VALUE)\n`;
+    text += `IN   : RM ${o.flowIn.toFixed(0)}\n`;
+    text += `OUT  : RM ${o.flowOut.toFixed(0)}\n`;
+    text += `NET  : RM ${(o.flowIn - o.flowOut).toFixed(0)}\n\n`;
+  });
 
   return text;
 }

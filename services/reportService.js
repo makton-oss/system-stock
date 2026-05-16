@@ -3,15 +3,16 @@ const supabase = require("./db");
 // ======================
 // MAIN REPORT
 // ======================
-async function getMainReport({ start, end, outletId }) {
+async function getMainReport({ start, end, outletId, isAdmin }) {
 
   let query = supabase
     .from("stock_movements")
     .select(`
       qty,
       type,
-      item_id,
-      stock_items(name, cost_price, category)
+      outlet_id,
+      stock_items(name, cost_price, category),
+      outlets(name)
     `)
     .gte("created_at", start)
     .lte("created_at", end);
@@ -21,39 +22,40 @@ async function getMainReport({ start, end, outletId }) {
   const { data, error } = await query;
   if (error) return { error };
 
-  let totalCost = 0;
-  let flowIn = 0;
-  let flowOut = 0;
-
-  const itemMap = {};
-  const categoryMap = {};
+  const outletMap = {};
 
   data.forEach(r => {
 
+    const outlet = r.outlets?.name || "Outlet";
     const cost = r.qty * r.stock_items.cost_price;
 
+    if (!outletMap[outlet]) {
+      outletMap[outlet] = {
+        totalCost: 0,
+        flowIn: 0,
+        flowOut: 0,
+        itemMap: {},
+        categoryMap: {}
+      };
+    }
+
+    const o = outletMap[outlet];
+
     if (r.type === "out") {
-      totalCost += cost;
-      flowOut += cost;
+      o.totalCost += cost;
+      o.flowOut += cost;
     } else {
-      flowIn += cost;
+      o.flowIn += cost;
     }
 
     const name = r.stock_items.name;
-    itemMap[name] = (itemMap[name] || 0) + cost;
+    o.itemMap[name] = (o.itemMap[name] || 0) + cost;
 
     const cat = r.stock_items.category || "lain";
-    categoryMap[cat] = (categoryMap[cat] || 0) + cost;
+    o.categoryMap[cat] = (o.categoryMap[cat] || 0) + cost;
   });
 
-  return {
-    totalCost,
-    flowIn,
-    flowOut,
-    net: flowIn - flowOut,
-    itemMap,
-    categoryMap
-  };
+  return outletMap;
 }
 
 // ======================
