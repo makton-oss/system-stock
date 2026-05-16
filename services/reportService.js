@@ -11,10 +11,65 @@ function groupByOutlet(rows) {
   return map;
 }
 
+async function getMainReport({ start, end, outletId, isAdmin }) {
+
+  let query = supabase
+    .from("stock_movements")
+    .select(`
+      qty,
+      type,
+      outlet_id,
+      stock_items(name, cost_price, category),
+      outlets(name)
+    `)
+    .gte("created_at", start)
+    .lte("created_at", end);
+
+  if (outletId) query = query.eq("outlet_id", outletId);
+
+  const { data, error } = await query;
+  if (error) return { error };
+
+  const outletMap = {};
+
+  data.forEach(r => {
+
+    const outlet = r.outlets?.name || "Outlet";
+    const cost = r.qty * r.stock_items.cost_price;
+
+    if (!outletMap[outlet]) {
+      outletMap[outlet] = {
+        totalCost: 0,
+        flowIn: 0,
+        flowOut: 0,
+        itemMap: {},
+        categoryMap: {}
+      };
+    }
+
+    const o = outletMap[outlet];
+
+    if (r.type === "out") {
+      o.totalCost += cost;
+      o.flowOut += cost;
+    } else {
+      o.flowIn += cost;
+    }
+
+    const name = r.stock_items.name;
+    o.itemMap[name] = (o.itemMap[name] || 0) + cost;
+
+    const cat = r.stock_items.category || "lain";
+    o.categoryMap[cat] = (o.categoryMap[cat] || 0) + cost;
+  });
+
+  return outletMap;
+}
+
 // ======================
 // INVENTORY
 // ======================
-async function getInventory({ outletId }) {
+async function getInventoryReport({ outletId }) {
 
   let q = supabase
     .from("stock")
@@ -36,7 +91,7 @@ async function getInventory({ outletId }) {
 // ======================
 // DETAIL IN OUT
 // ======================
-async function getDetail({ start, end, outletId }) {
+async function getDetailReport({ start, end, outletId }) {
 
   let q = supabase
     .from("stock_movements")
@@ -91,7 +146,7 @@ async function getDetail({ start, end, outletId }) {
 // ======================
 // DEAD STOCK
 // ======================
-async function getDead({ start, end, outletId }) {
+async function getDeadReport({ start, end, outletId }) {
 
   let stockQ = supabase
     .from("stock")
@@ -138,7 +193,7 @@ async function getDead({ start, end, outletId }) {
 // ======================
 // FLOW
 // ======================
-async function getFlow({ start, end, outletId }) {
+async function getFlowReport({ start, end, outletId }) {
 
   let q = supabase
     .from("stock_movements")
