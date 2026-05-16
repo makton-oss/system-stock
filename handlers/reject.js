@@ -5,7 +5,6 @@ const { writeLog } = require("../utils/formatter");
 module.exports = withRole(["manager"], async (ctx) => {
 
   const { chatId, parts, user, reply, res } = ctx;
-
   const arg = parts[1]?.toUpperCase();
 
   let query = supabase
@@ -25,22 +24,13 @@ module.exports = withRole(["manager"], async (ctx) => {
     query = query.eq("id", id);
   }
 
-  const { data: rows, error } = await query;
-
-  if (error) {
-    console.log("REJECT ERROR:", error);
-    await reply(chatId, "❌ ERROR");
-    return res.end();
-  }
+  const { data: rows } = await query;
 
   if (!rows?.length) {
     await reply(chatId, "📭 TIADA DATA");
     return res.end();
   }
 
-  // ======================
-  // UPDATE → REJECTED
-  // ======================
   let logDetails = [];
 
   for (const row of rows) {
@@ -53,7 +43,7 @@ module.exports = withRole(["manager"], async (ctx) => {
         processed_at: new Date().toISOString()
       })
       .eq("id", row.id)
-      .eq("status", "pending") // 🔥 penting
+      .eq("status", "pending")
       .select();
 
     if (!updated?.length) continue;

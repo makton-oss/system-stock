@@ -7,13 +7,8 @@ async function approveRequests(rows, chatId) {
 
   for (const row of rows) {
 
-	console.log("ROW DEBUG:", {
-  item_id: row.item_id,
-  outlet_id: row.outlet_id,
-  item: row.item
-});
     // ======================
-    // UPDATE REQUEST (LOCK SIMPLE)
+    // 🔥 ATOMIC LOCK
     // ======================
     const { data: updated } = await supabase
       .from("requests")
@@ -23,22 +18,14 @@ async function approveRequests(rows, chatId) {
         processed_at: new Date().toISOString()
       })
       .eq("id", row.id)
-      .eq("status", "pending") // ensure still pending
+      .eq("status", "pending")
       .select();
 
-    if (!updated?.length) {
-      console.log("SKIP (ALREADY PROCESSED):", row.id);
-      continue;
-    }
+    // skip kalau dah kena process
+    if (!updated?.length) continue;
 
-console.log("CHECK STOCK PARAM:", {
-  item_id: row.item_id,
-  outlet_id: row.outlet_id,
-  type_item_id: typeof row.item_id,
-  type_outlet_id: typeof row.outlet_id
-});
     // ======================
-    // GET BEFORE STOCK
+    // GET STOCK (FIXED)
     // ======================
     const { data: before } = await supabase
       .from("stock")
@@ -51,7 +38,7 @@ console.log("CHECK STOCK PARAM:", {
       console.log("STOCK NOT FOUND:", row.item_id, row.outlet_id);
       continue;
     }
-console.log("STOCK QUERY RESULT:", before);
+
     // ======================
     // UPDATE STOCK (RPC)
     // ======================
@@ -90,7 +77,7 @@ console.log("STOCK QUERY RESULT:", before);
     });
 
     // ======================
-    // GET AFTER STOCK
+    // AFTER STOCK
     // ======================
     const { data: after } = await supabase
       .from("stock")
@@ -99,7 +86,7 @@ console.log("STOCK QUERY RESULT:", before);
       .eq("outlet_id", row.outlet_id)
       .maybeSingle();
 
-    const minQty = after?.stock_items?.min_qty || 0;
+    const minQty = after?.min_qty || 0;
 
     const isLow =
       before.qty > minQty &&

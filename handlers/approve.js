@@ -7,11 +7,10 @@ const { notifyManagers } = require("../utils/helpers");
 module.exports = withRole(["manager"], async (ctx) => {
 
   const { chatId, parts, user, reply, res } = ctx;
-
   const arg = parts[1]?.toUpperCase();
 
   // ======================
-  // FETCH PENDING ONLY (OUTLET BASED)
+  // FETCH PENDING ONLY
   // ======================
   let query = supabase
     .from("requests")
@@ -33,7 +32,7 @@ module.exports = withRole(["manager"], async (ctx) => {
   const { data: rows, error } = await query;
 
   if (error) {
-    console.log("APPROVE ERROR:", error);
+    console.log("APPROVE FETCH ERROR:", error);
     await reply(chatId, "❌ ERROR");
     return res.end();
   }
