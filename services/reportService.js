@@ -255,8 +255,9 @@ async function getFlowReport({ start, end, outletId }) {
 }
 
 module.exports = {
-  getInventory,
-  getDetail,
-  getDead,
-  getFlow
+  getMainReport,
+  getInventoryReport,
+  getDetailReport,
+  getDeadReport,
+  getFlowReport
 };
