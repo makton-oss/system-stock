@@ -11,18 +11,15 @@ module.exports = withRole(["manager"], async (ctx) => {
   const arg = parts[1]?.toUpperCase();
 
   // ======================
-  // 🔥 STEP 1: LOCK (pending → processing)
+  // FETCH PENDING ONLY (OUTLET BASED)
   // ======================
-  if (arg === "ALL") {
+  let query = supabase
+    .from("requests")
+    .select("*")
+    .eq("status", "pending")
+    .eq("outlet_id", user.outlet_id);
 
-    await supabase
-      .from("requests")
-      .update({ status: "processing" })
-      .eq("status", "pending")
-      .eq("outlet_id", user.outlet_id);
-
-  } else {
-
+  if (arg !== "ALL") {
     const id = parseInt(parts[1]);
 
     if (isNaN(id)) {
@@ -30,25 +27,6 @@ module.exports = withRole(["manager"], async (ctx) => {
       return res.end();
     }
 
-    await supabase
-      .from("requests")
-      .update({ status: "processing" })
-      .eq("id", id)
-      .eq("status", "pending");
-
-  }
-
-  // ======================
-  // 🔥 STEP 2: FETCH (processing sahaja)
-  // ======================
-  let query = supabase
-    .from("requests")
-    .select("*")
-    .eq("status", "processing")
-    .eq("outlet_id", user.outlet_id);
-
-  if (arg !== "ALL") {
-    const id = parseInt(parts[1]);
     query = query.eq("id", id);
   }
 
@@ -61,21 +39,20 @@ module.exports = withRole(["manager"], async (ctx) => {
   }
 
   if (!rows?.length) {
-    await reply(chatId, "📭 SUDAH PROSES");
+    await reply(chatId, "📭 TIADA DATA");
     return res.end();
   }
 
   // ======================
-  // 🔥 STEP 3: PROCESS
+  // PROCESS
   // ======================
   const { summary, logDetails, rows: processed } =
     await approveRequests(rows, chatId);
 
   // ======================
-  // 🔥 STEP 4: LOW STOCK ALERT
+  // LOW STOCK ALERT
   // ======================
   for (const r of processed) {
-
     if (!r._lowStock) continue;
 
     const alertText = formatLowStockAlert(
@@ -84,14 +61,11 @@ module.exports = withRole(["manager"], async (ctx) => {
       r._lowStock.min
     );
 
-    await notifyManagers(
-      alertText,
-      r._lowStock.outlet_id
-    );
+    await notifyManagers(alertText, r._lowStock.outlet_id);
   }
 
   // ======================
-  // 🔥 STEP 5: RESPONSE
+  // RESPONSE
   // ======================
   let text = "✅ APPROVED\n\n";
 

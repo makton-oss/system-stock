@@ -1,6 +1,5 @@
 const { withRole } = require("../core/withRole");
 const supabase = require("../services/db");
-const { rejectRequests } = require("../services/rejectService");
 const { writeLog } = require("../utils/formatter");
 
 module.exports = withRole(["manager"], async (ctx) => {
@@ -9,13 +8,10 @@ module.exports = withRole(["manager"], async (ctx) => {
 
   const arg = parts[1]?.toUpperCase();
 
-  // ======================
-  // FETCH ONLY
-  // ======================
   let query = supabase
     .from("requests")
     .select("*")
-    .eq("status", "processing")
+    .eq("status", "pending")
     .eq("outlet_id", user.outlet_id);
 
   if (arg !== "ALL") {
@@ -43,21 +39,30 @@ module.exports = withRole(["manager"], async (ctx) => {
   }
 
   // ======================
-  // PROCESS
+  // UPDATE → REJECTED
   // ======================
-  const { logDetails } = await rejectRequests(rows, chatId);
+  let logDetails = [];
 
-  // ======================
-  // RESPONSE
-  // ======================
-  let text = "❌ REJECTED\n\n";
+  for (const row of rows) {
 
-  logDetails.forEach(l => {
-    text += `${l}\n`;
-  });
+    const { data: updated } = await supabase
+      .from("requests")
+      .update({
+        status: "rejected",
+        processed_by: chatId,
+        processed_at: new Date().toISOString()
+      })
+      .eq("id", row.id)
+      .eq("status", "pending") // 🔥 penting
+      .select();
+
+    if (!updated?.length) continue;
+
+    logDetails.push(`ID${row.id} ${row.item}`);
+  }
 
   await writeLog(chatId, "manager", "REJECT", logDetails.join(" | "));
-  await reply(chatId, text);
+  await reply(chatId, "❌ REJECTED");
 
   return res.end();
 });

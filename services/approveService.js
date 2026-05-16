@@ -1,14 +1,14 @@
 const supabase = require("./db");
 
 async function approveRequests(rows, chatId) {
-	console.log("🔥 APPROVE SERVICE MASUK SINI");
+
   let summary = {};
   let logDetails = [];
 
   for (const row of rows) {
-	console.log("🔥 LOOP ROW:", row.id);
+
     // ======================
-    // 🔥 LOCK ROW (ANTI DOUBLE APPROVE)
+    // UPDATE REQUEST (LOCK SIMPLE)
     // ======================
     const { data: updated } = await supabase
       .from("requests")
@@ -18,11 +18,13 @@ async function approveRequests(rows, chatId) {
         processed_at: new Date().toISOString()
       })
       .eq("id", row.id)
-      .eq("status", "pending") // 🔥 critical lock
+      .eq("status", "pending") // ensure still pending
       .select();
 
-    // kalau dah approve by orang lain → skip
-    if (!updated?.length) continue;
+    if (!updated?.length) {
+      console.log("SKIP (ALREADY PROCESSED):", row.id);
+      continue;
+    }
 
     // ======================
     // GET BEFORE STOCK
@@ -34,31 +36,34 @@ async function approveRequests(rows, chatId) {
       .eq("outlet_id", row.outlet_id)
       .maybeSingle();
 
-    if (!before) continue;
-	console.log("🔥 BEFORE RPC");
+    if (!before) {
+      console.log("STOCK NOT FOUND:", row.item_id, row.outlet_id);
+      continue;
+    }
+
     // ======================
     // UPDATE STOCK (RPC)
     // ======================
+    let rpcRes;
+
     if (row.type === "out") {
+      rpcRes = await supabase.rpc("decrease_stock", {
+        p_item_id: row.item_id,
+        p_qty: row.qty,
+        p_outlet_id: row.outlet_id
+      });
+    } else {
+      rpcRes = await supabase.rpc("increase_stock", {
+        p_item_id: row.item_id,
+        p_qty: row.qty,
+        p_outlet_id: row.outlet_id
+      });
+    }
 
-	  const { data, error } = await supabase.rpc("decrease_stock", {
-		p_item_id: row.item_id, // 🔥 FIX SINI
-		p_qty: row.qty,
-		p_outlet_id: row.outlet_id
-	  });
-
-	  console.log("DECREASE RESULT:", data, error);
-
-	} else {
-
-	  const { data, error } = await supabase.rpc("increase_stock", {
-		p_item_id: row.item_id, // 🔥 FIX SINI
-		p_qty: row.qty,
-		p_outlet_id: row.outlet_id
-	  });
-
-	  console.log("INCREASE RESULT:", data, error);
-	}
+    if (rpcRes.error) {
+      console.log("RPC ERROR:", rpcRes.error);
+      continue;
+    }
 
     // ======================
     // INSERT MOVEMENT
@@ -85,9 +90,6 @@ async function approveRequests(rows, chatId) {
 
     const minQty = after?.stock_items?.min_qty || 0;
 
-    // ======================
-    // LOW STOCK CHECK
-    // ======================
     const isLow =
       before.qty > minQty &&
       after.qty <= minQty;
