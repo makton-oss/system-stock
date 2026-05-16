@@ -1,98 +1,197 @@
 const supabase = require("./db");
-const { parseMonthInput, toProperCase } = require("../utils/formatter");
 
-async function generateReport(monthInput, outletId) {
+// ======================
+// MAIN REPORT
+// ======================
+async function getMainReport({ start, end, outletId }) {
 
-  const range = parseMonthInput(monthInput);
+  let query = supabase
+    .from("stock_movements")
+    .select(`
+      qty,
+      type,
+      item_id,
+      stock_items(name, cost_price, category)
+    `)
+    .gte("created_at", start)
+    .lte("created_at", end);
 
-  if (!range) {
-    return { error: "INVALID_FORMAT" };
-  }
+  if (outletId) query = query.eq("outlet_id", outletId);
 
-  const start = range.start.toISOString();
-  const end = range.end.toISOString();
+  const { data, error } = await query;
+  if (error) return { error };
 
-  // ======================
-  // PARALLEL FETCH
-  // ======================
-  const results = await Promise.all([
-    supabase.rpc("get_inventory_value_by_date", {
-      p_start: start,
-      p_end: end,
-      p_outlet_id: outletId
-    }),
-    supabase.rpc("get_fast_moving_by_date", {
-      p_start: start,
-      p_end: end
-    }),
-    supabase.rpc("get_slow_moving_by_date", {
-      p_start: start,
-      p_end: end
-    }),
-    supabase.rpc("get_dead_stock_by_date", {
-      p_start: start,
-      p_end: end
-    }),
-    supabase.rpc("get_monthly_trend_by_date", {
-      p_start: start,
-      p_end: end
-    })
-  ]);
+  let totalCost = 0;
+  let flowIn = 0;
+  let flowOut = 0;
 
-  // ======================
-  // ERROR CHECK
-  // ======================
-  for (const r of results) {
-    if (r.error) {
-      console.log("REPORT ERROR:", r.error);
-      return { error: "DB_ERROR" };
+  const itemMap = {};
+  const categoryMap = {};
+
+  data.forEach(r => {
+
+    const cost = r.qty * r.stock_items.cost_price;
+
+    if (r.type === "out") {
+      totalCost += cost;
+      flowOut += cost;
+    } else {
+      flowIn += cost;
     }
-  }
 
-  const [inventory, fast, slow, dead, trend] = results;
+    const name = r.stock_items.name;
+    itemMap[name] = (itemMap[name] || 0) + cost;
 
-  // ======================
-  // FORMAT TEXT
-  // ======================
-  let text = `📊 MONTHLY REPORT\n${monthInput.toUpperCase()}\n\n`;
-
-  // INVENTORY VALUE
-  let total = 0;
-  text += "💰 INVENTORY VALUE\n\n";
-
-  (inventory.data || []).forEach(r => {
-    total += Number(r.total_value);
-
-    text += `${toProperCase(r.item)} x ${r.qty} RM${Number(r.total_value).toFixed(2)}\n`;
+    const cat = r.stock_items.category || "lain";
+    categoryMap[cat] = (categoryMap[cat] || 0) + cost;
   });
 
-  text += `TOTAL: RM${total.toFixed(2)}\n\n`;
-
-  // FAST
-  text += "🔥 FAST MOVING\n\n";
-  (fast.data || []).forEach((r, i) => {
-    text += `${i + 1}. ${toProperCase(r.item)} Used: ${r.total_out}\n\n`;
-  });
-
-  // SLOW
-  text += "🐢 SLOW MOVING\n\n";
-  (slow.data || []).forEach((r, i) => {
-    text += `${i + 1}. ${toProperCase(r.item)} Used: ${r.total_out}\n\n`;
-  });
-
-  // DEAD
-  text += "💀 DEAD STOCK\n\n";
-  (dead.data || []).forEach(r => {
-    text += `${toProperCase(r.item)} Balance: ${r.qty}\n\n`;
-  });
-
-  // TREND
-  text += "📈 MONTHLY TREND\n\n";
-  (trend.data || []).forEach(r => {
-    text += `${toProperCase(r.item)} OUT: ${r.total_out}\n\n`;
-  });
-
-  return { text };
+  return {
+    totalCost,
+    flowIn,
+    flowOut,
+    net: flowIn - flowOut,
+    itemMap,
+    categoryMap
+  };
 }
 
-module.exports = { generateReport };
+// ======================
+// INVENTORY
+// ======================
+async function getInventoryReport({ outletId }) {
+
+  let query = supabase
+    .from("stock")
+    .select(`
+      qty,
+      stock_items(name, cost_price)
+    `);
+
+  if (outletId) query = query.eq("outlet_id", outletId);
+
+  const { data, error } = await query;
+  if (error) return { error };
+
+  let total = 0;
+
+  data.forEach(r => {
+    total += r.qty * r.stock_items.cost_price;
+  });
+
+  return { data, total };
+}
+
+// ======================
+// FLOW
+// ======================
+async function getFlowReport({ start, end, outletId }) {
+
+  let query = supabase
+    .from("stock_movements")
+    .select("qty, type, stock_items(cost_price)")
+    .gte("created_at", start)
+    .lte("created_at", end);
+
+  if (outletId) query = query.eq("outlet_id", outletId);
+
+  const { data, error } = await query;
+  if (error) return { error };
+
+  let inVal = 0;
+  let outVal = 0;
+
+  data.forEach(r => {
+    const val = r.qty * r.stock_items.cost_price;
+    if (r.type === "in") inVal += val;
+    else outVal += val;
+  });
+
+  return {
+    inVal,
+    outVal,
+    net: inVal - outVal
+  };
+}
+
+// ======================
+// DEAD STOCK
+// ======================
+async function getDeadStock({ outletId }) {
+
+  let stockQuery = supabase
+    .from("stock")
+    .select(`
+      qty,
+      item_id,
+      stock_items(name)
+    `);
+
+  if (outletId) stockQuery = stockQuery.eq("outlet_id", outletId);
+
+  const { data: stock } = await stockQuery;
+
+  let moveQuery = supabase
+    .from("stock_movements")
+    .select("item_id")
+    .eq("type", "out");
+
+  if (outletId) moveQuery = moveQuery.eq("outlet_id", outletId);
+
+  const { data: movement } = await moveQuery;
+
+  const usedSet = new Set(movement.map(m => m.item_id));
+
+  return stock.filter(r => !usedSet.has(r.item_id));
+}
+
+// ======================
+// DETAIL
+// ======================
+async function getDetailReport({ start, end, outletId }) {
+
+  let query = supabase
+    .from("stock_movements")
+    .select(`
+      qty,
+      type,
+      item_id,
+      stock_items(name, cost_price)
+    `)
+    .gte("created_at", start)
+    .lte("created_at", end);
+
+  if (outletId) query = query.eq("outlet_id", outletId);
+
+  const { data, error } = await query;
+  if (error) return { error };
+
+  const map = {};
+
+  data.forEach(r => {
+
+    if (!map[r.item_id]) {
+      map[r.item_id] = {
+        name: r.stock_items.name,
+        in: 0,
+        out: 0,
+        cost: 0
+      };
+    }
+
+    if (r.type === "in") map[r.item_id].in += r.qty;
+    else map[r.item_id].out += r.qty;
+
+    map[r.item_id].cost += r.qty * r.stock_items.cost_price;
+  });
+
+  return Object.values(map);
+}
+
+module.exports = {
+  getMainReport,
+  getInventoryReport,
+  getFlowReport,
+  getDeadStock,
+  getDetailReport
+};

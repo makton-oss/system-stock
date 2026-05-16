@@ -685,6 +685,46 @@ async function checkRole(chat_id, allowed) {
   };
 }
 
+// ======================
+// FORMAT MAIN REPORT
+// ======================
+function formatMainReport(data) {
+
+  let text = "📊 STOCK REPORT\n\n";
+
+  text += `💰 TOTAL COST\nRM ${data.totalCost.toFixed(2)}\n\n`;
+
+  text += "📉 TOP ITEM\n";
+
+  Object.entries(data.itemMap)
+    .sort((a,b) => b[1] - a[1])
+    .slice(0,5)
+    .forEach(([name, val]) => {
+      text += `${name} RM${val.toFixed(0)}\n`;
+    });
+
+  text += `\n💸 FLOW\nIN RM${data.flowIn}\nOUT RM${data.flowOut}\nNET RM${data.net}\n`;
+
+  return text;
+}
+
+// ======================
+// FORMAT INVENTORY REPORT
+// ======================
+function formatInventory(res) {
+
+  let text = "📦 INVENTORY VALUE\n\n";
+
+  res.data.forEach(r => {
+    const val = r.qty * r.stock_items.cost_price;
+    text += `${r.stock_items.name} ${r.qty} RM${val}\n`;
+  });
+
+  text += `\nTOTAL RM${res.total}`;
+
+  return text;
+}
+
 module.exports = {
   getRoleGuide,
   formatLowStockAlert,
@@ -704,7 +744,9 @@ module.exports = {
   nowMY,
   ROLE_GUIDE,
   parseMonthInput,
-  checkRole
+  checkRole,
+  formatMainReport,
+  formatInventory
 };
 	
 	
