@@ -24,6 +24,17 @@ module.exports = withRole(["admin"], async (ctx) => {
 
   const itemNameRaw = parts.slice(1, -5).join(" ");
   const item = normalizeItem(itemNameRaw);
+  
+  console.log("RAW PARTS:", parts);
+	console.log("PARSED:", {
+	  itemNameRaw,
+	  item,
+	  category,
+	  minQty,
+	  cost,
+	  uom,
+	  outletName
+	});
 
   if (!item || !category || isNaN(minQty) || isNaN(cost) || !uom || !outletName) {
     await reply(chatId, "❌ FORMAT: ADDITEM ayam dara basah 10 3.4 ketul muiz");
