@@ -70,7 +70,7 @@ module.exports = withRole(["manager", "admin"], async (ctx) => {
 
 
       case "DEAD":
-        result = await getDeadStock({ outletId });
+        result = await getDeadReport({ start, end, outletId });
 
         if (result.error) throw result.error;
 

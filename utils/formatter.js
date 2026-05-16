@@ -693,34 +693,29 @@ async function checkRole(chat_id, allowed) {
 // ======================
 function formatMainReport(data, monthLabel) {
 
-  let text = `📊 STOCK REPORT - ${monthLabel}\n\n`;
+  let text = `📊 STOCK REPORT - ${monthLabel}\n`;
 
   Object.entries(data).forEach(([outlet, o]) => {
 
-    text += `${outlet}\n\n`;
+    text += `OUTLET ${outlet}\n\n`;
 
-    text += `💰 TOTAL COST\nRM ${o.totalCost.toFixed(0)}\n\n`;
+    text += `💰 TOTAL COST RM ${o.totalCost.toFixed(0)}\n\n`;
 
-    text += "📉 TOP COST ITEM\n";
+    text += "📉 TOP 5 COST ITEM\n";
 
     const items = Object.entries(o.itemMap)
       .sort((a,b) => b[1] - a[1]);
 
-    const top = items.slice(0,2);
-    const others = items.slice(2).reduce((s, [,v]) => s+v, 0);
+    const top = items.slice(0,5);
 
     top.forEach(([n,v]) => {
-      text += `${n} RM${v.toFixed(0)}\n`;
+      text += `${n}: RM${v.toFixed(0)}\n`;
     });
 
-    if (others > 0) {
-      text += `OTHERS RM${others.toFixed(0)}\n`;
-    }
-
-    text += "\n📦 CATEGORY\n";
+    text += "\n📦 CATEGORY COST\n";
 
     Object.entries(o.categoryMap).forEach(([c,v]) => {
-      text += `${c} RM${v.toFixed(0)}\n`;
+      text += `${c}: RM${v.toFixed(0)}\n`;
     });
 
     text += `\n💸 FLOW (VALUE)\n`;
@@ -737,13 +732,13 @@ function formatMainReport(data, monthLabel) {
 // ======================
 function formatInventoryReport(data, month) {
 
-  let text = `📦 INVENTORY VALUE REPORT (${month})\n\n`;
+  let text = `📦 INVENTORY VALUE REPORT (${month})\n`;
 
   Object.entries(data).forEach(([outlet, rows]) => {
 
     let total = 0;
 
-    text += `${outlet}\n\n`;
+    text += `OUTLET ${outlet}\n\n`;
 
     rows.forEach(r => {
       const val = r.qty * r.stock_items.cost_price;
@@ -763,11 +758,11 @@ function formatInventoryReport(data, month) {
 // ======================
 function formatDetailReport(data, month) {
 
-  let text = `📊 DETAIL INOUT REPORT (${month})\n\n`;
+  let text = `📊 DETAIL INOUT REPORT (${month})\n`;
 
   Object.entries(data).forEach(([outlet, rows]) => {
 
-    text += `${outlet}\n\n`;
+    text += `OUTLET ${outlet}\n\n`;
 
     rows.forEach(r => {
       text += `${pc(r.name)}\nIN: ${r.in} OUT: ${r.out} BAL:${r.bal}\n\n`;
@@ -782,11 +777,11 @@ function formatDetailReport(data, month) {
 // ======================
 function formatDeadReport(data, month) {
 
-  let text = `💀 DEAD STOCK (${month})\n\n`;
+  let text = `💀 DEAD STOCK (${month})\n`;
 
   Object.entries(data).forEach(([outlet, rows]) => {
 
-    text += `${outlet}\n\n`;
+    text += `OUTLET ${outlet}\n\n`;
 
     rows.forEach((r,i) => {
       text += `${i+1}. ${pc(r.name)} (${r.last})\n`;
@@ -803,20 +798,20 @@ function formatDeadReport(data, month) {
 // ======================
 function formatFlowReport(data, month) {
 
-  let text = `💸 FLOW (Value) REPORT (${month})\n\n`;
+  let text = `💸 FLOW (Value) REPORT (${month})\n`;
 
   Object.entries(data).forEach(([outlet, r]) => {
 
-    text += `${outlet}\n\n`;
+    text += `OUTLET ${outlet}\n\n`;
 
-    text += `IN   RM ${r.inVal}\nOUT  RM ${r.outVal}\nNET  +/- RM ${r.net}\n\n`;
+    text += `IN   RM ${r.inVal}\nOUT  RM ${r.outVal}\nNET  RM ${r.net}\n\n`;
 
-    text += "Top IN\n";
+    text += "Top 5 IN STOCK\n";
     r.topIn.forEach((t,i)=>{
       text += `${i+1}. ${pc(t[0])} RM${t[1]}\n`;
     });
 
-    text += "\nTop OUT\n";
+    text += "\nTop 5 OUT STOCK\n";
     r.topOut.forEach((t,i)=>{
       text += `${i+1}. ${pc(t[0])} RM${t[1]}\n`;
     });
