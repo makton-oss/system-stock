@@ -1,199 +1,207 @@
 const supabase = require("./db");
 
-// ======================
-// MAIN REPORT
-// ======================
-async function getMainReport({ start, end, outletId, isAdmin }) {
-
-  let query = supabase
-    .from("stock_movements")
-    .select(`
-      qty,
-      type,
-      outlet_id,
-      stock_items(name, cost_price, category),
-      outlets(name)
-    `)
-    .gte("created_at", start)
-    .lte("created_at", end);
-
-  if (outletId) query = query.eq("outlet_id", outletId);
-
-  const { data, error } = await query;
-  if (error) return { error };
-
-  const outletMap = {};
-
-  data.forEach(r => {
-
+// helper: group by outlet
+function groupByOutlet(rows) {
+  const map = {};
+  rows.forEach(r => {
     const outlet = r.outlets?.name || "Outlet";
-    const cost = r.qty * r.stock_items.cost_price;
-
-    if (!outletMap[outlet]) {
-      outletMap[outlet] = {
-        totalCost: 0,
-        flowIn: 0,
-        flowOut: 0,
-        itemMap: {},
-        categoryMap: {}
-      };
-    }
-
-    const o = outletMap[outlet];
-
-    if (r.type === "out") {
-      o.totalCost += cost;
-      o.flowOut += cost;
-    } else {
-      o.flowIn += cost;
-    }
-
-    const name = r.stock_items.name;
-    o.itemMap[name] = (o.itemMap[name] || 0) + cost;
-
-    const cat = r.stock_items.category || "lain";
-    o.categoryMap[cat] = (o.categoryMap[cat] || 0) + cost;
+    if (!map[outlet]) map[outlet] = [];
+    map[outlet].push(r);
   });
-
-  return outletMap;
+  return map;
 }
 
 // ======================
 // INVENTORY
 // ======================
-async function getInventoryReport({ outletId }) {
+async function getInventory({ outletId }) {
 
-  let query = supabase
+  let q = supabase
     .from("stock")
     .select(`
       qty,
-      stock_items(name, cost_price)
+      outlet_id,
+      stock_items(name, cost_price),
+      outlets(name)
     `);
 
-  if (outletId) query = query.eq("outlet_id", outletId);
+  if (outletId) q = q.eq("outlet_id", outletId);
 
-  const { data, error } = await query;
+  const { data, error } = await q;
   if (error) return { error };
 
-  let total = 0;
-
-  data.forEach(r => {
-    total += r.qty * r.stock_items.cost_price;
-  });
-
-  return { data, total };
+  return groupByOutlet(data);
 }
 
 // ======================
-// FLOW
+// DETAIL IN OUT
 // ======================
-async function getFlowReport({ start, end, outletId }) {
+async function getDetail({ start, end, outletId }) {
 
-  let query = supabase
-    .from("stock_movements")
-    .select("qty, type, stock_items(cost_price)")
-    .gte("created_at", start)
-    .lte("created_at", end);
-
-  if (outletId) query = query.eq("outlet_id", outletId);
-
-  const { data, error } = await query;
-  if (error) return { error };
-
-  let inVal = 0;
-  let outVal = 0;
-
-  data.forEach(r => {
-    const val = r.qty * r.stock_items.cost_price;
-    if (r.type === "in") inVal += val;
-    else outVal += val;
-  });
-
-  return {
-    inVal,
-    outVal,
-    net: inVal - outVal
-  };
-}
-
-// ======================
-// DEAD STOCK
-// ======================
-async function getDeadStock({ outletId }) {
-
-  let stockQuery = supabase
-    .from("stock")
-    .select(`
-      qty,
-      item_id,
-      stock_items(name)
-    `);
-
-  if (outletId) stockQuery = stockQuery.eq("outlet_id", outletId);
-
-  const { data: stock } = await stockQuery;
-
-  let moveQuery = supabase
-    .from("stock_movements")
-    .select("item_id")
-    .eq("type", "out");
-
-  if (outletId) moveQuery = moveQuery.eq("outlet_id", outletId);
-
-  const { data: movement } = await moveQuery;
-
-  const usedSet = new Set(movement.map(m => m.item_id));
-
-  return stock.filter(r => !usedSet.has(r.item_id));
-}
-
-// ======================
-// DETAIL
-// ======================
-async function getDetailReport({ start, end, outletId }) {
-
-  let query = supabase
+  let q = supabase
     .from("stock_movements")
     .select(`
       qty,
       type,
       item_id,
-      stock_items(name, cost_price)
+      outlet_id,
+      stock_items(name),
+      outlets(name)
     `)
     .gte("created_at", start)
     .lte("created_at", end);
 
-  if (outletId) query = query.eq("outlet_id", outletId);
+  if (outletId) q = q.eq("outlet_id", outletId);
 
-  const { data, error } = await query;
+  const { data, error } = await q;
   if (error) return { error };
 
-  const map = {};
+  const grouped = groupByOutlet(data);
 
-  data.forEach(r => {
+  const result = {};
 
-    if (!map[r.item_id]) {
-      map[r.item_id] = {
-        name: r.stock_items.name,
-        in: 0,
-        out: 0,
-        cost: 0
-      };
-    }
+  Object.entries(grouped).forEach(([outlet, rows]) => {
 
-    if (r.type === "in") map[r.item_id].in += r.qty;
-    else map[r.item_id].out += r.qty;
+    const map = {};
 
-    map[r.item_id].cost += r.qty * r.stock_items.cost_price;
+    rows.forEach(r => {
+      const id = r.item_id;
+
+      if (!map[id]) {
+        map[id] = {
+          name: r.stock_items.name,
+          in: 0,
+          out: 0
+        };
+      }
+
+      if (r.type === "in") map[id].in += r.qty;
+      else map[id].out += r.qty;
+    });
+
+    result[outlet] = Object.values(map).map(i => ({
+      ...i,
+      bal: i.in - i.out
+    }));
   });
 
-  return Object.values(map);
+  return result;
+}
+
+// ======================
+// DEAD STOCK
+// ======================
+async function getDead({ start, end, outletId }) {
+
+  let stockQ = supabase
+    .from("stock")
+    .select(`
+      item_id,
+      outlet_id,
+      stock_items(name),
+      outlets(name)
+    `);
+
+  if (outletId) stockQ = stockQ.eq("outlet_id", outletId);
+
+  const { data: stock } = await stockQ;
+
+  let moveQ = supabase
+    .from("stock_movements")
+    .select("item_id, outlet_id, created_at")
+    .gte("created_at", start)
+    .lte("created_at", end);
+
+  if (outletId) moveQ = moveQ.eq("outlet_id", outletId);
+
+  const { data: move } = await moveQ;
+
+  const used = new Set(move.map(m => `${m.item_id}-${m.outlet_id}`));
+
+  const grouped = groupByOutlet(stock);
+
+  const result = {};
+
+  Object.entries(grouped).forEach(([outlet, rows]) => {
+
+    result[outlet] = rows
+      .filter(r => !used.has(`${r.item_id}-${r.outlet_id}`))
+      .map(r => ({
+        name: r.stock_items.name,
+        last: "-"
+      }));
+  });
+
+  return result;
+}
+
+// ======================
+// FLOW
+// ======================
+async function getFlow({ start, end, outletId }) {
+
+  let q = supabase
+    .from("stock_movements")
+    .select(`
+      qty,
+      type,
+      item_id,
+      outlet_id,
+      stock_items(name, cost_price),
+      outlets(name)
+    `)
+    .gte("created_at", start)
+    .lte("created_at", end);
+
+  if (outletId) q = q.eq("outlet_id", outletId);
+
+  const { data, error } = await q;
+  if (error) return { error };
+
+  const grouped = groupByOutlet(data);
+
+  const result = {};
+
+  Object.entries(grouped).forEach(([outlet, rows]) => {
+
+    let inVal = 0;
+    let outVal = 0;
+
+    const inMap = {};
+    const outMap = {};
+
+    rows.forEach(r => {
+
+      const val = r.qty * r.stock_items.cost_price;
+
+      if (r.type === "in") {
+        inVal += val;
+        inMap[r.stock_items.name] =
+          (inMap[r.stock_items.name] || 0) + val;
+      } else {
+        outVal += val;
+        outMap[r.stock_items.name] =
+          (outMap[r.stock_items.name] || 0) + val;
+      }
+    });
+
+    result[outlet] = {
+      inVal,
+      outVal,
+      net: inVal - outVal,
+      topIn: Object.entries(inMap)
+        .sort((a,b)=>b[1]-a[1]).slice(0,5),
+      topOut: Object.entries(outMap)
+        .sort((a,b)=>b[1]-a[1]).slice(0,5)
+    };
+  });
+
+  return result;
 }
 
 module.exports = {
-  getMainReport,
-  getInventoryReport,
-  getFlowReport,
-  getDeadStock,
-  getDetailReport
+  getInventory,
+  getDetail,
+  getDead,
+  getFlow
 };

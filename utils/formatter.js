@@ -1,6 +1,9 @@
 const supabase = require("../services/db");
 const { DateTime } = require("luxon");
 
+function pc(s) {
+  return s?.charAt(0).toUpperCase() + s?.slice(1).toLowerCase();
+}
 // ======================
 // GET ROLE
 // ======================
@@ -730,21 +733,103 @@ function formatMainReport(data, monthLabel) {
 }
 
 // ======================
-// FORMAT INVENTORY REPORT
+// INVENTORY FORMAT
 // ======================
-function formatInventory(res) {
+function formatInventoryReport(data, month) {
 
-  let text = "📦 INVENTORY VALUE\n\n";
+  let text = `📦 INVENTORY VALUE REPORT (${month})\n\n`;
 
-  res.data.forEach(r => {
-    const val = r.qty * r.stock_items.cost_price;
-    text += `${r.stock_items.name} ${r.qty} RM${val}\n`;
+  Object.entries(data).forEach(([outlet, rows]) => {
+
+    let total = 0;
+
+    text += `${outlet}\n\n`;
+
+    rows.forEach(r => {
+      const val = r.qty * r.stock_items.cost_price;
+      total += val;
+
+      text += `${pc(r.stock_items.name)} x ${r.qty} = RM${val.toFixed(2)}\n`;
+    });
+
+    text += `\nTOTAL RM${total.toFixed(2)}\n\n`;
   });
-
-  text += `\nTOTAL RM${res.total}`;
 
   return text;
 }
+
+// ======================
+// DETAIL FORMAT
+// ======================
+function formatDetailReport(data, month) {
+
+  let text = `📊 DETAIL INOUT REPORT (${month})\n\n`;
+
+  Object.entries(data).forEach(([outlet, rows]) => {
+
+    text += `${outlet}\n\n`;
+
+    rows.forEach(r => {
+      text += `${pc(r.name)}\nIN: ${r.in} OUT: ${r.out} BAL:${r.bal}\n\n`;
+    });
+  });
+
+  return text;
+}
+
+// ======================
+// DEAD FORMAT
+// ======================
+function formatDeadReport(data, month) {
+
+  let text = `💀 DEAD STOCK (${month})\n\n`;
+
+  Object.entries(data).forEach(([outlet, rows]) => {
+
+    text += `${outlet}\n\n`;
+
+    rows.forEach((r,i) => {
+      text += `${i+1}. ${pc(r.name)} (${r.last})\n`;
+    });
+
+    text += "\n";
+  });
+
+  return text;
+}
+
+// ======================
+// FLOW FORMAT
+// ======================
+function formatFlowReport(data, month) {
+
+  let text = `💸 FLOW (Value) REPORT (${month})\n\n`;
+
+  Object.entries(data).forEach(([outlet, r]) => {
+
+    text += `${outlet}\n\n`;
+
+    text += `IN   RM ${r.inVal}\nOUT  RM ${r.outVal}\nNET  +/- RM ${r.net}\n\n`;
+
+    text += "Top IN\n";
+    r.topIn.forEach((t,i)=>{
+      text += `${i+1}. ${pc(t[0])} RM${t[1]}\n`;
+    });
+
+    text += "\nTop OUT\n";
+    r.topOut.forEach((t,i)=>{
+      text += `${i+1}. ${pc(t[0])} RM${t[1]}\n`;
+    });
+
+    text += "\n";
+  });
+
+  return text;
+}
+
+module.exports = {
+  
+};
 
 module.exports = {
   getRoleGuide,
@@ -767,7 +852,10 @@ module.exports = {
   parseMonthInput,
   checkRole,
   formatMainReport,
-  formatInventory
+  formatInventoryReport,
+  formatDetailReport,
+  formatDeadReport,
+  formatFlowReport
 };
 	
 	
