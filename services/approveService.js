@@ -42,7 +42,7 @@ console.log("CHECK STOCK PARAM:", {
     // ======================
     const { data: before } = await supabase
       .from("stock")
-      .select("qty, stock_items(min_qty)")
+      .select("qty, min_qty")
       .eq("item_id", row.item_id)
       .eq("outlet_id", row.outlet_id)
       .maybeSingle();
@@ -94,7 +94,7 @@ console.log("STOCK QUERY RESULT:", before);
     // ======================
     const { data: after } = await supabase
       .from("stock")
-      .select("qty, stock_items(min_qty)")
+      .select("qty, min_qty")
       .eq("item_id", row.item_id)
       .eq("outlet_id", row.outlet_id)
       .maybeSingle();
