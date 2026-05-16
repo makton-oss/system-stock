@@ -9,7 +9,7 @@ module.exports = withRole(["admin"], async (ctx) => {
   // MIN ARG CHECK
   // ======================
   if (parts.length < 7) {
-    await reply(chatId, "❌ FORMAT: ADDITEM ayam dara basah 10 3.4 ketul muiz");
+    await reply(chatId, "❌ FORMAT: ADDITEM ayam dara basah kering 10 3.4 ketul muiz");
     return res.end();
   }
 
@@ -24,76 +24,92 @@ module.exports = withRole(["admin"], async (ctx) => {
 
   const itemNameRaw = parts.slice(1, -5).join(" ");
   const item = normalizeItem(itemNameRaw);
-  
-  console.log("RAW PARTS:", parts);
-	console.log("PARSED:", {
-	  itemNameRaw,
-	  item,
-	  category,
-	  minQty,
-	  cost,
-	  uom,
-	  outletName
-	});
+
+  console.log("PARSED:", {
+    item,
+    category,
+    minQty,
+    cost,
+    uom,
+    outletName
+  });
 
   if (!item || !category || isNaN(minQty) || isNaN(cost) || !uom || !outletName) {
-    await reply(chatId, "❌ FORMAT: ADDITEM ayam dara basah 10 3.4 ketul muiz");
+    await reply(chatId, "❌ FORMAT: ADDITEM ayam dara basah kering 10 3.4 ketul muiz");
     return res.end();
   }
 
   // ======================
-  // GET OUTLET ID
+  // GET OUTLET
   // ======================
-  const { data: outlet, error: outletError } = await supabase
+  const { data: outlet } = await supabase
     .from("outlets")
     .select("id, name")
     .ilike("name", outletName)
     .maybeSingle();
 
-  if (outletError || !outlet) {
+  if (!outlet) {
     await reply(chatId, `❌ OUTLET TAK WUJUD: ${outletName}`);
     return res.end();
   }
 
   // ======================
-  // INSERT STOCK ITEM (MASTER)
+  // CHECK / CREATE ITEM (MASTER)
   // ======================
-  const { data: itemRow, error: itemError } = await supabase
-    .from("stock_items")
-    .insert({
-      name: item,
-      category,
-      cost_price: cost,
-      uom
-    })
-    .select()
-    .single();
+  let itemId;
 
-  if (itemError) {
-    console.log("ITEM INSERT ERROR:", itemError);
-    await reply(chatId, "❌ DB ERROR (ITEM)");
+  const { data: existingItem } = await supabase
+    .from("stock_items")
+    .select("id")
+    .eq("name", item)
+    .maybeSingle();
+
+  if (existingItem) {
+    itemId = existingItem.id;
+  } else {
+    const { data: newItem, error: itemError } = await supabase
+      .from("stock_items")
+      .insert({
+        name: item,
+        category,
+        cost_price: cost,
+        uom
+      })
+      .select()
+      .single();
+
+    if (itemError) {
+      console.log("ITEM INSERT ERROR:", itemError);
+      await reply(chatId, "❌ DB ERROR (ITEM)");
+      return res.end();
+    }
+
+    itemId = newItem.id;
+  }
+
+  // ======================
+  // CHECK STOCK (PER OUTLET)
+  // ======================
+  const { data: existingStock } = await supabase
+    .from("stock")
+    .select("id")
+    .eq("item_id", itemId)
+    .eq("outlet_id", outlet.id)
+    .maybeSingle();
+
+  if (existingStock) {
+    await reply(chatId, `⚠️ ITEM DAH ADA DI OUTLET`);
     return res.end();
   }
-  
-  const { data: exist } = await supabase
-	  .from("stock_items")
-	  .select("id")
-	  .eq("name", item)
-	  .maybeSingle();
-
-	if (exist) {
-	  await reply(chatId, `❌ ITEM DAH WUJUD: ${item}`);
-	  return res.end();
-	}
 
   // ======================
-  // INSERT STOCK (PER OUTLET)
+  // INSERT STOCK
   // ======================
   const { error: stockError } = await supabase
     .from("stock")
     .insert({
-      item: item,
-      item_id: itemRow.id,
+      item,
+      item_id: itemId,
       outlet_id: outlet.id,
       qty: 0,
       min_qty: minQty
@@ -106,7 +122,7 @@ module.exports = withRole(["admin"], async (ctx) => {
   }
 
   // ======================
-  // SUCCESS RESPONSE
+  // SUCCESS
   // ======================
   await reply(
     chatId,
