@@ -1,74 +1,128 @@
 const { withRole } = require("../core/withRole");
+const { getMainReport, getInventoryReport, getFlowReport, getDeadStock, getDetailReport } = require("../services/reportService");
+const { formatMainReport, formatInventoryReport, formatDetailReport, formatDeadReport, formatFlowReport, parseMonthInput } = require("../utils/formatter");
 
-const {
-  getInventory,
-  getDetail,
-  getDead,
-  getFlow
-} = require("../services/reportService");
-
-const {
-  formatInventoryReport,
-  formatDetailReport,
-  formatDeadReport,
-  formatFlowReport,
-  parseMonthInput
-} = require("../utils/formatter");
-
-module.exports = withRole(["manager","admin"], async (ctx) => {
+module.exports = withRole(["manager", "admin"], async (ctx) => {
 
   const { chatId, parts, user, reply, res } = ctx;
 
+  // ======================
+  // MODE DETECTION
+  // ======================
   const mode = parts[1]?.toUpperCase();
-  const COMMANDS = ["INVENTORY","DETAIL","DEAD","FLOW"];
 
+  const COMMANDS = ["INVENTORY", "FLOW", "DEAD", "DETAIL"];
+
+  // ======================
+  // MONTH PARSE FIX
+  // ======================
   let monthInput = "current";
 
   if (COMMANDS.includes(mode)) {
+    // contoh: REPORT FLOW may-26
     monthInput = parts[2] || "current";
   } else {
+    // contoh: REPORT may-26
     monthInput = parts[1] || "current";
   }
 
   const range = parseMonthInput(monthInput);
 
   if (!range) {
-    await reply(chatId, "❌ FORMAT");
+    await reply(chatId, "❌ FORMAT: REPORT may-26");
     return res.end();
   }
 
   const start = range.start.toISOString();
   const end = range.end.toISOString();
 
-  const outletId =
-    user.role === "admin" ? null : user.outlet_id;
+  // ======================
+  // ROLE CONTROL
+  // ======================
+  const isAdmin = user.role === "admin";
+  const outletId = isAdmin ? null : user.outlet_id;
 
-  let result;
+  // ======================
+  // ROUTING
+  // ======================
+  try {
 
-  switch(mode){
+    let result;
 
-    case "INVENTORY":
-      result = await getInventory({ outletId });
-      await reply(chatId, formatInventoryReport(result, monthInput.toUpperCase()));
-      return res.end();
+    switch (mode) {
 
-    case "DETAIL":
-      result = await getDetail({ start, end, outletId });
-      await reply(chatId, formatDetailReport(result, monthInput.toUpperCase()));
-      return res.end();
+      case "INVENTORY":
+        result = await getInventoryReport({ outletId });
 
-    case "DEAD":
-      result = await getDead({ start, end, outletId });
-      await reply(chatId, formatDeadReport(result, monthInput.toUpperCase()));
-      return res.end();
+        if (result.error) throw result.error;
 
-    case "FLOW":
-      result = await getFlow({ start, end, outletId });
-      await reply(chatId, formatFlowReport(result, monthInput.toUpperCase()));
-      return res.end();
+        await reply(chatId, formatInventoryReport(result, monthInput.toUpperCase()));
+        return res.end();
 
-    default:
-      await reply(chatId, "Gunakan: REPORT INVENTORY / DETAIL / DEAD / FLOW");
-      return res.end();
+
+      case "FLOW":
+        result = await getFlowReport({ start, end, outletId });
+
+        if (result.error) throw result.error;
+
+        await reply(chatId, formatFlowReport(result, monthInput.toUpperCase()));
+        return res.end();
+
+
+      case "DEAD":
+        result = await getDeadStock({ outletId });
+
+        if (result.error) throw result.error;
+
+        if (!result.length) {
+          await reply(chatId, "✅ TIADA STOCK YANG TIDAK BERGERAK 60 HARI SEBELUM INI.");
+          return res.end();
+        }
+
+        await reply(chatId, formatDeadReport(result, monthInput.toUpperCase()));
+        return res.end();
+
+
+      case "DETAIL":
+        result = await getDetailReport({ start, end, outletId });
+
+        if (result.error) throw result.error;
+
+        if (!result.length) {
+          await reply(chatId, "📭 TIADA DATA");
+          return res.end();
+        }
+
+        await reply(chatId, formatDetailReport(result, monthInput.toUpperCase()));
+        return res.end();
+
+
+      default:
+        // MAIN REPORT
+        result = await getMainReport({
+          start,
+          end,
+          outletId,
+          isAdmin
+        });
+
+        if (result.error) throw result.error;
+
+        const monthLabel = monthInput.toUpperCase();
+
+        await reply(
+          chatId,
+          formatMainReport(result, monthLabel)
+        );
+
+        return res.end();
+    }
+
+  } catch (err) {
+
+    console.log("REPORT ERROR:", err);
+
+    await reply(chatId, "❌ REPORT ERROR");
+    return res.end();
   }
 });
