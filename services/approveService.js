@@ -7,6 +7,11 @@ async function approveRequests(rows, chatId) {
 
   for (const row of rows) {
 
+	console.log("ROW DEBUG:", {
+  item_id: row.item_id,
+  outlet_id: row.outlet_id,
+  item: row.item
+});
     // ======================
     // UPDATE REQUEST (LOCK SIMPLE)
     // ======================
@@ -26,6 +31,12 @@ async function approveRequests(rows, chatId) {
       continue;
     }
 
+console.log("CHECK STOCK PARAM:", {
+  item_id: row.item_id,
+  outlet_id: row.outlet_id,
+  type_item_id: typeof row.item_id,
+  type_outlet_id: typeof row.outlet_id
+});
     // ======================
     // GET BEFORE STOCK
     // ======================
@@ -40,7 +51,7 @@ async function approveRequests(rows, chatId) {
       console.log("STOCK NOT FOUND:", row.item_id, row.outlet_id);
       continue;
     }
-
+console.log("STOCK QUERY RESULT:", before);
     // ======================
     // UPDATE STOCK (RPC)
     // ======================
