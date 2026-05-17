@@ -19,7 +19,8 @@ async function getMainReport({ start, end, outletId, isAdmin }) {
       qty,
       type,
       outlet_id,
-      stock_items(name, cost_price, category),
+	  cost_price,
+      stock_items(name, category),
       outlets(name)
     `)
     .gte("created_at", start)
@@ -35,7 +36,7 @@ async function getMainReport({ start, end, outletId, isAdmin }) {
   data.forEach(r => {
 
     const outlet = r.outlets?.name || "Outlet";
-    const cost = r.qty * r.stock_items.cost_price;
+    const cost = r.qty * r.cost_price;
 
     if (!outletMap[outlet]) {
       outletMap[outlet] = {
@@ -76,7 +77,8 @@ async function getInventoryReport({ outletId }) {
     .select(`
       qty,
       outlet_id,
-      stock_items(name, cost_price),
+	  cost_price,
+      stock_items(name),
       outlets(name)
     `);
 
@@ -202,7 +204,8 @@ async function getFlowReport({ start, end, outletId }) {
       type,
       item_id,
       outlet_id,
-      stock_items(name, cost_price),
+	  cost_price,
+      stock_items(name),
       outlets(name)
     `)
     .gte("created_at", start)
@@ -227,7 +230,7 @@ async function getFlowReport({ start, end, outletId }) {
 
     rows.forEach(r => {
 
-      const val = r.qty * r.stock_items.cost_price;
+      const val = r.qty * r.cost_price;
 
       if (r.type === "in") {
         inVal += val;

@@ -107,8 +107,8 @@ function formatItemList(rows) {
   rows.forEach(r => {
 
     const name = toProperCase(r.stock_items?.name || r.item || "-" );
-    const uom = r.stock_items?.uom || "-";
-    const cost = Number(r.stock_items?.cost_price || 0);
+    const uom = r.uom || "-";
+    const cost = Number(r.cost_price || 0);
     const minqty = r.min_qty ?? "-";
 
     reply += `${name}
@@ -154,8 +154,8 @@ function formatItemListAdmin(rows) {
         r.stock_items?.name || r.item || "-"
       );
 
-      const uom = r.stock_items?.uom || "-";
-      const cost = Number(r.stock_items?.cost_price || 0);
+      const uom = r.uom || "-";
+      const cost = Number(r.cost_price || 0);
       const minqty = r.min_qty ?? "-";
 
       reply += `${name}
@@ -200,7 +200,7 @@ function formatStockAdmin(rows) {
     items.forEach((r, i) => {
 
       const item = r.stock_items?.name || r.item || "-";
-      const uom = r.stock_items?.uom || "UOM";
+      const uom = r.uom || "UOM";
 
       reply += `${i + 1}. ${toProperCase(item)} x ${r.qty} (${uom})\n`;
     });
@@ -230,7 +230,7 @@ function formatStock(rows) {
     const item = r.stock_items?.name || r.item || "-";
 
     // kalau ada UOM nanti boleh tukar sini
-    const uom = r.stock_items?.uom || "UOM";
+    const uom = r.uom || "UOM";
 
     reply += `${i + 1}. ${toProperCase(item)} x ${r.qty} (${uom})\n`;
   });
@@ -771,7 +771,7 @@ function formatInventoryReport(data, month) {
     text += `OUTLET ${outlet}\n\n`;
 
     rows.forEach(r => {
-      const val = r.qty * r.stock_items.cost_price;
+      const val = r.qty * r.cost_price;
       total += val;
 
       text += `${pc(r.stock_items.name)} x ${r.qty} = RM${val.toFixed(2)}\n`;

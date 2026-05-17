@@ -16,8 +16,10 @@ module.exports = withRole(["staff","manager","admin"], async (ctx) => {
         item,
         min_qty,
         outlet_id,
+		cost_price,
+		uom,
         outlets(name),
-        stock_items(name, category, cost_price, uom)
+        stock_items(name, category)
       `)
       .order("outlet_id", { ascending: true });
 
@@ -40,8 +42,10 @@ module.exports = withRole(["staff","manager","admin"], async (ctx) => {
       item,
       min_qty,
       outlet_id,
+	  cost_price,
+	  uom,
       outlets(name),
-      stock_items(name, category, cost_price, uom)
+      stock_items(name, category)
     `)
     .in("outlet_id", outletIds)
     .order("outlet_id", { ascending: true });
