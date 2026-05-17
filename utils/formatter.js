@@ -249,11 +249,14 @@ function formatPending(rows) {
     const date = DateTime
       .fromISO(r.created_at)
       .setZone("Asia/Kuala_Lumpur")
-      .toFormat("d/M HH:mm");
+      .toFormat("d/M | HH:mm");
 
-    reply += `ID ${r.id}
+    const userName = r.users?.nickname || "-";
+    const chatId = r.users?.chat_id || "-";
+
+    reply += `ID ${r.id} | ${date}
 ${r.type?.toUpperCase()} ${toProperCase(r.item)} x ${r.qty}
-${date}
+BY: ${toProperCase(userName)} (${chatId})
 
 `;
   });
@@ -271,11 +274,8 @@ function formatPendingAdmin(rows) {
   const map = {};
 
   rows.forEach(r => {
-
     const outlet = r.outlets?.name || "-";
-
     if (!map[outlet]) map[outlet] = [];
-
     map[outlet].push(r);
   });
 
@@ -290,11 +290,14 @@ function formatPendingAdmin(rows) {
       const date = DateTime
         .fromISO(r.created_at)
         .setZone("Asia/Kuala_Lumpur")
-        .toFormat("d/M HH:mm");
+        .toFormat("d/M | HH:mm");
 
-      reply += `ID ${r.id}
+      const userName = r.users?.nickname || "-";
+      const chatId = r.users?.chat_id || "-";
+
+      reply += `ID ${r.id} | ${date}
 ${r.type?.toUpperCase()} ${toProperCase(r.item)} x ${r.qty}
-${date}
+BY: ${toProperCase(userName)} (${chatId})
 
 `;
     });

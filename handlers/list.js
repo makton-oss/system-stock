@@ -20,7 +20,8 @@ module.exports = withRole(["staff","manager","admin"], async (ctx) => {
         qty,
         created_at,
         outlet_id,
-        outlets(name)
+        outlets(name),
+		users(nickname, chat_id)
       `)
       .eq("status", "pending")
       .order("created_at", { ascending: true });
@@ -46,7 +47,8 @@ module.exports = withRole(["staff","manager","admin"], async (ctx) => {
       item,
       qty,
       created_at,
-      outlets(name)
+      outlets(name),
+	  users(nickname, chat_id)
     `)
     .eq("outlet_id", user.outlet_id)
     .eq("status", "pending")
