@@ -21,7 +21,8 @@ module.exports = withRole(["staff","manager","admin"], async (ctx) => {
         outlets(name),
         stock_items(name, category)
       `)
-      .order("outlet_id", { ascending: true });
+      .order("outlet_id", { ascending: true })
+	  .order("item", { ascending: true });
 
     if (error) {
       console.log("STOCK ERROR:", error);
@@ -48,7 +49,8 @@ module.exports = withRole(["staff","manager","admin"], async (ctx) => {
       stock_items(name, category)
     `)
     .in("outlet_id", outletIds)
-    .order("outlet_id", { ascending: true });
+    .order("outlet_id", { ascending: true })
+	.order("item", { ascending: true });
 
   if (error) {
     console.log("STOCK ERROR:", error);
