@@ -71,9 +71,7 @@ module.exports = withRole(["admin"], async (ctx) => {
       .from("stock_items")
       .insert({
         name: item,
-        category,
-        cost_price: cost,
-        uom
+        category
       })
       .select()
       .single();
@@ -112,7 +110,9 @@ module.exports = withRole(["admin"], async (ctx) => {
       item_id: itemId,
       outlet_id: outlet.id,
       qty: 0,
-      min_qty: minQty
+      min_qty: minQty,
+	  cost_price: cost,
+	  uom
     });
 
   if (stockError) {
