@@ -15,7 +15,6 @@ function normalizeItem(text = "") {
 // ======================
 // SAFE INTEGER
 // ======================
-
 function safeQty(value) {
 
   const qty = parseInt(value);
@@ -54,7 +53,7 @@ async function sendWhatsApp(phoneNumber, text) {
     try {
       const json = JSON.parse(resText);
 
-      if (responseData.status !== "1") {
+      if (json.status !== "1") {
 		  console.log("❌ API LOGIC FAIL:", responseData);
 		}
 

@@ -729,7 +729,7 @@ function formatMainReport(data, monthLabel) {
 
     text += `OUTLET ${outlet}\n\n`;
 
-    text += `💰 TOTAL COST RM ${o.totalCost.toFixed(0)}\n\n`;
+    text += `💰 TOTAL USAGE COST RM ${o.totalCost.toFixed(0)}\n\n`;
 
     text += "📉 TOP 5 COST ITEM\n";
 
@@ -749,9 +749,9 @@ function formatMainReport(data, monthLabel) {
     });
 
     text += `\n💸 FLOW (VALUE)\n`;
-    text += `IN   : RM ${o.flowIn.toFixed(0)}\n`;
-    text += `OUT  : RM ${o.flowOut.toFixed(0)}\n`;
-    text += `NET  : RM ${(o.flowIn - o.flowOut).toFixed(0)}\n\n`;
+    text += `IN   : RM ${o.flowIn.toFixed(0)} (Stock Added)\n`;
+    text += `OUT  : RM ${o.flowOut.toFixed(0)} (Stock Used)\n`;
+    text += `NET  : RM ${(o.flowIn - o.flowOut).toFixed(0)} (Value Change)\n\n`;
   });
 
   return text;
@@ -873,6 +873,22 @@ function formatMonthLabel(monthInput, startDate) {
   return monthInput.toUpperCase();
 }
 
+// ======================
+// FORMAT ITEM LIST
+// ======================
+function formatItemNameList(rows) {
+
+  if (!rows?.length) return "📦 ITEM KOSONG";
+
+  let reply = "📦 ITEM LIST (A-Z)\n\n";
+
+  rows.forEach((r, i) => {
+    reply += `${i + 1}. ${toProperCase(r.name)}\n`;
+  });
+
+  return reply;
+}
+
 module.exports = {
   getRoleGuide,
   formatLowStockAlert,
@@ -898,7 +914,8 @@ module.exports = {
   formatDetailReport,
   formatDeadReport,
   formatFlowReport,
-  formatMonthLabel
+  formatMonthLabel,
+  formatItemNameList
 };
 	
 	

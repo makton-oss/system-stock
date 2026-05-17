@@ -19,7 +19,7 @@ module.exports = withRole(["manager"], async (ctx) => {
     .in("outlet_id", outletIds);
 
   if (arg !== "ALL") {
-    const id = parseInt(parts[1]);
+    const id = Number.isInteger(Number(parts[1]));
 
     if (isNaN(id)) {
       await reply(chatId, "❌ FORMAT: APPROVE ALL / APPROVE 12");

@@ -1,14 +1,34 @@
 const { withRole } = require("../core/withRole");
 const supabase = require("../services/db");
-const { formatItemListAdmin, formatItemList } = require("../utils/formatter");
+const { formatItemListAdmin, formatItemList, formatItemNameList } = require("../utils/formatter");
 const { getAccessibleOutletIds } = require("../utils/getAccessibleOutlets");
 
-module.exports = withRole(["manager","admin"], async (ctx) => {
+module.exports = withRole(["staff","manager","admin"], async (ctx) => {
 
   const { chatId, user, reply, res } = ctx;
 
   // ======================
-  // ADMIN → ALL OUTLETS (UNCHANGED)
+  // STAFF → SIMPLE NAME LIST (ALPHABET)
+  // ======================
+  if (user.role === "staff") {
+
+    const { data, error } = await supabase
+      .from("stock_items")
+      .select("name")
+      .order("name", { ascending: true });
+
+    if (error) {
+      console.log("ITEM ERROR:", error);
+      await reply(chatId, "❌ ERROR");
+      return res.end();
+    }
+
+    await reply(chatId, formatItemNameList(data));
+    return res.end();
+  }
+
+  // ======================
+  // ADMIN → ALL OUTLETS
   // ======================
   if (user.role === "admin") {
 
@@ -57,10 +77,11 @@ module.exports = withRole(["manager","admin"], async (ctx) => {
 
   const uniqueOutlet = [...new Set(data.map(r => r.outlet_id))];
 
-	if (uniqueOutlet.length > 1) {
-	  await reply(chatId, formatItemListAdmin(data));
-	} else {
-	  await reply(chatId, formatItemList(data));
-	}
+  if (uniqueOutlet.length > 1) {
+    await reply(chatId, formatItemListAdmin(data));
+  } else {
+    await reply(chatId, formatItemList(data));
+  }
+
   return res.end();
 });

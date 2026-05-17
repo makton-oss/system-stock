@@ -1,5 +1,6 @@
 const { withRole } = require("../core/withRole");
 const supabase = require("../services/db");
+const { getRoleGuide } = require("../utils/formatter");
 
 module.exports = withRole(["admin"], async (ctx) => {
 
@@ -75,6 +76,15 @@ module.exports = withRole(["admin"], async (ctx) => {
     await supabase.from("user_outlets").insert(rows);
   }
 
-  await reply(chatId, `✅ ${nickname} set sebagai ${role}`);
-  return res.end();
+  // notify admin
+	await reply(chatId, `✅ ${nickname} set sebagai ${role}`);
+
+	// send role guide to target user
+	const guide = getRoleGuide(role);
+
+	if (guide) {
+	  await reply(phone, guide);
+	}
+
+	return res.end();
 });
