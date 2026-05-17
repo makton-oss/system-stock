@@ -46,27 +46,30 @@ async function sendWhatsApp(phoneNumber, text) {
 
     if (!response.ok) {
       console.log("❌ HTTP ERROR:", resText);
-      return;
+      return { ok: false };
     }
 
-    // 🔥 OPTIONAL: kalau API return JSON status
     try {
       const json = JSON.parse(resText);
 
       if (json.status !== "1") {
-		  console.log("❌ API LOGIC FAIL:", json);
+
+		  if (json.message?.includes("24 hour")) {
+			return { ok: false, reason: "24h_window" };
+		  }
+
 		  return { ok: false };
 		}
-	  return { ok: false };
+
+      return { ok: true };
 
     } catch {
-      // ignore kalau bukan JSON
-	  return { ok: false };
+      return { ok: true };
     }
 
   } catch (err) {
     console.log("❌ SEND FAIL:", err);
-	return { ok: false };
+    return { ok: false };
   }
 }
 
