@@ -5,9 +5,9 @@ const { sendBatchMessages } = require("../utils/broadcast");
 
 module.exports = withRole(["admin"], async (ctx) => {
 
-  const { chatId, parts, reply, res } = ctx;
+  const { chatId, parts, reply, body, res } = ctx;
 
-  const message = parts.slice(1).join(" ");
+  const message = ctx.body.replace(/^update\s*/i, "").trim();
 
   if (!message) {
     await reply(chatId, "❌ FORMAT: UPDATE message");

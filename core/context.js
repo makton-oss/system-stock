@@ -1,8 +1,9 @@
-function createContext({ chatId, user, parts, res, reply }) {
+function createContext({ chatId, user, parts, body, res, reply }) {
   return {
     chatId,
     user,
     parts,
+	body,
     res,
     reply
   };
