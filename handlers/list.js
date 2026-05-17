@@ -1,14 +1,12 @@
 const { withRole } = require("../core/withRole");
 const supabase = require("../services/db");
 const { formatPending, formatPendingAdmin } = require("../utils/formatter");
+const { getAccessibleOutletIds } = require("../utils/getAccessibleOutlets");
 
 module.exports = withRole(["staff","manager","admin"], async (ctx) => {
 
   const { chatId, user, reply, res } = ctx;
 
-  // ======================
-  // ADMIN → ALL OUTLETS
-  // ======================
   if (user.role === "admin") {
 
     const { data, error } = await supabase
@@ -21,7 +19,7 @@ module.exports = withRole(["staff","manager","admin"], async (ctx) => {
         created_at,
         outlet_id,
         outlets(name),
-		users(nickname, chat_id)
+        users(nickname, chat_id)
       `)
       .eq("status", "pending")
       .order("created_at", { ascending: true });
@@ -36,9 +34,8 @@ module.exports = withRole(["staff","manager","admin"], async (ctx) => {
     return res.end();
   }
 
-  // ======================
-  // STAFF + MANAGER → OWN OUTLET
-  // ======================
+  const outletIds = await getAccessibleOutletIds(user);
+
   const { data, error } = await supabase
     .from("requests")
     .select(`
@@ -47,10 +44,11 @@ module.exports = withRole(["staff","manager","admin"], async (ctx) => {
       item,
       qty,
       created_at,
+      outlet_id,
       outlets(name),
-	  users(nickname, chat_id)
+      users(nickname, chat_id)
     `)
-    .eq("outlet_id", user.outlet_id)
+    .in("outlet_id", outletIds)
     .eq("status", "pending")
     .order("created_at", { ascending: true });
 

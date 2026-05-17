@@ -1,13 +1,14 @@
 const { withRole } = require("../core/withRole");
 const supabase = require("../services/db");
 const { formatItemListAdmin, formatItemList } = require("../utils/formatter");
+const { getAccessibleOutletIds } = require("../utils/getAccessibleOutlets");
 
 module.exports = withRole(["manager","admin"], async (ctx) => {
 
   const { chatId, user, reply, res } = ctx;
 
   // ======================
-  // ADMIN → ALL OUTLETS
+  // ADMIN → ALL OUTLETS (UNCHANGED)
   // ======================
   if (user.role === "admin") {
 
@@ -16,7 +17,7 @@ module.exports = withRole(["manager","admin"], async (ctx) => {
       .select(`
         item,
         outlet_id,
-		min_qty,
+        min_qty,
         stock_items(name, cost_price, uom),
         outlets(name)
       `)
@@ -33,17 +34,20 @@ module.exports = withRole(["manager","admin"], async (ctx) => {
   }
 
   // ======================
-  // STAFF / MANAGER
+  // MANAGER → MULTI OUTLET
   // ======================
+  const outletIds = await getAccessibleOutletIds(user);
+
   const { data, error } = await supabase
     .from("stock")
     .select(`
       item,
-	  min_qty,
+      min_qty,
+      outlet_id,
       stock_items(name, cost_price, uom),
       outlets(name)
     `)
-    .eq("outlet_id", user.outlet_id);
+    .in("outlet_id", outletIds);
 
   if (error) {
     console.log("ITEM ERROR:", error);

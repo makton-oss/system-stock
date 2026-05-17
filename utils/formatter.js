@@ -469,128 +469,19 @@ const ROLE_GUIDE = {
 📦 STAFF GUIDE
 
 Hai 👋
-Sistem ni untuk update stok harian sahaja.
+Gunakan sistem untuk rekod keluar masuk barang.
 
 ────────────────────
 
-📥 Bila barang baru sampai:
+📥 Barang masuk:
 IN ayam 10
-IN ikan 5
-
-✅ Maksud:
-Tambah stok dalam sistem
+IN tepung 5
 
 ────────────────────
 
-📤 Bila barang guna / jual:
+📤 Barang guna:
 OUT ayam 2
-OUT ikan 1
-
-✅ Maksud:
-Kurangkan stok dalam sistem
-
-────────────────────
-
-📦 Nak tengok stok semasa:
-STOCK
-
-────────────────────
-
-📋 Nak tengok permintaan pending:
-LIST
-
-────────────────────
-
-💡 TIPS MUDAH:
-• IN = barang masuk
-• OUT = barang keluar
-• Ikut contoh sahaja 👍
-
-❓ Kalau lupa command:
-HELP
-`,
-
-  manager: `
-📊 MANAGER GUIDE
-
-Hai 👋
-Anda boleh semak & luluskan request staf.
-
-────────────────────
-
-📋 Semak semua request:
-LIST
-
-────────────────────
-
-✅ Luluskan semua request:
-APPROVE ALL
-
-✅ Luluskan satu request:
-APPROVE 12
-
-────────────────────
-
-❌ Tolak semua request:
-REJECT ALL
-
-❌ Tolak satu request:
-REJECT 12
-
-────────────────────
-
-📦 Semak stok semasa:
-STOCK
-
-────────────────────
-
-📊 Laporan bulanan:
-REPORT current
-
-📊 Laporan bulan tertentu:
-REPORT feb-26
-
-────────────────────
-
-👥 Semak staff:
-STAFF
-
-────────────────────
-
-💡 TIPS MUDAH:
-• APPROVE = setuju request
-• REJECT = batalkan request
-• Semak LIST dulu sebelum approve 👍
-
-❓ Kalau lupa command:
-HELP
-`,
-
-  admin: `
-🛠 ADMIN GUIDE
-
-Hai 👋
-Anda mempunyai akses penuh sistem.
-
-────────────────────
-
-👤 Tambah / tukar role user:
-SETROLE 60123456789 manager ali
-
-────────────────────
-
-🗑 Buang user:
-REMOVEROLE 60123456789
-
-────────────────────
-
-👥 Semak semua staff:
-STAFF
-
-────────────────────
-
-📜 Semak log sistem:
-LOG
+OUT tepung 1
 
 ────────────────────
 
@@ -599,30 +490,161 @@ STOCK
 
 ────────────────────
 
-📊 Laporan bulanan:
-REPORT current
-
-📊 Laporan bulan tertentu:
-REPORT feb-26
+📋 Semak request pending:
+LIST
 
 ────────────────────
 
-➕ Tambah item baru:
-ADDITEM ayam
+💡 TIPS:
+• IN = tambah stok
+• OUT = tolak stok
+• Semua request perlu approve manager
+
+❓ Bantuan:
+HELP
+`,
+
+  manager: `
+📊 MANAGER GUIDE
+
+Hai 👋
+Anda urus approval & pantau stok outlet.
 
 ────────────────────
 
-🗑 Buang item:
-REMOVEITEM ayam
+📋 Semak request:
+LIST
 
 ────────────────────
 
-💡 TIPS PENTING:
-• Pastikan nombor phone betul
-• Semak role sebelum SETROLE
-• Manager boleh approve request staf
+✅ Luluskan request:
+APPROVE 12
+APPROVE ALL
 
-❓ Kalau lupa command:
+────────────────────
+
+❌ Tolak request:
+REJECT 12
+REJECT ALL
+
+────────────────────
+
+📦 Semak stok:
+STOCK
+
+────────────────────
+
+📦 Semak item config:
+ITEM
+
+────────────────────
+
+📊 REPORT
+
+Main report:
+REPORT
+REPORT may-26
+
+Detail:
+REPORT INVENTORY
+REPORT DETAIL
+REPORT FLOW
+REPORT DEAD
+
+────────────────────
+
+👥 Semak staff:
+STAFF
+
+────────────────────
+
+💡 TIPS:
+• Check LIST sebelum approve
+• Pastikan request betul sebelum approve
+
+❓ Bantuan:
+HELP
+`,
+
+  admin: `
+🛠 ADMIN GUIDE
+
+Hai 👋
+Akses penuh semua outlet & sistem.
+
+────────────────────
+
+👤 Urus user:
+SETROLE 60123456789 manager ali muiz
+
+✅ Format:
+[phone] [role] [nickname] [outlet]
+
+────────────────────
+
+🗑 Buang user:
+REMOVEROLE 60123456789
+
+────────────────────
+
+👥 Semak staff:
+STAFF
+
+────────────────────
+
+📜 Log sistem:
+LOG
+
+────────────────────
+
+📦 STOCK (semua outlet):
+STOCK
+
+────────────────────
+
+📦 ITEM CONFIG:
+ITEM
+
+────────────────────
+
+📊 REPORT (semua outlet)
+
+Main:
+REPORT
+REPORT may-26
+
+Detail:
+REPORT INVENTORY
+REPORT DETAIL
+REPORT FLOW
+REPORT DEAD
+
+────────────────────
+
+📋 Semak request:
+LIST
+
+────────────────────
+
+➕ Tambah item:
+ADDITEM minyak bijan kering 2 9 botol bta
+
+✅ Format:
+[nama item] [category] [min_qty] [cost] [uom] [outlet]
+
+────────────────────
+
+➖ Buang item:
+REMOVEITEM minyak bijan
+
+────────────────────
+
+💡 TIPS:
+• Nama item mesti konsisten (elak duplicate)
+• Pastikan cost, uom & min qty betul
+• Item akan digunakan oleh outlet tersebut
+
+❓ Bantuan:
 HELP
 `
 };

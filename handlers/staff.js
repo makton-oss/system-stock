@@ -1,13 +1,14 @@
 const { withRole } = require("../core/withRole");
 const supabase = require("../services/db");
 const { formatStaffList, formatStaffListAdmin } = require("../utils/formatter");
+const { getAccessibleOutletIds } = require("../utils/getAccessibleOutlets");
 
 module.exports = withRole(["manager","admin"], async (ctx) => {
 
   const { chatId, user, reply, res } = ctx;
 
   // ======================
-  // ADMIN → ALL OUTLETS
+  // ADMIN → ALL OUTLETS (UNCHANGED)
   // ======================
   if (user.role === "admin") {
 
@@ -34,17 +35,20 @@ module.exports = withRole(["manager","admin"], async (ctx) => {
   }
 
   // ======================
-  // MANAGER → OWN OUTLET
+  // MANAGER → MULTI OUTLET
   // ======================
+  const outletIds = await getAccessibleOutletIds(user);
+
   const { data, error } = await supabase
     .from("users")
     .select(`
       chat_id,
       nickname,
       role,
+      outlet_id,
       outlets(name)
     `)
-    .eq("outlet_id", user.outlet_id)
+    .in("outlet_id", outletIds)
     .neq("role", "admin");
 
   if (error) {

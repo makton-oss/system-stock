@@ -3,20 +3,20 @@ const supabase = require("../services/db");
 const { approveRequests } = require("../services/approveService");
 const { writeLog, formatLowStockAlert } = require("../utils/formatter");
 const { notifyManagers } = require("../utils/helpers");
+const { getAccessibleOutletIds } = require("../utils/getAccessibleOutlets");
 
 module.exports = withRole(["manager"], async (ctx) => {
 
   const { chatId, parts, user, reply, res } = ctx;
   const arg = parts[1]?.toUpperCase();
 
-  // ======================
-  // FETCH PENDING ONLY
-  // ======================
+  const outletIds = await getAccessibleOutletIds(user);
+
   let query = supabase
     .from("requests")
     .select("*")
     .eq("status", "pending")
-    .eq("outlet_id", user.outlet_id);
+    .in("outlet_id", outletIds);
 
   if (arg !== "ALL") {
     const id = parseInt(parts[1]);
@@ -42,15 +42,9 @@ module.exports = withRole(["manager"], async (ctx) => {
     return res.end();
   }
 
-  // ======================
-  // PROCESS
-  // ======================
   const { summary, logDetails, rows: processed } =
     await approveRequests(rows, chatId);
 
-  // ======================
-  // LOW STOCK ALERT
-  // ======================
   for (const r of processed) {
     if (!r._lowStock) continue;
 
@@ -63,9 +57,6 @@ module.exports = withRole(["manager"], async (ctx) => {
     await notifyManagers(alertText, r._lowStock.outlet_id);
   }
 
-  // ======================
-  // RESPONSE
-  // ======================
   let text = "✅ APPROVED\n\n";
 
   Object.entries(summary).forEach(([i, q]) => {

@@ -1,17 +1,20 @@
 const { withRole } = require("../core/withRole");
 const supabase = require("../services/db");
 const { writeLog } = require("../utils/formatter");
+const { getAccessibleOutletIds } = require("../utils/getAccessibleOutlets");
 
 module.exports = withRole(["manager"], async (ctx) => {
 
   const { chatId, parts, user, reply, res } = ctx;
   const arg = parts[1]?.toUpperCase();
 
+  const outletIds = await getAccessibleOutletIds(user);
+
   let query = supabase
     .from("requests")
     .select("*")
     .eq("status", "pending")
-    .eq("outlet_id", user.outlet_id);
+    .in("outlet_id", outletIds);
 
   if (arg !== "ALL") {
     const id = parseInt(parts[1]);
@@ -52,7 +55,7 @@ module.exports = withRole(["manager"], async (ctx) => {
   }
 
   await writeLog(chatId, "manager", "REJECT", logDetails.join(" | "));
-  await reply(chatId, "❌ REJECTED");
+  await reply(chatId, "✅ REJECTED");
 
   return res.end();
 });
