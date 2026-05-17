@@ -762,7 +762,7 @@ function formatMainReport(data, monthLabel) {
 // ======================
 function formatInventoryReport(data, month) {
 
-  let text = `📦 INVENTORY VALUE REPORT (${month})\n`;
+  let text = `📦 INVENTORY VALUE REPORT - ${month}\n`;
 
   Object.entries(data).forEach(([outlet, rows]) => {
 
@@ -788,7 +788,7 @@ function formatInventoryReport(data, month) {
 // ======================
 function formatDetailReport(data, month) {
 
-  let text = `📊 DETAIL INOUT REPORT (${month})\n`;
+  let text = `📊 DETAIL INOUT REPORT - ${month}\n`;
 
   Object.entries(data).forEach(([outlet, rows]) => {
 
@@ -807,7 +807,7 @@ function formatDetailReport(data, month) {
 // ======================
 function formatDeadReport(data, month) {
 
-  let text = `💀 DEAD STOCK (${month})\n`;
+  let text = `💀 DEAD STOCK - ${month}\n`;
 
   Object.entries(data).forEach(([outlet, rows]) => {
 
@@ -828,7 +828,7 @@ function formatDeadReport(data, month) {
 // ======================
 function formatFlowReport(data, month) {
 
-  let text = `💸 FLOW (Value) REPORT (${month})\n`;
+  let text = `💸 FLOW (Value) REPORT - ${month}\n`;
 
   Object.entries(data).forEach(([outlet, r]) => {
 
