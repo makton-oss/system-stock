@@ -1,6 +1,6 @@
 const { withRole } = require("../core/withRole");
 const { getMainReport, getInventoryReport, getFlowReport, getDeadStock, getDetailReport } = require("../services/reportService");
-const { formatMainReport, formatInventoryReport, formatDetailReport, formatDeadReport, formatFlowReport, parseMonthInput } = require("../utils/formatter");
+const { formatMainReport, formatInventoryReport, formatDetailReport, formatDeadReport, formatFlowReport, parseMonthInput, formatMonthLabel  } = require("../utils/formatter");
 
 module.exports = withRole(["manager", "admin"], async (ctx) => {
 
@@ -35,6 +35,7 @@ module.exports = withRole(["manager", "admin"], async (ctx) => {
 
   const start = range.start.toISOString();
   const end = range.end.toISOString();
+  const monthLabel = formatMonthLabel(monthInput, start);
 
   // ======================
   // ROLE CONTROL
@@ -56,7 +57,7 @@ module.exports = withRole(["manager", "admin"], async (ctx) => {
 
         if (result.error) throw result.error;
 
-        await reply(chatId, formatInventoryReport(result, monthInput.toUpperCase()));
+        await reply(chatId, formatInventoryReport(result, monthLabel));
         return res.end();
 
 
@@ -65,7 +66,7 @@ module.exports = withRole(["manager", "admin"], async (ctx) => {
 
         if (result.error) throw result.error;
 
-        await reply(chatId, formatFlowReport(result, monthInput.toUpperCase()));
+        await reply(chatId, formatFlowReport(result, monthLabel));
         return res.end();
 
 
@@ -79,7 +80,7 @@ module.exports = withRole(["manager", "admin"], async (ctx) => {
           return res.end();
         }
 
-        await reply(chatId, formatDeadReport(result, monthInput.toUpperCase()));
+        await reply(chatId, formatDeadReport(result, monthLabel));
         return res.end();
 
 
@@ -93,7 +94,7 @@ module.exports = withRole(["manager", "admin"], async (ctx) => {
           return res.end();
         }
 
-        await reply(chatId, formatDetailReport(result, monthInput.toUpperCase()));
+        await reply(chatId, formatDetailReport(result, monthLabel));
         return res.end();
 
 
@@ -107,8 +108,6 @@ module.exports = withRole(["manager", "admin"], async (ctx) => {
         });
 
         if (result.error) throw result.error;
-
-        const monthLabel = monthInput.toUpperCase();
 
         await reply(
           chatId,

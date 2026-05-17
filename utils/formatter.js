@@ -852,9 +852,26 @@ function formatFlowReport(data, month) {
   return text;
 }
 
-module.exports = {
-  
-};
+// ======================
+// FORMAT MONTH
+// ======================
+function formatMonthLabel(monthInput, startDate) {
+
+  if (!monthInput || monthInput.toLowerCase() === "current") {
+
+    const d = new Date(startDate);
+
+    const month = d
+      .toLocaleString("en-MY", { month: "long" })
+      .toUpperCase();
+
+    const year = d.getFullYear();
+
+    return `${month} ${year}`;
+  }
+
+  return monthInput.toUpperCase();
+}
 
 module.exports = {
   getRoleGuide,
@@ -880,7 +897,8 @@ module.exports = {
   formatInventoryReport,
   formatDetailReport,
   formatDeadReport,
-  formatFlowReport
+  formatFlowReport,
+  formatMonthLabel
 };
 	
 	
