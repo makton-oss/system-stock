@@ -76,32 +76,40 @@ async function sendWhatsApp(phoneNumber, text) {
 // ======================
 // NOTIFY MANAGER
 // ======================
-async function notifyManagers(text, outletId, excludeChatId = null) {
-  const { data: rows, error } = await supabase
-    .from("users")
-    .select("chat_id, outlet_id, role")
-    .eq("role", "manager");
+async function notifyManagers(message, outletId, senderChatId = null) {
+  try {
+    const { data, error } = await supabase
+      .from("user_outlets")
+      .select(`
+        outlet_id,
+        users!inner(chat_id, role)
+      `)
+      .eq("outlet_id", outletId)
+      .eq("users.role", "manager");
 
-  if (error) {
-    console.log("NOTIFY FETCH ERROR:", error);
-    return;
-  }
+    if (error) {
+      console.log("❌ FETCH MANAGER ERROR:", error);
+      return;
+    }
 
-  if (!rows?.length) {
-    console.log("NO MANAGERS IN DB");
-    return;
-  }
+    if (!data?.length) {
+      console.log(`❌ NO MANAGER MATCH OUTLET: ${outletId}`);
+      return;
+    }
 
-  const targets = rows.filter(u => {
-    return (
-      String(u.outlet_id).trim() === String(outletId).trim() &&
-      (!excludeChatId || u.chat_id !== excludeChatId)
-    );
-  });
+    // extract chat_id
+    const chatIds = data.map(r => r.users.chat_id);
 
-  if (!targets.length) {
-    console.log("❌ NO MANAGER MATCH OUTLET:", outletId);
-    return;
+    for (const id of chatIds) {
+
+      // optional: skip sender (kalau manager sendiri trigger)
+      if (senderChatId && id === senderChatId) continue;
+
+      await sendWhatsApp(id, message);
+    }
+
+  } catch (err) {
+    console.log("❌ NOTIFY MANAGER ERROR:", err);
   }
 
   const batchSize = 5;
