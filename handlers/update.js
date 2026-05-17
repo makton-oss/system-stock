@@ -32,13 +32,13 @@ module.exports = withRole(["admin"], async (ctx) => {
     await reply(chatId, "❌ TIADA MANAGER");
     return res.end();
   }
-
+console.log("MANAGERS:", managers);
   // ======================
   // SEND (BATCH)
   // ======================
   const { success, failed } = await sendBatchMessages(
     managers,
-    `📢 UPDATE\n\n${message}`,
+    `📢 SYSTEM UPDATE\n\n${message}`,
     sendMessage,
     5,       // batch size
     1000     // delay ms
