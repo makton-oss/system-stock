@@ -53,11 +53,11 @@ module.exports = withRole(["admin"], async (ctx) => {
   // UPSERT USER
   // ======================
   await supabase.from("users").upsert({
-    chat_id: phone,
-    role,
-    nickname,
-    outlet_id: outletIds[0] // fallback utk legacy
-  });
+	  chat_id: phone,
+	  role,
+	  nickname,
+	  outlet_id: role === "staff" ? outletIds[0] : null
+	});
 
   // ======================
   // UPDATE PIVOT (manager sahaja)

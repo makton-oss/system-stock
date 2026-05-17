@@ -13,5 +13,6 @@ module.exports = {
   LOG: require("../handlers/log"),
   ITEM: require("../handlers/item"),
   SETROLE: require("../handlers/setRole"),
-  REMOVEROLE: require("../handlers/removeRole")
+  REMOVEROLE: require("../handlers/removeRole"),
+  UPDATE: require("../handlers/update")
 };

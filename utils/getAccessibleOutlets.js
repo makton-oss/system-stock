@@ -34,9 +34,7 @@ async function getAccessibleOutletIds(user) {
     }
 
     // kalau ada assign
-    if (data?.length) {
-      return data.map(r => r.outlet_id);
-    }
+    return data.map(d => d.outlet_id);
   }
 
   // ======================

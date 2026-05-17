@@ -11,21 +11,27 @@ async function createRequest({ item, qty, type, user, chatId }) {
 
   if (!stock) return { error: "ITEM_NOT_FOUND" };
 
-  const { error } = await supabase
-    .from("requests")
-    .insert({
-      item,
-      item_id: stock.item_id,
-      qty,
-      status: "pending",
-      type,
-      outlet_id: user.outlet_id,
-      requested_by: chatId
-    });
+  const { data, error } = await supabase
+	  .from("requests")
+	  .insert({
+		item,
+		item_id: stock.item_id,
+		qty,
+		status: "pending",
+		type,
+		outlet_id: user.outlet_id,
+		requested_by: chatId
+	  })
+	  .select()
+	  .single();
 
-  if (error) return { error };
+	if (error) return { error };
 
-  return { success: true };
+	return {
+	  id: data.id,
+	  item,
+	  qty
+	};
 }
 
 module.exports = { createRequest };
