@@ -52,6 +52,12 @@ module.exports = withRole(["staff","manager","admin"], async (ctx) => {
     return res.end();
   }
 
-  await reply(chatId, formatStock(data));
+  const uniqueOutlet = [...new Set(data.map(r => r.outlet_id))];
+
+	if (uniqueOutlet.length > 1) {
+	  await reply(chatId, formatStockAdmin(data));
+	} else {
+	  await reply(chatId, formatStock(data));
+	}
   return res.end();
 });
