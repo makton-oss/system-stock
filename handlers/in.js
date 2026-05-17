@@ -1,3 +1,8 @@
+const { withRole } = require("../core/withRole");
+const { normalizeItem, safeQty, notifyManagers } = require("../utils/helpers");
+const { createRequest } = require("../services/requestService");
+const { getUserDisplay, toProperCase } = require("../utils/formatter");
+
 module.exports = withRole(["staff", "manager"], async (ctx) => {
 
   const { chatId, parts, user, reply, res } = ctx;
