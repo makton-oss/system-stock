@@ -79,6 +79,7 @@ app.post("/webhook", async (req, res) => {
     chatId,
     user,
     parts,
+	body: message,
     res,
     reply
   });
