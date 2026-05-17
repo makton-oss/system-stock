@@ -109,7 +109,7 @@ function formatItemList(rows) {
     const name = toProperCase(r.stock_items?.name || r.item || "-" );
     const uom = r.stock_items?.uom || "-";
     const cost = Number(r.stock_items?.cost_price || 0);
-    const minqty = r.min_qty ?? || "-";
+    const minqty = r.min_qty ?? "-";
 
     reply += `${name}
 UOM: ${uom}
