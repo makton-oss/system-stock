@@ -121,5 +121,6 @@ module.exports = {
   normalizeItem,
   safeQty,
   sendWhatsApp,
-  notifyManagers
+  notifyManagers,
+  sendMessage: sendWhatsApp
 };

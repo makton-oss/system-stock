@@ -3,75 +3,55 @@ const { normalizeItem, safeQty, notifyManagers } = require("../utils/helpers");
 const { createRequest } = require("../services/requestService");
 const { getUserDisplay, toProperCase } = require("../utils/formatter");
 
-module.exports = withRole(["staff","manager"], async (ctx) => {
-
+module.exports = withRole(["staff", "manager"], async (ctx) => {
   const { chatId, parts, user, reply, res } = ctx;
 
-  // ======================
-  // MULTI INPUT SUPPORT
-  // ======================
-  const input = parts.slice(1).join(" ");
+  const qty = safeQty(parts.at(-1));
+  const item = normalizeItem(parts.slice(1, -1).join(" "));
 
-  if (!input) {
-    await reply(chatId, "❌ FORMAT: OUT ayam 2, ikan 1");
+  if (!item || qty === null) {
+    await reply(chatId, "❌ FORMAT: OUT ayam 5");
     return res.end();
   }
 
-  const chunks = input.split(",");
-
-  let results = [];
-  let failed = [];
-
-  for (let raw of chunks) {
-
-    const segment = raw.trim();
-
-    const segParts = segment.split(" ");
-    const qtyRaw = segParts.pop();
-    const itemRaw = segParts.join(" ");
-
-    const item = normalizeItem(itemRaw);
-    const qty = safeQty(qtyRaw);
-
-    if (!item || !qty) {
-      failed.push(segment);
-      continue;
-    }
-
-    // ======================
-    // EXISTING FLOW
-    // ======================
-    const result = await createRequest({
-      item,
-      qty,
-      type: "out",
-      user,
-      chatId
-    });
-
-    if (result.error) {
-      failed.push(toProperCase(item));
-      continue;
-    }
-
-    results.push(result);
-  }
-
-  // ======================
-  // ORIGINAL DISPLAY STYLE
-  // ======================
-  let text = `Stock out - ${toProperCase(user.outlets?.name || "-")}\n\n`;
-
-  results.forEach(r => {
-    text += `ID ${r.id} | ${toProperCase(r.item)} x ${r.qty}\n`;
+  const result = await createRequest({
+    item,
+    qty,
+    type: "out",
+    user,
+    chatId
   });
 
-  text += `\nBY: ${getUserDisplay(user)}`;
-
-  if (failed.length) {
-    text += `\n\n❌ FAILED\n${failed.join("\n")}`;
+  if (result.error === "ITEM_NOT_FOUND") {
+    await reply(chatId, `❌ ITEM TAK WUJUD: ${item}`);
+    return res.end();
   }
 
-  await reply(chatId, text);
+  if (result.error) {
+    await reply(chatId, "❌ DB ERROR");
+    return res.end();
+  }
+
+  // ======================
+  // NOTIFY MANAGERS
+  // ======================
+  try {
+    const userInfo = await getUserDisplay(chatId);
+
+    const text = `📤 STOCK OUT - ${toProperCase(user.outlets?.name || "-")}
+
+ID ${result?.id || "-"} ${toProperCase(item)} x${qty}
+BY: ${toProperCase(userInfo.nickname)} (${chatId})`;
+
+    await notifyManagers(text, user.outlet_id, chatId);
+
+  } catch (err) {
+    console.log("NOTIFY ERROR (OUT):", err);
+  }
+
+  // ======================
+  // RESPONSE
+  // ======================
+  await reply(chatId, "✅ REQUEST SENT");
   return res.end();
 });
