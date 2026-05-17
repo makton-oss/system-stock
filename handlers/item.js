@@ -2,7 +2,7 @@ const { withRole } = require("../core/withRole");
 const supabase = require("../services/db");
 const { formatItemListAdmin, formatItemList } = require("../utils/formatter");
 
-module.exports = withRole(["staff","manager","admin"], async (ctx) => {
+module.exports = withRole(["manager","admin"], async (ctx) => {
 
   const { chatId, user, reply, res } = ctx;
 
@@ -16,7 +16,8 @@ module.exports = withRole(["staff","manager","admin"], async (ctx) => {
       .select(`
         item,
         outlet_id,
-        stock_items(name),
+		min_qty,
+        stock_items(name, cost_price, uom),
         outlets(name)
       `)
       .order("outlet_id", { ascending: true });
@@ -38,7 +39,8 @@ module.exports = withRole(["staff","manager","admin"], async (ctx) => {
     .from("stock")
     .select(`
       item,
-      stock_items(name),
+	  min_qty,
+      stock_items(name, cost_price, uom),
       outlets(name)
     `)
     .eq("outlet_id", user.outlet_id);

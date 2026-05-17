@@ -102,15 +102,21 @@ function formatItemList(rows) {
 
   if (!rows?.length) return "📦 ITEM KOSONG";
 
-  const outlet = rows[0]?.outlets?.name || "-";
+  let reply = "📦 ITEM CONFIG\n\n";
 
-  let reply = `📦 ITEM LIST\n${toProperCase(outlet)}\n\n`;
+  rows.forEach(r => {
 
-  rows.forEach((r, i) => {
-    const name = toProperCase(
-      r.stock_items?.name || r.item || "-"
-    );
-    reply += `${i + 1}. ${name}\n`;
+    const name = toProperCase(r.stock_items?.name || r.item || "-" );
+    const uom = r.stock_items?.uom || "-";
+    const cost = Number(r.stock_items?.cost_price || 0);
+    const minqty = r.min_qty ?? || "-";
+
+    reply += `${name}
+UOM: ${uom}
+Cost: RM${cost.toFixed(2)}
+Min Qty: ${toProperCase(minqty)}
+
+`;
   });
 
   return reply;
@@ -123,29 +129,41 @@ function formatItemListAdmin(rows) {
 
   if (!rows?.length) return "📦 ITEM KOSONG";
 
-  // group by outlet
   const map = {};
 
   rows.forEach(r => {
 
     const outlet = r.outlets?.name || "-";
-    const item = r.stock_items?.name || r.item;
 
     if (!map[outlet]) {
-      map[outlet] = new Set();
+      map[outlet] = [];
     }
 
-    map[outlet].add(item);
+    map[outlet].push(r);
   });
 
-  let reply = "📦 ITEM LIST\n\n";
+  let reply = "📦 ITEM CONFIG\n\n";
 
   Object.entries(map).forEach(([outlet, items]) => {
 
     reply += `${toProperCase(outlet)}\n\n`;
 
-    [...items].forEach((item, i) => {
-      reply += `${i + 1}. ${toProperCase(item)}\n`;
+    items.forEach(r => {
+
+      const name = toProperCase(
+        r.stock_items?.name || r.item || "-"
+      );
+
+      const uom = r.stock_items?.uom || "-";
+      const cost = Number(r.stock_items?.cost_price || 0);
+      const minqty = r.min_qty ?? "-";
+
+      reply += `${name}
+UOM: ${uom}
+Cost: RM${cost.toFixed(2)}
+Min Qty: ${minqty}
+
+`;
     });
 
     reply += "\n";
@@ -177,7 +195,7 @@ function formatStockAdmin(rows) {
   Object.entries(map).forEach(([outlet, items]) => {
 
     reply += `🏪 ${toProperCase(outlet)}\n`;
-    reply += `${formatLogDateTime()}\n\n\n`;
+    reply += `${formatLogDateTime()}\n`;
 
     items.forEach((r, i) => {
 
@@ -205,7 +223,7 @@ function formatStock(rows) {
   const outlet = rows[0]?.outlets?.name || "-";
 
   let reply = `📦 STOCK\n🏪 ${toProperCase(outlet)}\n`;
-  reply += `${formatLogDateTime()}\n\n\n`;
+  reply += `${formatLogDateTime()}\n`;
 
   rows.forEach((r, i) => {
 
