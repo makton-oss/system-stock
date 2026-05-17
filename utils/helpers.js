@@ -78,6 +78,7 @@ async function sendWhatsApp(phoneNumber, text) {
 // ======================
 async function notifyManagers(message, outletId, senderChatId = null) {
   try {
+
     const { data, error } = await supabase
       .from("user_outlets")
       .select(`
@@ -97,38 +98,31 @@ async function notifyManagers(message, outletId, senderChatId = null) {
       return;
     }
 
-    // extract chat_id
-    const chatIds = data.map(r => r.users.chat_id);
+    const targets = data
+      .map(r => r.users.chat_id)
+      .filter(id => !senderChatId || id !== senderChatId);
 
-    for (const id of chatIds) {
+    const batchSize = 5;
 
-      // optional: skip sender (kalau manager sendiri trigger)
-      if (senderChatId && id === senderChatId) continue;
+    for (let i = 0; i < targets.length; i += batchSize) {
 
-      await sendWhatsApp(id, message);
+      const batch = targets.slice(i, i + batchSize);
+
+      const results = await Promise.allSettled(
+        batch.map(id => sendWhatsApp(id, message))
+      );
+
+      results.forEach((r, idx) => {
+        if (r.status === "rejected") {
+          console.log("FAILED SEND:", batch[idx], r.reason);
+        }
+      });
+
+      await new Promise(r => setTimeout(r, 500));
     }
 
   } catch (err) {
     console.log("❌ NOTIFY MANAGER ERROR:", err);
-  }
-
-  const batchSize = 5;
-
-  for (let i = 0; i < targets.length; i += batchSize) {
-
-    const batch = targets.slice(i, i + batchSize);
-
-    const results = await Promise.allSettled(
-      batch.map(u => sendWhatsApp(u.chat_id, text))
-    );
-
-    results.forEach((r, idx) => {
-      if (r.status === "rejected") {
-        console.log("FAILED SEND:", batch[idx].chat_id, r.reason);
-      }
-    });
-
-    await new Promise(r => setTimeout(r, 500));
   }
 }
 
