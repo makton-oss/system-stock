@@ -32,7 +32,7 @@ module.exports = withRole(["admin"], async (ctx) => {
     await reply(chatId, "❌ TIADA MANAGER");
     return res.end();
   }
-console.log("MANAGERS:", managers);
+  
   // ======================
   // SEND (BATCH)
   // ======================

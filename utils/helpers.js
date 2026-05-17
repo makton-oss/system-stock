@@ -54,15 +54,19 @@ async function sendWhatsApp(phoneNumber, text) {
       const json = JSON.parse(resText);
 
       if (json.status !== "1") {
-		  console.log("❌ API LOGIC FAIL:", responseData);
+		  console.log("❌ API LOGIC FAIL:", json);
+		  return { ok: false };
 		}
+	  return { ok: false };
 
     } catch {
       // ignore kalau bukan JSON
+	  return { ok: false };
     }
 
   } catch (err) {
     console.log("❌ SEND FAIL:", err);
+	return { ok: false };
   }
 }
 
