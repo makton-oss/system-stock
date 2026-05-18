@@ -71,24 +71,6 @@ app.post("/webhook", async (req, res) => {
     "";
 
 	// ======================
-	// 🔥 BUTTON PARSE (FINAL FIX)
-	// ======================
-	if (message.startsWith("#Button Reply#")) {
-
-	  const btn = message.replace("#Button Reply#", "").trim();
-
-	  console.log("BUTTON CLICK:", btn);
-
-	  if (btn === "Approve") {
-		message = "TRY TRY_APPROVE";
-	  }
-
-	  else if (btn === "Reject") {
-		message = "TRY TRY_REJECT";
-	  }
-	}
-	
-	// ======================
 	// 🔥 POSTBACK PARSE (NEW - fallback)
 	// ======================
 	const postbackId =
