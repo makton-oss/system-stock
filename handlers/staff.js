@@ -3,12 +3,12 @@ const supabase = require("../services/db");
 const { formatStaffList, formatStaffListAdmin } = require("../utils/formatter");
 const { getAccessibleOutletIds } = require("../utils/getAccessibleOutlets");
 
-module.exports = withRole(["manager","admin"], async (ctx) => {
+module.exports = withRole(["manager", "admin"], async (ctx) => {
 
   const { chatId, user, reply, res } = ctx;
 
   // ======================
-  // ADMIN → ALL OUTLETS (UNCHANGED)
+  // 🔥 ADMIN → ALL OUTLETS (UNCHANGED)
   // ======================
   if (user.role === "admin") {
 
@@ -35,10 +35,11 @@ module.exports = withRole(["manager","admin"], async (ctx) => {
   }
 
   // ======================
-  // MANAGER → MULTI OUTLET
+  // 🔥 MANAGER → MULTI OUTLET SUPPORT
   // ======================
   const outletIds = await getAccessibleOutletIds(user);
 
+  // 🔥 IMPORTANT: include manager + staff (exclude admin only)
   const { data, error } = await supabase
     .from("users")
     .select(`
@@ -57,12 +58,18 @@ module.exports = withRole(["manager","admin"], async (ctx) => {
     return res.end();
   }
 
-  const uniqueOutlet = [...new Set(data.map(r => r.outlet_id))];
+  // ======================
+  // 🔥 SINGLE vs MULTI OUTLET
+  // ======================
+  const uniqueOutletIds = [...new Set(data.map(r => r.outlet_id))];
 
-	if (uniqueOutlet.length > 1) {
-	  await reply(chatId, formatStaffListAdmin(data));
-	} else {
-	  await reply(chatId, formatStaffList(data));
-	}
+  if (uniqueOutletIds.length > 1) {
+    // MULTI → same format macam ADMIN
+    await reply(chatId, formatStaffListAdmin(data));
+  } else {
+    // SINGLE → simple format
+    await reply(chatId, formatStaffList(data));
+  }
+
   return res.end();
 });
