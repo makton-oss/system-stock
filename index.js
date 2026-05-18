@@ -12,6 +12,10 @@ const PORT = process.env.PORT || 3000;
 app.use(express.json({ strict: false }));
 app.use(express.urlencoded({ extended: true }));
 
+app.get("/health", (req, res) => {
+  res.send("OK");
+}
+
 async function reply(chatId, text) {
   try {
     console.log("REPLY TO:", chatId, "|", text.slice(0, 50));
