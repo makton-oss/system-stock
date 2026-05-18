@@ -1,4 +1,3 @@
-
 async function sendButtons(chatId, message, buttons) {
   try {
     const response = await fetch(process.env.BOTCOMMERCE_BUTTONS, {
@@ -8,14 +7,8 @@ async function sendButtons(chatId, message, buttons) {
         apiToken: process.env.BOTCOMMERCE_API,
         phone_number_id: process.env.PHONE_NUMBER_ID,
         phone_number: chatId,
-        message: text,
-        buttons: buttons.map(b => ({
-          type: "reply",
-          reply: {
-            id: b.id,
-            title: b.title
-          }
-        }))
+        message: message, // ✅ FIX
+        buttons: buttons // ✅ FIX (no map, no transform)
       })
     });
 
