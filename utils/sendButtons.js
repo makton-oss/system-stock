@@ -1,5 +1,5 @@
 
-async function sendButtons(chatId, text, buttons) {
+async function sendButtons(chatId, message, buttons) {
   try {
     const response = await fetch(process.env.BOTCOMMERCE_BUTTONS, {
       method: "POST",
