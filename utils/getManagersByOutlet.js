@@ -1,3 +1,5 @@
+const supabase = require("../services/db");
+
 async function getManagersByOutlet(outletId) {
 
   // 1. get managers from user_outlets
