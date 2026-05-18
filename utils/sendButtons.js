@@ -21,3 +21,5 @@ async function sendButtons(text, outletId, buttons) {
     });
   }
 }
+
+module.exports = { sendButtons };
