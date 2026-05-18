@@ -14,7 +14,7 @@ app.use(express.urlencoded({ extended: true }));
 
 app.get("/health", (req, res) => {
   res.send("OK");
-}
+};
 
 async function reply(chatId, text) {
   try {
