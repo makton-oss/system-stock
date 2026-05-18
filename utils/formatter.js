@@ -883,7 +883,7 @@ function formatItemNameList(rows) {
   let reply = "📦 ITEM LIST (A-Z)\n\n";
 
   rows.forEach((r, i) => {
-    reply += `${i + 1}. ${toProperCase(r.name)} - ${r.uom}\n`;
+    reply += `${i + 1}. ${toProperCase(r.item)} - ${r.uom}\n`;
   });
 
   return reply;
