@@ -64,12 +64,7 @@ module.exports = withRole(["staff"], async (ctx) => {
     // notify manager sekali je (summary)
     await notifyManagers(text, user.outlet_id, chatId);
 
-	await reply(
-	  chatId,
-	  failedList.length
-		? `✅ REQUEST SENT\n\n❌ FAILED\n${failedList.join("\n")}`
-		: "✅ REQUEST SENT"
-	);
+	await reply(chatId, "✅ REQUEST SENT");
     return res.end();
   }
 
@@ -116,11 +111,7 @@ BY: ${toProperCase(userInfo.nickname)} (${chatId})`;
     console.log("NOTIFY ERROR (OUT):", err);
   }
 
-  await reply(
-	  chatId,
-	  failedList.length
-		? `✅ REQUEST SENT\n\n❌ FAILED\n${failedList.join("\n")}`
-		: "✅ REQUEST SENT"
-	);
+  	await reply(chatId, "✅ REQUEST SENT");
+
   return res.end();
 });
