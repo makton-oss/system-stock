@@ -158,7 +158,16 @@ async function notifySmartStock(outletId, latestRequest) {
 
   const { data: rows } = await supabase
     .from("requests")
-    .select("*")
+    .select(`
+	  id,
+	  item,
+	  qty,
+	  type,
+	  created_at,
+	  requested_by,
+	  outlets(name),
+	  users(nickname, chat_id)
+	`)
     .eq("status", "pending")
     .eq("outlet_id", outletId);
 
@@ -175,10 +184,10 @@ async function notifySmartStock(outletId, latestRequest) {
 
     const r = rows[0];
 
-    const text = `📥 STOCK ${r.type.toUpperCase()} - Outlet ${outletId}
+    const text = `📥 STOCK ${r.type.toUpperCase()} - ${r.outlets?.name || "-"}
 
 ID ${r.id} ${r.item} x${r.qty}
-BY: ${r.created_by}`;
+BY: ${r.users?.nickname || "-"} (${r.requested_by})`
 
     for (let m of managers) {
       await sendButtons(
@@ -204,7 +213,7 @@ BY: ${r.created_by}`;
     return new Date(a.created_at) - new Date(b.created_at);
   });
 
-  let text = `📦 STOCK REQUEST - Outlet ${outletId}\n\n`;
+  let text = `📦 STOCK REQUEST - ${r.outlets?.name || "-"}`;
 
   let currentType = null;
   let currentUser = null;
@@ -217,9 +226,9 @@ BY: ${r.created_by}`;
       currentUser = null;
     }
 
-    if (currentUser !== r.created_by) {
-      text += `BY: ${r.created_by}\n`;
-      currentUser = r.created_by;
+    if (currentUser !== r.requested_by) {
+      text += `BY: ${r.requested_by}\n`;
+      currentUser = r.requested_by;
     }
 
     text += `ID ${r.id} ${r.item} x${r.qty}\n`;
