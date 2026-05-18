@@ -209,11 +209,14 @@ BY: ${r.users?.nickname || "-"} (${r.requested_by})`
 
   rows.sort((a, b) => {
     if (a.type !== b.type) return a.type === "in" ? -1 : 1;
-    if (a.created_by !== b.created_by) return a.created_by.localeCompare(b.created_by);
+    if (a.requested_by !== b.requested_by) return a.requested_by.localeCompare(b.requested_by);
     return new Date(a.created_at) - new Date(b.created_at);
   });
-
-  let text = `📦 STOCK REQUEST - ${r.outlets?.name || "-"}`;
+  
+  // ✅ FIX: ambil outlet dari rows[0]
+  const outletName = rows[0]?.outlets?.name || "-";
+  
+  let text = `📦 STOCK REQUEST - ${outletName}\n\n`;
 
   let currentType = null;
   let currentUser = null;
