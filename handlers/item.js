@@ -13,9 +13,10 @@ module.exports = withRole(["staff","manager","admin"], async (ctx) => {
   if (user.role === "staff") {
 
     const { data, error } = await supabase
-      .from("stock_items")
-      .select("name")
-      .order("name", { ascending: true });
+	  .from("stock")
+	  .select("item, uom")
+	  .eq("outlet_id", user.outlet_id)
+	  .order("item", { ascending: true });
 
     if (error) {
       console.log("ITEM ERROR:", error);
