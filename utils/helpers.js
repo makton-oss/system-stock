@@ -129,9 +129,6 @@ async function notifyManagers(message, outletId, senderChatId = null) {
 // ======================
 // NOTIFY MANAGER BUTTONS
 // ======================
-const supabase = require("../services/db");
-const { sendButtons } = require("./sendButtons");
-
 async function notifyManagersWithButtons(text, outletId, buttons) {
 
   const { data: managers } = await supabase
