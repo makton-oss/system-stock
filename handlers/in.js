@@ -132,15 +132,6 @@ BY: ${toProperCase(userInfo.nickname)} (${chatId})`;
 
     await notifyManagers(text, user.outlet_id, chatId);
 
-	await notifyManagersWithButtons(
-	  text,
-	  user.outlet_id,
-	  [
-		{ id: `APPROVE_${result.id}`, title: "Approve" },
-		{ id: `REJECT_${result.id}`, title: "Reject" }
-	  ]
-	);
-
   } catch (err) {
     console.log("NOTIFY ERROR (IN):", err);
   }
