@@ -85,13 +85,6 @@ app.post("/webhook", async (req, res) => {
 	  message = "TRY TRY_REJECT";
 	}
 	
-	console.log("BUTTON DETECTED:", buttonId);
-	console.log("RAW BUTTON FIELDS:", {
-  postbackid: body.postbackid,
-  payload: body.payload,
-  button: body.button,
-  interactive: body.interactive
-});
 
   if (!message) return res.end();
 
