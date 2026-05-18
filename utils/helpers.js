@@ -1,5 +1,6 @@
 const supabase = require("../services/db");
 const { sendButtons } = require("./sendButtons");
+const { getManagersByOutlet } = require("./getManagersByOutlet");
 
 // ======================
 // ITEM NORMALIZER
@@ -154,14 +155,6 @@ async function notifyManagersWithButtons(text, outletId, buttons) {
 // NOTIFY SMART
 // ======================
 async function notifySmartStock(outletId, latestRequest, outletName) {
-
-  const supabase = require("../services/db");
-  const { sendButtons } = require("./sendButtons");
-  const { getManagersByOutlet } = require("./getManagersByOutlet");
-
-  // ======================
-  // GET ALL PENDING
-  // ======================
   const { data: rows } = await supabase
     .from("requests")
     .select("*")
