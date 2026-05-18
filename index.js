@@ -71,18 +71,21 @@ app.post("/webhook", async (req, res) => {
     "";
 
 	// ======================
-	// 🔥 BUTTON PARSE (REPLACE THIS BLOCK)
+	// 🔥 BUTTON PARSE (FINAL FIX)
 	// ======================
-	const buttonText = body.button_text;
+	if (message.startsWith("#Button Reply#")) {
 
-	console.log("BUTTON TEXT:", buttonText);
+	  const btn = message.replace("#Button Reply#", "").trim();
 
-	if (buttonText === "Approve") {
-	  message = "TRY TRY_APPROVE";
-	}
+	  console.log("BUTTON CLICK:", btn);
 
-	else if (buttonText === "Reject") {
-	  message = "TRY TRY_REJECT";
+	  if (btn === "Approve") {
+		message = "TRY TRY_APPROVE";
+	  }
+
+	  else if (btn === "Reject") {
+		message = "TRY TRY_REJECT";
+	  }
 	}
 	
 
