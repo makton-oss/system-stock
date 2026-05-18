@@ -2,6 +2,7 @@ const { withRole } = require("../core/withRole");
 const { normalizeItem, safeQty, notifyManagers } = require("../utils/helpers");
 const { createRequest } = require("../services/requestService");
 const { getUserDisplay, toProperCase } = require("../utils/formatter");
+const { sendButtons } = require("../utils/sendButtons");
 
 module.exports = withRole(["staff"], async (ctx) => {
 
@@ -89,6 +90,17 @@ module.exports = withRole(["staff"], async (ctx) => {
 
 	  await notifyManagers(text, user.outlet_id, chatId);
 
+		for (let r of successList) {
+		  await notifyManagersWithButtons(
+			`📥 REQUEST STOCK IN\n\n${r.item} x${r.qty}`,
+			user.outlet_id,
+			[
+			  { id: `APPROVE_${r.id}`, title: "Approve" },
+			  { id: `REJECT_${r.id}`, title: "Reject" }
+			]
+		  );
+		}
+
 	  await reply(chatId, "✅ REQUEST SENT");
 	  return res.end();
 	}
@@ -131,6 +143,15 @@ ID ${result?.id || "-"} ${toProperCase(item)} x${qty}
 BY: ${toProperCase(userInfo.nickname)} (${chatId})`;
 
     await notifyManagers(text, user.outlet_id, chatId);
+
+	await notifyManagersWithButtons(
+	  text,
+	  user.outlet_id,
+	  [
+		{ id: `APPROVE_${result.id}`, title: "Approve" },
+		{ id: `REJECT_${result.id}`, title: "Reject" }
+	  ]
+	);
 
   } catch (err) {
     console.log("NOTIFY ERROR (IN):", err);

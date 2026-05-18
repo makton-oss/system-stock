@@ -125,10 +125,35 @@ async function notifyManagers(message, outletId, senderChatId = null) {
   }
 }
 
+// ======================
+// NOTIFY MANAGER BUTTONS
+// ======================
+async function notifyManagersWithButtons(text, outlet_id, buttons) {
+
+  const { data } = await supabase
+    .from("user_outlets")
+    .select("user_chat_id")
+    .eq("outlet_id", outlet_id);
+
+  if (!data?.length) {
+    console.log("NO MANAGER FOR BUTTON");
+    return;
+  }
+
+  for (let m of data) {
+    await sendButtons(
+      m.user_chat_id, // ✅ BETUL
+      text,
+      buttons
+    );
+  }
+}
+
 module.exports = {
   normalizeItem,
   safeQty,
   sendWhatsApp,
   notifyManagers,
+  notifyManagersWithButtons,
   sendMessage: sendWhatsApp
 };

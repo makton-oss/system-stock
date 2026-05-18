@@ -33,6 +33,8 @@ app.post("/webhook", async (req, res) => {
   let body = typeof req.body === "string"
     ? JSON.parse(req.body)
     : req.body || {};
+	
+	console.log("WEBHOOK BODY:", JSON.stringify(body, null, 2));
 
   const chatId = (
     body.chat_id ||
@@ -67,6 +69,25 @@ app.post("/webhook", async (req, res) => {
     body.message ||
     body.text ||
     "";
+	
+  // ======================
+  // 🔥 BUTTON PARSE (ADD HERE)
+  // ======================
+	const buttonId =
+	  body.button_id ||
+	  body.payload ||
+	  body.postback_data ||
+	  null;
+
+	if (buttonId?.startsWith("APPROVE_")) {
+	  const id = buttonId.split("_")[1];
+	  message = `APPROVE ${id}`;
+	}
+
+	else if (buttonId?.startsWith("REJECT_")) {
+	  const id = buttonId.split("_")[1];
+	  message = `REJECT ${id}`;
+	}
 
   if (!message) return res.end();
 
