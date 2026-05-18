@@ -69,15 +69,23 @@ app.post("/webhook", async (req, res) => {
     body.message ||
     body.text ||
     "";
-	
-  // ======================
-  // 🔥 BUTTON PARSE (ADD HERE)
-  // ======================
-	const buttonId =
-	  body.button_id ||
-	  body.payload ||
-	  body.postback_data ||
-	  null;
+
+	// ======================
+	// 🔥 BUTTON PARSE (BOTCOMMERCE REAL FORMAT)
+	// ======================
+	let buttonId = null;
+
+	// case 1: postbackid
+	if (body.postbackid) {
+	  buttonId = body.postbackid;
+	}
+
+	// case 2: interactive buttons kadang masuk sini
+	if (!buttonId && Array.isArray(body.user_input_data)) {
+	  const btn = body.user_input_data.find(x => x?.id);
+	  if (btn) buttonId = btn.id;
+	}
+	console.log("BUTTON DETECTED:", buttonId);
 
 	if (buttonId?.startsWith("APPROVE_")) {
 	  const id = buttonId.split("_")[1];
