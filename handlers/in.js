@@ -88,7 +88,7 @@ module.exports = withRole(["staff"], async (ctx) => {
 	  text += `\nBY: ${toProperCase(userInfo.nickname)} (${chatId})`;
 
 	  for (let r of successList) {
-		  await notifySmartStock(user.outlet_id, r);
+		  await notifySmartStock(user.outlet_id, successList[successList.length - 1]);
 		}
 
 	  await reply(chatId, "✅ REQUEST SENT");

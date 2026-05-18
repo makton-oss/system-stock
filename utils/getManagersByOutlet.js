@@ -29,3 +29,5 @@ async function getManagersByOutlet(outletId) {
 
   return users;
 }
+
+module.exports = { getManagersByOutlet };

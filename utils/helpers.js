@@ -154,7 +154,8 @@ async function notifyManagersWithButtons(text, outletId, buttons) {
 // ======================
 // NOTIFY SMART
 // ======================
-async function notifySmartStock(outletId, latestRequest, outletName) {
+async function notifySmartStock(outletId, latestRequest) {
+
   const { data: rows } = await supabase
     .from("requests")
     .select("*")
@@ -162,17 +163,19 @@ async function notifySmartStock(outletId, latestRequest, outletName) {
     .eq("outlet_id", outletId);
 
   if (!rows?.length) return;
-console.log("SMART STOCK TRIGGER:", outletId, request);
+
+  console.log("SMART STOCK TRIGGER:", outletId, latestRequest);
+
   const managers = await getManagersByOutlet(outletId);
 
   // ======================
-  // 🧠 CASE 1: ONLY 1 REQUEST
+  // SINGLE
   // ======================
   if (rows.length === 1) {
 
     const r = rows[0];
 
-    const text = `📥 STOCK ${r.type.toUpperCase()} - ${r.outlet_id}
+    const text = `📥 STOCK ${r.type.toUpperCase()} - Outlet ${outletId}
 
 ID ${r.id} ${r.item} x${r.qty}
 BY: ${r.created_by}`;
@@ -182,8 +185,8 @@ BY: ${r.created_by}`;
         m.chat_id,
         text,
         [
-          { id: `Approve ${r.id}`, title: `Approve ${r.id}` },
-          { id: `Reject ${r.id}`, title: `Reject ${r.id}` }
+          { id: `APPROVE ${r.id}`, title: `Approve ${r.id}` },
+          { id: `REJECT ${r.id}`, title: `Reject ${r.id}` }
         ]
       );
     }
@@ -192,38 +195,28 @@ BY: ${r.created_by}`;
   }
 
   // ======================
-  // 🧠 CASE 2: MULTI REQUEST → STACK
+  // MULTI STACK
   // ======================
 
-  // SORT (IN dulu, then user, then time)
   rows.sort((a, b) => {
-
-    if (a.type !== b.type) {
-      return a.type === "in" ? -1 : 1;
-    }
-
-    if (a.created_by !== b.created_by) {
-      return a.created_by.localeCompare(b.created_by);
-    }
-
+    if (a.type !== b.type) return a.type === "in" ? -1 : 1;
+    if (a.created_by !== b.created_by) return a.created_by.localeCompare(b.created_by);
     return new Date(a.created_at) - new Date(b.created_at);
   });
 
-  let text = `📥 STOCK REQUEST - ${outletId}\n\n`;
+  let text = `📦 STOCK REQUEST - Outlet ${outletId}\n\n`;
 
   let currentType = null;
   let currentUser = null;
 
   for (let r of rows) {
 
-    // TYPE HEADER
     if (currentType !== r.type) {
       text += r.type === "in" ? "📥 IN\n" : "📤 OUT\n";
       currentType = r.type;
       currentUser = null;
     }
 
-    // USER HEADER
     if (currentUser !== r.created_by) {
       text += `BY: ${r.created_by}\n`;
       currentUser = r.created_by;
@@ -237,8 +230,8 @@ BY: ${r.created_by}`;
       m.chat_id,
       text,
       [
-        { id: "Approve All", title: "Approve All" },
-        { id: "Reject All", title: "Reject All" }
+        { id: "APPROVE ALL", title: "Approve All" },
+        { id: "REJECT ALL", title: "Reject All" }
       ]
     );
   }
