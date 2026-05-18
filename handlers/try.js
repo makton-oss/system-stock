@@ -7,17 +7,22 @@ module.exports = withRole(["staff","manager","admin"], async (ctx) => {
 
   const action = parts[1]?.toUpperCase();
 
-  if (action === "APPROVE") {
-    await reply(chatId, "✅ BUTTON APPROVE RECEIVED");
+  // ======================
+  // 🔘 BUTTON CLICK RESULT
+  // ======================
+  if (action === "TRY_APPROVE") {
+    await reply(chatId, "⏳ Processing approve...");
     return res.end();
   }
 
-  if (action === "REJECT") {
-    await reply(chatId, "❌ BUTTON REJECT RECEIVED");
+  if (action === "TRY_REJECT") {
+    await reply(chatId, "⏳ Processing reject...");
     return res.end();
   }
 
-  // send button
+  // ======================
+  // 🚀 INITIAL COMMAND
+  // ======================
   await sendButtons(
     chatId,
     "🧪 TEST BUTTON\n\nPilih action:",
@@ -27,5 +32,6 @@ module.exports = withRole(["staff","manager","admin"], async (ctx) => {
     ]
   );
 
+  await reply(chatId, "📤 BUTTON SENT");
   return res.end();
 });

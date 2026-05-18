@@ -8,25 +8,23 @@ async function sendButtons(chatId, message, buttons) {
         phone_number_id: process.env.PHONE_NUMBER_ID,
         phone_number: chatId,
         message: message, // ✅ FIX
-        buttons: buttons // ✅ FIX (no map, no transform)
+        buttons: buttons.map(b => ({
+          id: b.id,
+          title: b.title
+        }))
       })
     });
 
     const resText = await response.text();
 
-    try {
-      const json = JSON.parse(resText);
+    const json = JSON.parse(resText);
 
-      if (json.status !== "1") {
-        console.log("❌ BUTTON FAIL:", json);
-        return { ok: false };
-      }
-
-      return { ok: true };
-
-    } catch {
-      return { ok: true };
+    if (json.status !== "1") {
+      console.log("❌ BUTTON FAIL:", json);
+      return { ok: false };
     }
+
+    return { ok: true };
 
   } catch (err) {
     console.log("❌ BUTTON ERROR:", err);

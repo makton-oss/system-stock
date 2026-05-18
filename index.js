@@ -75,9 +75,11 @@ app.post("/webhook", async (req, res) => {
 	// ======================
 	const buttonId =
   body.postbackid &&
-  !body.postbackid.startsWith("#")
+  !body.postbackid.includes("#")
     ? body.postbackid
     : null;
+
+console.log("BUTTON DETECTED:", buttonId);
 
 if (buttonId) {
 
