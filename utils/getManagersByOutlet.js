@@ -1,19 +1,31 @@
-const supabase = require("../services/db");
-
 async function getManagersByOutlet(outletId) {
 
-  const { data, error } = await supabase
-    .from("users")
-    .select("chat_id")
-    .eq("role", "manager")
+  // 1. get managers from user_outlets
+  const { data: links, error: linkError } = await supabase
+    .from("user_outlets")
+    .select("user_id")
     .eq("outlet_id", outletId);
 
-  if (error) {
-    console.log("GET MANAGER ERROR:", error);
+  if (linkError) {
+    console.log("LINK ERROR:", linkError);
     return [];
   }
 
-  return data.map(u => u.chat_id);
-}
+  if (!links.length) return [];
 
-module.exports = { getManagersByOutlet };
+  const userIds = links.map(l => l.user_id);
+
+  // 2. get actual users
+  const { data: users, error: userError } = await supabase
+    .from("users")
+    .select("chat_id, nickname")
+    .in("id", userIds)
+    .eq("role", "manager");
+
+  if (userError) {
+    console.log("USER ERROR:", userError);
+    return [];
+  }
+
+  return users;
+}

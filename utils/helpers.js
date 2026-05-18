@@ -162,7 +162,7 @@ async function notifySmartStock(outletId, latestRequest, outletName) {
     .eq("outlet_id", outletId);
 
   if (!rows?.length) return;
-
+console.log("SMART STOCK TRIGGER:", outletId, request);
   const managers = await getManagersByOutlet(outletId);
 
   // ======================
