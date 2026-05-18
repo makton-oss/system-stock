@@ -14,59 +14,84 @@ module.exports = withRole(["staff"], async (ctx) => {
   // ======================
   if (rawInput.includes(",")) {
 
-    const segments = rawInput.split(",");
+	  const segments = rawInput
+		.split(",")
+		.map(s => s.trim())
+		.filter(Boolean);
 
-    let successList = [];
-    let failedList = [];
+	  let parsed = [];
 
-    for (let seg of segments) {
+	  // ======================
+	  // 🔍 PHASE 1: VALIDATE
+	  // ======================
+	  for (let seg of segments) {
 
-      const s = seg.trim().split(" ");
-      const qty = safeQty(s.at(-1));
-      const item = normalizeItem(s.slice(0, -1).join(" "));
+		const s = seg.split(" ");
+		const qty = safeQty(s.at(-1));
+		const item = normalizeItem(s.slice(0, -1).join(" "));
 
-      if (!item || qty === null) {
-        failedList.push(seg.trim());
-        continue;
-      }
+		if (!item || qty === null) {
+		  await reply(chatId, `❌ FORMAT SALAH: ${seg}`);
+		  return res.end();
+		}
 
-      const result = await createRequest({
-        item,
-        qty,
-        type: "in",
-        user,
-        chatId
-      });
+		const test = await createRequest({
+		  item,
+		  qty,
+		  type: "in",
+		  user,
+		  chatId,
+		  validateOnly: true // 🔥 IMPORTANT (explained below)
+		});
 
-      if (result.error) {
-        failedList.push(item);
-        continue;
-      }
+		if (test.error) {
+		  await reply(chatId, `❌ ITEM TAK SAH: ${item}`);
+		  return res.end();
+		}
 
-      successList.push({ item, qty, id: result.id });
-    }
+		parsed.push({ item, qty });
+	  }
 
-    // ======================
-    // RESPONSE (multi)
-    // ======================
-    let text = `📥 STOCK IN - ${toProperCase(user.outlets?.name || "-")}\n\n`;
+	  // ======================
+	  // 🚀 PHASE 2: EXECUTE
+	  // ======================
+	  let successList = [];
 
-    successList.forEach(r => {
-      text += `ID ${r.id} ${toProperCase(r.item)} x${r.qty}\n`;
-    });
+	  for (let p of parsed) {
 
-    text += `\nBY: ${toProperCase(user.nickname)} (${chatId})`;
+		const result = await createRequest({
+		  item: p.item,
+		  qty: p.qty,
+		  type: "in",
+		  user,
+		  chatId
+		});
 
-    if (failedList.length) {
-      text += `\n\n❌ FAILED\n${failedList.join("\n")}`;
-    }
+		successList.push({
+		  item: p.item,
+		  qty: p.qty,
+		  id: result.id
+		});
+	  }
 
-    // notify manager sekali je (summary)
-    await notifyManagers(text, user.outlet_id, chatId);
+	  // ======================
+	  // RESPONSE
+	  // ======================
+	  const userInfo = await getUserDisplay(chatId);
 
-	await reply(chatId, "✅ REQUEST SENT");
-    return res.end();
-  }
+	  let text = `📥 STOCK IN - ${toProperCase(user.outlets?.name || "-")}\n\n`;
+
+	  successList.forEach(r => {
+		text += `ID ${r.id} ${toProperCase(r.item)} x${r.qty}\n`;
+	  });
+
+	  text += `\nBY: ${toProperCase(userInfo.nickname)} (${chatId})`;
+
+	  await notifyManagers(text, user.outlet_id, chatId);
+
+	  await reply(chatId, "✅ REQUEST SENT");
+	  return res.end();
+	}
 
   // ======================
   // 🔥 ORIGINAL FLOW (UNCHANGED)
