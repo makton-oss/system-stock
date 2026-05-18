@@ -12,26 +12,66 @@ module.exports = withRole(["manager", "admin"], async (ctx) => {
   // ======================
   if (user.role === "admin") {
 
-    const { data, error } = await supabase
-      .from("users")
-      .select(`
-        chat_id,
-        nickname,
-        role,
+  const { data, error } = await supabase
+    .from("users")
+    .select(`
+      chat_id,
+      nickname,
+      role,
+      outlet_id,
+      outlets(name),
+      user_outlets(
         outlet_id,
         outlets(name)
-      `)
-      .neq("role", "admin")
-      .order("outlet_id", { ascending: true });
+      )
+    `)
+    .neq("role", "admin");
 
-    if (error) {
-      console.log("STAFF ERROR:", error);
-      await reply(chatId, "❌ ERROR");
-      return res.end();
+  if (error) {
+    console.log("STAFF ERROR:", error);
+    await reply(chatId, "❌ ERROR");
+    return res.end();
+  }
+
+  // ======================
+  // 🔥 NORMALIZE DATA
+  // ======================
+  let normalized = [];
+
+  for (let u of data) {
+
+    // staff (single outlet)
+    if (u.role === "staff") {
+      normalized.push({
+        ...u,
+        outlets: u.outlets
+      });
+      continue;
     }
 
-    await reply(chatId, formatStaffListAdmin(data));
-    return res.end();
+    // manager (multi outlet)
+    if (u.role === "manager") {
+
+      if (!u.user_outlets?.length) {
+        normalized.push({
+          ...u,
+          outlets: { name: "-" }
+        });
+        continue;
+      }
+
+      for (let rel of u.user_outlets) {
+        normalized.push({
+          ...u,
+          outlet_id: rel.outlet_id,
+          outlets: rel.outlets
+        });
+      }
+    }
+  }
+
+  await reply(chatId, formatStaffListAdmin(normalized));
+  return res.end();
   }
 
   // ======================
