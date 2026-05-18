@@ -7,9 +7,6 @@ module.exports = withRole(["staff","manager","admin"], async (ctx) => {
 
   const action = parts[1]?.toUpperCase();
 
-  // ======================
-  // 🔘 BUTTON CLICK RESULT
-  // ======================
   if (action === "APPROVE") {
     await reply(chatId, "✅ BUTTON APPROVE RECEIVED");
     return res.end();
@@ -20,9 +17,7 @@ module.exports = withRole(["staff","manager","admin"], async (ctx) => {
     return res.end();
   }
 
-  // ======================
-  // 🚀 INITIAL COMMAND
-  // ======================
+  // send button
   await sendButtons(
     chatId,
     "🧪 TEST BUTTON\n\nPilih action:",
@@ -32,6 +27,5 @@ module.exports = withRole(["staff","manager","admin"], async (ctx) => {
     ]
   );
 
-  await reply(chatId, "📤 BUTTON SENT");
   return res.end();
 });

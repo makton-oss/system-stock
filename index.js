@@ -74,22 +74,30 @@ app.post("/webhook", async (req, res) => {
 	// 🔥 BUTTON PARSE (REPLACE HERE)
 	// ======================
 	const buttonId =
-	  body.button_id ||
-	  body.payload ||
-	  body.postback_data ||
-	  body.postbackid ||
-	  body.button?.id ||
-	  null;
+  body.postbackid &&
+  !body.postbackid.startsWith("#")
+    ? body.postbackid
+    : null;
 
-	if (buttonId?.startsWith("APPROVE_")) {
-	  const id = buttonId.split("_")[1];
-	  message = `APPROVE ${id}`;
-	}
+if (buttonId) {
 
-	else if (buttonId?.startsWith("REJECT_")) {
-	  const id = buttonId.split("_")[1];
-	  message = `REJECT ${id}`;
-	}
+  console.log("REAL BUTTON:", buttonId);
+
+  if (buttonId.startsWith("APPROVE_")) {
+    const id = buttonId.split("_")[1];
+    message = `APPROVE ${id}`;
+  }
+
+  else if (buttonId.startsWith("REJECT_")) {
+    const id = buttonId.split("_")[1];
+    message = `REJECT ${id}`;
+  }
+
+  else if (buttonId.startsWith("TRY_")) {
+    const action = buttonId.split("_")[1];
+    message = `TRY ${action}`;
+  }
+}
 	
 	console.log("BUTTON DETECTED:", buttonId);
 	console.log("RAW BUTTON FIELDS:", {
