@@ -89,17 +89,6 @@ module.exports = withRole(["staff"], async (ctx) => {
 
 	  await notifyManagers(text, user.outlet_id, chatId);
 
-		for (let r of successList) {
-		  await notifyManagersWithButtons(
-			`📥 REQUEST STOCK IN\n\n${r.item} x${r.qty}`,
-			user.outlet_id,
-			[
-			  { id: `APPROVE_${r.id}`, title: "Approve" },
-			  { id: `REJECT_${r.id}`, title: "Reject" }
-			]
-		  );
-		}
-
 	  await reply(chatId, "✅ REQUEST SENT");
 	  return res.end();
 	}

@@ -81,8 +81,6 @@ app.post("/webhook", async (req, res) => {
 	  body.button?.id ||
 	  null;
 
-	console.log("BUTTON DETECTED:", buttonId);
-
 	if (buttonId?.startsWith("APPROVE_")) {
 	  const id = buttonId.split("_")[1];
 	  message = `APPROVE ${id}`;
@@ -93,7 +91,13 @@ app.post("/webhook", async (req, res) => {
 	  message = `REJECT ${id}`;
 	}
 	
-console.log("FULL BODY:", JSON.stringify(body, null, 2));
+	console.log("BUTTON DETECTED:", buttonId);
+	console.log("RAW BUTTON FIELDS:", {
+  postbackid: body.postbackid,
+  payload: body.payload,
+  button: body.button,
+  interactive: body.interactive
+});
 
   if (!message) return res.end();
 

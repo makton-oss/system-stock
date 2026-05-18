@@ -131,14 +131,17 @@ async function notifyManagers(message, outletId, senderChatId = null) {
 // ======================
 async function notifyManagersWithButtons(text, outletId, buttons) {
 
-  const { data: managers } = await supabase
-    .from("users")
-    .select("chat_id")
-    .eq("role", "manager")
+  const { data } = await supabase
+    .from("user_outlet")
+    .select("users(chat_id, role)")
     .eq("outlet_id", outletId);
 
+  const managers = data
+    ?.filter(x => x.users.role === "manager")
+    ?.map(x => x.users);
+
   if (!managers?.length) {
-    console.log("❌ NO MANAGER");
+    console.log("❌ NO MANAGER MATCH OUTLET:", outletId);
     return;
   }
 
