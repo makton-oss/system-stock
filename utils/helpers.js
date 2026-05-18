@@ -129,26 +129,28 @@ async function notifyManagers(message, outletId, senderChatId = null) {
 // ======================
 // NOTIFY MANAGER BUTTONS
 // ======================
-async function notifyManagersWithButtons(text, outlet_id, buttons) {
+const supabase = require("../services/db");
+const { sendButtons } = require("./sendButtons");
 
-  const { data } = await supabase
-    .from("user_outlets")
-    .select("user_chat_id")
-    .eq("outlet_id", outlet_id);
+async function notifyManagersWithButtons(text, outletId, buttons) {
 
-  if (!data?.length) {
-    console.log("NO MANAGER FOR BUTTON");
+  const { data: managers } = await supabase
+    .from("users")
+    .select("chat_id")
+    .eq("role", "manager")
+    .eq("outlet_id", outletId);
+
+  if (!managers?.length) {
+    console.log("❌ NO MANAGER");
     return;
   }
 
-  for (let m of data) {
-    await sendButtons(
-      m.user_chat_id, // ✅ BETUL
-      text,
-      buttons
-    );
+  for (let m of managers) {
+    await sendButtons(m.chat_id, text, buttons);
   }
 }
+
+module.exports = { notifyManagersWithButtons };
 
 module.exports = {
   normalizeItem,

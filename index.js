@@ -70,7 +70,6 @@ app.post("/webhook", async (req, res) => {
     body.text ||
     "";
 
-console.log("FULL BODY:", JSON.stringify(body, null, 2));
 	// ======================
 	// 🔥 BUTTON PARSE (REPLACE HERE)
 	// ======================
@@ -93,6 +92,8 @@ console.log("FULL BODY:", JSON.stringify(body, null, 2));
 	  const id = buttonId.split("_")[1];
 	  message = `REJECT ${id}`;
 	}
+	
+console.log("FULL BODY:", JSON.stringify(body, null, 2));
 
   if (!message) return res.end();
 
