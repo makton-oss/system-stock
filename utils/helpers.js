@@ -3,7 +3,6 @@ const supabase = require("../services/db");
 // ======================
 // ITEM NORMALIZER
 // ======================
-
 function normalizeItem(text = "") {
   return text
     .toLowerCase()
