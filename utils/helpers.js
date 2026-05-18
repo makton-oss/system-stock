@@ -150,7 +150,106 @@ async function notifyManagersWithButtons(text, outletId, buttons) {
   }
 }
 
-module.exports = { notifyManagersWithButtons };
+// ======================
+// NOTIFY SMART
+// ======================
+async function notifySmartStock(outletId, latestRequest, outletName) {
+
+  const supabase = require("../services/db");
+  const { sendButtons } = require("./sendButtons");
+  const { getManagersByOutlet } = require("./getManagersByOutlet");
+
+  // ======================
+  // GET ALL PENDING
+  // ======================
+  const { data: rows } = await supabase
+    .from("requests")
+    .select("*")
+    .eq("status", "pending")
+    .eq("outlet_id", outletId);
+
+  if (!rows?.length) return;
+
+  const managers = await getManagersByOutlet(outletId);
+
+  // ======================
+  // 🧠 CASE 1: ONLY 1 REQUEST
+  // ======================
+  if (rows.length === 1) {
+
+    const r = rows[0];
+
+    const text = `📥 STOCK ${r.type.toUpperCase()} - ${r.outlet_id}
+
+ID ${r.id} ${r.item} x${r.qty}
+BY: ${r.created_by}`;
+
+    for (let m of managers) {
+      await sendButtons(
+        m.chat_id,
+        text,
+        [
+          { id: `Approve ${r.id}`, title: `Approve ${r.id}` },
+          { id: `Reject ${r.id}`, title: `Reject ${r.id}` }
+        ]
+      );
+    }
+
+    return;
+  }
+
+  // ======================
+  // 🧠 CASE 2: MULTI REQUEST → STACK
+  // ======================
+
+  // SORT (IN dulu, then user, then time)
+  rows.sort((a, b) => {
+
+    if (a.type !== b.type) {
+      return a.type === "in" ? -1 : 1;
+    }
+
+    if (a.created_by !== b.created_by) {
+      return a.created_by.localeCompare(b.created_by);
+    }
+
+    return new Date(a.created_at) - new Date(b.created_at);
+  });
+
+  let text = `📥 STOCK REQUEST - ${outletId}\n\n`;
+
+  let currentType = null;
+  let currentUser = null;
+
+  for (let r of rows) {
+
+    // TYPE HEADER
+    if (currentType !== r.type) {
+      text += r.type === "in" ? "📥 IN\n" : "📤 OUT\n";
+      currentType = r.type;
+      currentUser = null;
+    }
+
+    // USER HEADER
+    if (currentUser !== r.created_by) {
+      text += `BY: ${r.created_by}\n`;
+      currentUser = r.created_by;
+    }
+
+    text += `ID ${r.id} ${r.item} x${r.qty}\n`;
+  }
+
+  for (let m of managers) {
+    await sendButtons(
+      m.chat_id,
+      text,
+      [
+        { id: "Approve All", title: "Approve All" },
+        { id: "Reject All", title: "Reject All" }
+      ]
+    );
+  }
+}
 
 module.exports = {
   normalizeItem,
@@ -158,5 +257,6 @@ module.exports = {
   sendWhatsApp,
   notifyManagers,
   notifyManagersWithButtons,
+  notifySmartStock,
   sendMessage: sendWhatsApp
 };

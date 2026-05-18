@@ -1,5 +1,5 @@
 const { withRole } = require("../core/withRole");
-const { normalizeItem, safeQty, notifyManagers, notifyManagersWithButtons, notifySmartStock  } = require("../utils/helpers");
+const { normalizeItem, safeQty, notifyManagers, notifyManagersWithButtons  } = require("../utils/helpers");
 const { createRequest } = require("../services/requestService");
 const { getUserDisplay, toProperCase } = require("../utils/formatter");
 
@@ -87,9 +87,7 @@ module.exports = withRole(["staff"], async (ctx) => {
 
 	  text += `\nBY: ${toProperCase(userInfo.nickname)} (${chatId})`;
 
-	  for (let r of successList) {
-		  await notifySmartStock(user.outlet_id, r);
-		}
+	  await notifyManagers(text, user.outlet_id, chatId);
 
 	  await reply(chatId, "✅ REQUEST SENT");
 	  return res.end();
@@ -132,7 +130,7 @@ module.exports = withRole(["staff"], async (ctx) => {
 ID ${result?.id || "-"} ${toProperCase(item)} x${qty}
 BY: ${toProperCase(userInfo.nickname)} (${chatId})`;
 
-    await notifySmartStock(user.outlet_id, result);
+    await notifyManagers(text, user.outlet_id, chatId);
 
   } catch (err) {
     console.log("NOTIFY ERROR (IN):", err);

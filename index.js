@@ -71,23 +71,30 @@ app.post("/webhook", async (req, res) => {
     "";
 
 	// ======================
-	// 🔥 POSTBACK PARSE (NEW - fallback)
+	// 🔥 BUTTON PARSE (FINAL FIX - WITH ID SUPPORT)
 	// ======================
-	const postbackId =
-	  body.postbackid ||
-	  body.postback_id ||
-	  body.payload ||
-	  null;
+	const raw = body.user_message || "";
 
-	if (postbackId && !postbackId.includes("#")) {
-	  console.log("POSTBACK DETECTED:", postbackId);
+	if (raw.startsWith("#Button Reply#")) {
 
-	  if (postbackId.startsWith("TRY_APPROVE")) {
-		message = `TRY TRY_APPROVE`;
+	  const clean = raw.replace("#Button Reply#", "").trim();
+
+	  console.log("BUTTON CLICK:", clean);
+
+	  // contoh clean = "APPROVE_59" atau "REJECT_59"
+
+	  if (clean.startsWith("APPROVE_")) {
+		const id = clean.split("_")[1];
+		message = `APPROVE ${id}`;
 	  }
 
-	  else if (postbackId.startsWith("TRY_REJECT")) {
-		message = `TRY TRY_REJECT`;
+	  else if (clean.startsWith("REJECT_")) {
+		const id = clean.split("_")[1];
+		message = `REJECT ${id}`;
+	  }
+
+	  else {
+		message = clean.toUpperCase();
 	  }
 	}
 
