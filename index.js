@@ -88,6 +88,26 @@ app.post("/webhook", async (req, res) => {
 	  }
 	}
 	
+	// ======================
+	// 🔥 POSTBACK PARSE (NEW - fallback)
+	// ======================
+	const postbackId =
+	  body.postbackid ||
+	  body.postback_id ||
+	  body.payload ||
+	  null;
+
+	if (postbackId && !postbackId.includes("#")) {
+	  console.log("POSTBACK DETECTED:", postbackId);
+
+	  if (postbackId.startsWith("TRY_APPROVE")) {
+		message = `TRY TRY_APPROVE`;
+	  }
+
+	  else if (postbackId.startsWith("TRY_REJECT")) {
+		message = `TRY TRY_REJECT`;
+	  }
+	}
 
   if (!message) return res.end();
 
