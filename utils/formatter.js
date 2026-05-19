@@ -1,9 +1,6 @@
 const supabase = require("../services/db");
 const { DateTime } = require("luxon");
 
-function pc(s) {
-  return s?.charAt(0).toUpperCase() + s?.slice(1).toLowerCase();
-}
 // ======================
 // GET ROLE
 // ======================
@@ -260,7 +257,7 @@ function formatPending(rows) {
     const chatId = r.users?.chat_id || "-";
 
     reply += `ID ${r.id} | ${date}
-${r.type?.toUpperCase()} ${toProperCase(r.item)} x ${r.qty}
+${r.type?.toProperCase()} ${toProperCase(r.item)} x ${r.qty}
 BY: ${toProperCase(userName)} (${chatId})
 
 `;
@@ -301,7 +298,7 @@ function formatPendingAdmin(rows) {
       const chatId = r.users?.chat_id || "-";
 
       reply += `ID ${r.id} | ${date}
-${r.type?.toUpperCase()} ${toProperCase(r.item)} x ${r.qty}
+${r.type?.toProperCase()} ${toProperCase(r.item)} x ${r.qty}
 BY: ${toProperCase(userName)} (${chatId})
 
 `;
@@ -449,7 +446,7 @@ function toProperCase(str = "") {
     .toString()
     .toLowerCase()
     .split(" ")
-    .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+    .map(w => w.charAt(0).toProperCase() + w.slice(1))
     .join(" ");
 }
 
@@ -765,7 +762,7 @@ function formatInventoryReport(data, month) {
 		  Number(r.cost_price || 0);
       total += val;
 
-      text += `${pc(r.item)} x ${r.qty} = RM${val.toFixed(2)}\n`;
+      text += `${toProperCase(r.item)} x ${r.qty} = RM${val.toFixed(2)}\n`;
     });
 
     text += `\nTOTAL RM${total.toFixed(2)}\n\n`;
@@ -786,7 +783,7 @@ function formatDetailReport(data, month) {
     text += `OUTLET ${outlet}\n\n`;
 
     rows.forEach(r => {
-      text += `${pc(r.name)}\nIN: ${r.in} OUT: ${r.out} BAL:${r.bal}\n\n`;
+      text += `${toProperCase(r.name)}\nIN: ${r.in} OUT: ${r.out} BAL:${r.bal}\n\n`;
     });
   });
 
@@ -805,7 +802,7 @@ function formatDeadReport(data, month) {
     text += `OUTLET ${outlet}\n\n`;
 
     rows.forEach((r,i) => {
-      text += `${i+1}. ${pc(r.name)} (${r.last})\n`;
+      text += `${i+1}. ${toProperCase(r.name)} (${r.last})\n`;
     });
 
     text += "\n";
@@ -831,12 +828,12 @@ function formatFlowReport(data, month) {
 
     text += "Top 5 IN STOCK\n";
     r.topIn.forEach((t,i)=>{
-      text += `${i+1}. ${pc(t[0])} RM${Number(t[1] || 0).toFixed(2)}\n`;
+      text += `${i+1}. ${toProperCase(t[0])} RM${Number(t[1] || 0).toFixed(2)}\n`;
     });
 
     text += "\nTop 5 OUT STOCK\n";
     r.topOut.forEach((t,i)=>{
-      text += `${i+1}. ${pc(t[0])} RM${Number(t[1] || 0).toFixed(2)}\n`;
+      text += `${i+1}. ${toProperCase(t[0])} RM${Number(t[1] || 0).toFixed(2)}\n`;
     });
 
     text += "\n";
@@ -856,7 +853,7 @@ function formatMonthLabel(monthInput, startDate) {
 
     const month = d
       .toLocaleString("en-MY", { month: "long" })
-      .toUpperCase();
+      .toProperCase();
 
     const year = d.getFullYear();
 

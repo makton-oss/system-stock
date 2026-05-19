@@ -10,6 +10,10 @@ module.exports = withRole(["manager", "admin"], async (ctx) => {
   // MODE DETECTION
   // ======================
   const mode = parts[1]?.toUpperCase();
+  
+  if (mode === "SUMMARY") {
+	  mode = undefined;
+	}
 
   const COMMANDS = ["INVENTORY", "FLOW", "DEAD", "DETAIL"];
 

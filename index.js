@@ -105,19 +105,37 @@ app.post("/webhook", async (req, res) => {
 		message = clean;
 	  }
 
-	  // ======================
-	  // DEFAULT
-	  // ======================
+	  else if (clean.startsWith("REPORT_TYPE")) {
+		  message = clean;
+		}
 
-	  else {
-		message = clean.toUpperCase();
-	  }
+		else {
+		  message = clean.toUpperCase();
+		}
 	}
 
   if (!message) return res.end();
 
   const parts = message.trim().split(/\s+/);
   const type = parts[0]?.toUpperCase();
+  
+  if (
+	  type === "REPORT" &&
+	  parts.length === 1
+	) {
+	  const handler = handlerMap.REPORTMENU;
+
+	  const ctx = createContext({
+		chatId,
+		user,
+		parts,
+		body: message,
+		res,
+		reply
+	  });
+
+	  return await handler(ctx);
+	}
 
   if (!type) return res.end();
 

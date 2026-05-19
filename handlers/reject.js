@@ -46,12 +46,6 @@ module.exports = withRole(["supervisor" , "manager"], async (ctx) => {
     }
 
     query = query.eq("id", id);
-	
-	if (!outletIds.includes(targetOutletId)) {
-	  await reply(chatId, "❌ NO ACCESS");
-	  return res.end();
-	}
-
   }
 
   // ======================
@@ -82,6 +76,15 @@ module.exports = withRole(["supervisor" , "manager"], async (ctx) => {
     await reply(chatId, "📭 TIADA DATA");
     return res.end();
   }
+  if (!isAll) {
+
+	  const row = rows[0];
+
+	  if (!outletIds.includes(row.outlet_id)) {
+		await reply(chatId, "❌ NO ACCESS");
+		return res.end();
+	  }
+	}
 
   // ======================
   // PROCESS REJECT
