@@ -8,7 +8,17 @@ const { getAccessibleOutletIds } = require("../utils/getAccessibleOutlets");
 module.exports = withRole(["manager"], async (ctx) => {
 
   const { chatId, parts, user, reply, res } = ctx;
-  const arg = parts[1]?.toUpperCase();
+  const raw = parts.join(" ");
+
+	const isAll = raw.startsWith("APPROVE_ALL_");
+
+	let targetOutletId = null;
+
+	if (isAll) {
+	  targetOutletId = Number(
+		raw.replace("APPROVE_ALL_", "")
+	  );
+	}
 
   const outletIds = await getAccessibleOutletIds(user);
 
@@ -18,16 +28,26 @@ module.exports = withRole(["manager"], async (ctx) => {
     .eq("status", "pending")
     .in("outlet_id", outletIds);
 
-  if (arg !== "ALL") {
-    const id = Number(parts[1]);
+  if (!isAll) {
 
-    if (isNaN(id)) {
-      await reply(chatId, "❌ FORMAT: APPROVE ALL / APPROVE 12");
-      return res.end();
-    }
+	  const id = Number(parts[1]);
 
-    query = query.eq("id", id);
-  }
+	  if (isNaN(id)) {
+		await reply(chatId, "❌ FORMAT: APPROVE 12");
+		return res.end();
+	  }
+
+	  query = query.eq("id", id);
+
+	} else {
+
+	  if (isNaN(targetOutletId)) {
+		await reply(chatId, "❌ INVALID OUTLET");
+		return res.end();
+	  }
+
+	  query = query.eq("outlet_id", targetOutletId);
+	}
 
   const { data: rows, error } = await query;
 

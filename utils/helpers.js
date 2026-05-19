@@ -1,6 +1,7 @@
 const supabase = require("../services/db");
 const { sendButtons } = require("./sendButtons");
 const { getManagersByOutlet } = require("./getManagersByOutlet");
+const { toProperCase } = require("./formatter");
 
 // ======================
 // ITEM NORMALIZER
@@ -194,8 +195,8 @@ BY: ${r.users?.nickname || "-"} (${r.requested_by})`
         m.chat_id,
         text,
         [
-          { id: `APPROVE ${r.id}`, title: `Approve ${r.id}` },
-          { id: `REJECT ${r.id}`, title: `Reject ${r.id}` }
+          { id: `APPROVE ${r.id}`, title: `Approve` },
+          { id: `REJECT ${r.id}`, title: `Reject` }
         ]
       );
     }
@@ -213,10 +214,13 @@ BY: ${r.users?.nickname || "-"} (${r.requested_by})`
     return new Date(a.created_at) - new Date(b.created_at);
   });
   
-  // ✅ FIX: ambil outlet dari rows[0]
-  const outletName = rows[0]?.outlets?.name || "-";
-  
-  let text = `📦 STOCK REQUEST - ${outletName}\n\n`;
+  const { data: outlet } = await supabase
+	  .from("outlets")
+	  .select("name")
+	  .eq("id", outletId)
+	  .maybeSingle();
+
+	let text = `📦 STOCK REQUEST - ${toProperCase(outlet?.name || "-")}\n\n`;
 
   let currentType = null;
   let currentUser = null;
@@ -230,9 +234,23 @@ BY: ${r.users?.nickname || "-"} (${r.requested_by})`
     }
 
     if (currentUser !== r.requested_by) {
-      text += `BY: ${r.requested_by}\n`;
-      currentUser = r.requested_by;
-    }
+
+	  const { data: reqUser } = await supabase
+		.from("users")
+		.select("nickname, chat_id")
+		.eq("chat_id", r.requested_by)
+		.maybeSingle();
+
+	  const displayName =
+		reqUser?.nickname || r.requested_by;
+
+	  const displayPhone =
+		reqUser?.chat_id || r.requested_by;
+
+	  text += `BY: ${toProperCase(displayName)} (${displayPhone})\n`;
+
+	  currentUser = r.requested_by;
+	}
 
     text += `ID ${r.id} ${r.item} x${r.qty}\n`;
   }
@@ -242,9 +260,15 @@ BY: ${r.users?.nickname || "-"} (${r.requested_by})`
       m.chat_id,
       text,
       [
-        { id: "APPROVE ALL", title: "Approve All" },
-        { id: "REJECT ALL", title: "Reject All" }
-      ]
+		  {
+			id: `APPROVE_ALL_${outletId}`,
+			title: "Approve All"
+		  },
+		  {
+			id: `REJECT_ALL_${outletId}`,
+			title: "Reject All"
+		  }
+		]
     );
   }
 }

@@ -94,7 +94,11 @@ app.post("/webhook", async (req, res) => {
 	  }
 
 	  else {
-		message = clean.toUpperCase();
+		if (clean.startsWith("APPROVE_") || clean.startsWith("REJECT_")) {
+		  message = clean;
+		} else {
+		  message = clean.toUpperCase();
+		}
 	  }
 	}
 
