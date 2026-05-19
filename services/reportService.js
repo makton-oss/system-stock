@@ -20,6 +20,7 @@ async function getMainReport({ start, end, outletId, isAdmin }) {
       type,
       outlet_id,
 	  cost_price,
+	  item,
       stock_items(name, category),
       outlets(name)
     `)
@@ -57,10 +58,10 @@ async function getMainReport({ start, end, outletId, isAdmin }) {
       o.flowIn += cost;
     }
 
-    const name = r.stock_items.name;
+    const name = r.item;
     o.itemMap[name] = (o.itemMap[name] || 0) + cost;
 
-    const cat = r.stock_items.category || "lain";
+    const cat = r.stock_items?.category || "lain";
     o.categoryMap[cat] = (o.categoryMap[cat] || 0) + cost;
   });
 
@@ -102,6 +103,7 @@ async function getDetailReport({ start, end, outletId }) {
       type,
       item_id,
       outlet_id,
+	  item,
       stock_items(name),
       outlets(name)
     `)
@@ -126,7 +128,7 @@ async function getDetailReport({ start, end, outletId }) {
 
       if (!map[id]) {
         map[id] = {
-          name: r.stock_items.name,
+          name: r.stock_items?.name || r.item,
           in: 0,
           out: 0
         };
@@ -154,6 +156,7 @@ async function getDeadReport({ start, end, outletId }) {
     .from("stock")
     .select(`
       item_id,
+	  item,
       outlet_id,
       stock_items(name),
       outlets(name)
@@ -184,7 +187,7 @@ async function getDeadReport({ start, end, outletId }) {
     result[outlet] = rows
       .filter(r => !used.has(`${r.item_id}-${r.outlet_id}`))
       .map(r => ({
-        name: r.stock_items.name,
+        name: r.stock_items?.name || r.item,
         last: "-"
       }));
   });
@@ -203,6 +206,7 @@ async function getFlowReport({ start, end, outletId }) {
       qty,
       type,
       item_id,
+	  item,
       outlet_id,
 	  cost_price,
       stock_items(name),
@@ -234,12 +238,12 @@ async function getFlowReport({ start, end, outletId }) {
 
       if (r.type === "in") {
         inVal += val;
-        inMap[r.stock_items.name] =
-          (inMap[r.stock_items.name] || 0) + val;
+        inMap[r.item] =
+          (inMap[r.item] || 0) + val;
       } else {
         outVal += val;
-        outMap[r.stock_items.name] =
-          (outMap[r.stock_items.name] || 0) + val;
+        outMap[r.item] =
+          (outMap[r.item] || 0) + val;
       }
     });
 

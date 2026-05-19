@@ -731,13 +731,6 @@ function formatMainReport(data, monthLabel) {
 
     text += `💰 TOTAL USAGE COST RM ${o.totalCost.toFixed(0)}\n\n`;
 
-    text += "📉 TOP 5 COST ITEM\n";
-
-    const items = Object.entries(o.itemMap)
-      .sort((a,b) => b[1] - a[1]);
-
-    const top = items.slice(0,5);
-
     top.forEach(([n,v]) => {
       text += `${n}: RM${v.toFixed(0)}\n`;
     });
