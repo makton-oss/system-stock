@@ -3,14 +3,14 @@ const supabase = require("../services/db");
 const { formatItemListAdmin, formatItemList, formatItemNameList } = require("../utils/formatter");
 const { getAccessibleOutletIds } = require("../utils/getAccessibleOutlets");
 
-module.exports = withRole(["staff","manager","admin"], async (ctx) => {
+module.exports = withRole(["staff", "supervisor" ,"manager","admin"], async (ctx) => {
 
   const { chatId, user, reply, res } = ctx;
 
   // ======================
   // STAFF → SIMPLE NAME LIST (ALPHABET)
   // ======================
-  if (user.role === "staff") {
+  if (["staff", "supervisor"].includes(user.role)) {
 
     const { data, error } = await supabase
 	  .from("stock")

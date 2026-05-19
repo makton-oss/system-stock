@@ -3,44 +3,46 @@ const supabase = require("../services/db");
 async function getAccessibleOutletIds(user) {
 
   // ======================
-  // ADMIN → ALL OUTLETS
+  // MANAGER = MULTI OUTLET
   // ======================
-  if (user.role === "admin") {
-    const { data, error } = await supabase
-      .from("outlets")
-      .select("id");
 
-    if (error) {
-      console.log("OUTLET FETCH ERROR:", error);
-      return [];
-    }
-
-    return data.map(o => o.id);
-  }
-
-  // ======================
-  // MANAGER → MULTI OUTLET (pivot)
-  // ======================
   if (user.role === "manager") {
 
-    const { data, error } = await supabase
+    const { data: links, error } = await supabase
       .from("user_outlets")
       .select("outlet_id")
       .eq("user_chat_id", user.chat_id);
 
-    if (error) {
-      console.log("USER_OUTLETS ERROR:", error);
+    if (error || !links?.length) {
       return [];
     }
 
-    // kalau ada assign
-    return data.map(d => d.outlet_id);
+    return links.map(x => x.outlet_id);
   }
 
   // ======================
-  // STAFF / FALLBACK
+  // SUPERVISOR = SINGLE
   // ======================
-  return [user.outlet_id];
+
+  if (user.role === "supervisor") {
+
+    if (!user.outlet_id) return [];
+
+    return [user.outlet_id];
+  }
+
+  // ======================
+  // STAFF
+  // ======================
+
+  if (user.role === "staff") {
+
+    if (!user.outlet_id) return [];
+
+    return [user.outlet_id];
+  }
+
+  return [];
 }
 
 module.exports = { getAccessibleOutletIds };

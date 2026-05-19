@@ -81,49 +81,37 @@ app.post("/webhook", async (req, res) => {
 
 	  console.log("BUTTON CLICK:", clean);
 
-	  // contoh clean = "APPROVE_59" atau "REJECT_59"
+	  // ======================
+	  // SINGLE
+	  // ======================
 
-	// ======================
-	// APPROVE ALL / REJECT ALL
-	// ======================
+	  if (/^APPROVE \d+$/i.test(clean)) {
+		message = clean.toUpperCase();
+	  }
 
-	if (
-	  clean.startsWith("APPROVE_ALL_") ||
-	  clean.startsWith("REJECT_ALL_")
-	) {
-	  message = clean;
-	}
+	  else if (/^REJECT \d+$/i.test(clean)) {
+		message = clean.toUpperCase();
+	  }
 
-	// ======================
-	// SINGLE APPROVE
-	// ======================
+	  // ======================
+	  // MULTI OUTLET
+	  // ======================
 
-	else if (clean.startsWith("APPROVE_")) {
+	  else if (clean.startsWith("APPROVE_ALL_")) {
+		message = clean;
+	  }
 
-	  const id = clean.split("_")[1];
+	  else if (clean.startsWith("REJECT_ALL_")) {
+		message = clean;
+	  }
 
-	  message = `APPROVE ${id}`;
-	}
+	  // ======================
+	  // DEFAULT
+	  // ======================
 
-	// ======================
-	// SINGLE REJECT
-	// ======================
-
-	else if (clean.startsWith("REJECT_")) {
-
-	  const id = clean.split("_")[1];
-
-	  message = `REJECT ${id}`;
-	}
-
-	// ======================
-	// NORMAL BUTTON
-	// ======================
-
-	else {
-
-	  message = clean.toUpperCase();
-	}
+	  else {
+		message = clean.toUpperCase();
+	  }
 	}
 
   if (!message) return res.end();

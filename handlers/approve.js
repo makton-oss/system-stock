@@ -5,7 +5,7 @@ const { writeLog, formatLowStockAlert } = require("../utils/formatter");
 const { notifyManagers } = require("../utils/helpers");
 const { getAccessibleOutletIds } = require("../utils/getAccessibleOutlets");
 
-module.exports = withRole(["manager"], async (ctx) => {
+module.exports = withRole(["supervisor" , "manager"], async (ctx) => {
 
   const { chatId, parts, user, reply, res } = ctx;
   const raw = parts.join(" ");
@@ -46,7 +46,12 @@ module.exports = withRole(["manager"], async (ctx) => {
 		return res.end();
 	  }
 
-	  query = query.eq("outlet_id", targetOutletId);
+	query = query.eq("outlet_id", targetOutletId);
+
+	  if (!outletIds.includes(targetOutletId)) {
+		  await reply(chatId, "❌ NO ACCESS");
+		  return res.end();
+		}
 	}
 
   const { data: rows, error } = await query;

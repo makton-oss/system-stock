@@ -3,7 +3,7 @@ const supabase = require("../services/db");
 const { formatPending, formatPendingAdmin } = require("../utils/formatter");
 const { getAccessibleOutletIds } = require("../utils/getAccessibleOutlets");
 
-module.exports = withRole(["staff","manager","admin"], async (ctx) => {
+module.exports = withRole(["staff", "supervisor" ,"manager","admin"], async (ctx) => {
 
   const { chatId, user, reply, res } = ctx;
 

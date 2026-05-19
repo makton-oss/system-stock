@@ -3,7 +3,7 @@ const supabase = require("../services/db");
 const { writeLog } = require("../utils/formatter");
 const { getAccessibleOutletIds } = require("../utils/getAccessibleOutlets");
 
-module.exports = withRole(["manager"], async (ctx) => {
+module.exports = withRole(["supervisor" , "manager"], async (ctx) => {
 
   const { chatId, parts, user, reply, res } = ctx;
 
@@ -46,6 +46,11 @@ module.exports = withRole(["manager"], async (ctx) => {
     }
 
     query = query.eq("id", id);
+	
+	if (!outletIds.includes(targetOutletId)) {
+	  await reply(chatId, "❌ NO ACCESS");
+	  return res.end();
+	}
 
   }
 
