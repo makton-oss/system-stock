@@ -73,6 +73,7 @@ async function approveRequests(rows, chatId) {
       item: row.item,
       qty: row.qty,
       type: row.type,
+	  cost_price: before.cost_price || 0,
       created_by: chatId
     });
 
