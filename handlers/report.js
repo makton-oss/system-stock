@@ -75,10 +75,16 @@ module.exports = withRole(["manager", "admin"], async (ctx) => {
 
         if (result.error) throw result.error;
 
-        if (!result.length) {
-          await reply(chatId, "✅ TIADA STOCK YANG TIDAK BERGERAK 60 HARI SEBELUM INI.");
-          return res.end();
-        }
+        const hasDead = Object.values(result)
+		  .some(arr => arr.length);
+
+		if (!hasDead) {
+		  await reply(
+			chatId,
+			"✅ TIADA STOCK YANG TIDAK BERGERAK 60 HARI SEBELUM INI."
+		  );
+		  return res.end();
+		}
 
         await reply(chatId, formatDeadReport(result, monthLabel));
         return res.end();
@@ -89,10 +95,13 @@ module.exports = withRole(["manager", "admin"], async (ctx) => {
 
         if (result.error) throw result.error;
 
-        if (!result.length) {
-          await reply(chatId, "📭 TIADA DATA");
-          return res.end();
-        }
+        const hasData = Object.values(result)
+		  .some(arr => arr.length);
+
+		if (!hasData) {
+		  await reply(chatId, "📭 TIADA DATA");
+		  return res.end();
+		}
 
         await reply(chatId, formatDetailReport(result, monthLabel));
         return res.end();

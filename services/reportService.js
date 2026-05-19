@@ -2,12 +2,21 @@ const supabase = require("./db");
 
 // helper: group by outlet
 function groupByOutlet(rows) {
+
   const map = {};
+
   rows.forEach(r => {
-    const outlet = r.outlets?.name || "Outlet";
-    if (!map[outlet]) map[outlet] = [];
-    map[outlet].push(r);
+
+    const outletKey =
+      `${r.outlet_id || "unknown"}-${r.outlets?.name || "Outlet"}`;
+
+    if (!map[outletKey]) {
+      map[outletKey] = [];
+    }
+
+    map[outletKey].push(r);
   });
+
   return map;
 }
 
@@ -77,6 +86,7 @@ async function getInventoryReport({ outletId }) {
     .from("stock")
     .select(`
       qty,
+	  item,
       outlet_id,
 	  cost_price,
       stock_items(name),
