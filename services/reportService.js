@@ -8,7 +8,7 @@ function groupByOutlet(rows) {
   rows.forEach(r => {
 
     const outletKey =
-      `${r.outlet_id || "unknown"}-${r.outlets?.name || "Outlet"}`;
+		r.outlets?.name || "Outlet";
 
     if (!map[outletKey]) {
       map[outletKey] = [];
