@@ -83,23 +83,47 @@ app.post("/webhook", async (req, res) => {
 
 	  // contoh clean = "APPROVE_59" atau "REJECT_59"
 
-	  if (clean.startsWith("APPROVE_")) {
-		const id = clean.split("_")[1];
-		message = `APPROVE ${id}`;
-	  }
+	// ======================
+	// APPROVE ALL / REJECT ALL
+	// ======================
 
-	  else if (clean.startsWith("REJECT_")) {
-		const id = clean.split("_")[1];
-		message = `REJECT ${id}`;
-	  }
+	if (
+	  clean.startsWith("APPROVE_ALL_") ||
+	  clean.startsWith("REJECT_ALL_")
+	) {
+	  message = clean;
+	}
 
-	  else {
-		if (clean.startsWith("APPROVE_") || clean.startsWith("REJECT_")) {
-		  message = clean;
-		} else {
-		  message = clean.toUpperCase();
-		}
-	  }
+	// ======================
+	// SINGLE APPROVE
+	// ======================
+
+	else if (clean.startsWith("APPROVE_")) {
+
+	  const id = clean.split("_")[1];
+
+	  message = `APPROVE ${id}`;
+	}
+
+	// ======================
+	// SINGLE REJECT
+	// ======================
+
+	else if (clean.startsWith("REJECT_")) {
+
+	  const id = clean.split("_")[1];
+
+	  message = `REJECT ${id}`;
+	}
+
+	// ======================
+	// NORMAL BUTTON
+	// ======================
+
+	else {
+
+	  message = clean.toUpperCase();
+	}
 	}
 
   if (!message) return res.end();
