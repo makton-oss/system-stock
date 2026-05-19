@@ -7,7 +7,8 @@ function getLast3Months() {
 
   const now = new Date();
 
-  for (let i = 0; i < 2; i++) {
+  // start dari bulan lepas
+  for (let i = 1; i <= 2; i++) {
 
     const d = new Date(
       now.getFullYear(),

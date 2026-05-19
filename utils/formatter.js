@@ -851,9 +851,11 @@ function formatMonthLabel(monthInput, startDate) {
 
     const d = new Date(startDate);
 
-    const month = d
-      .toLocaleString("en-MY", { month: "long" })
-      .toProperCase();
+    const month = toProperCase(
+      d.toLocaleString("en-MY", {
+        month: "long"
+      })
+    );
 
     const year = d.getFullYear();
 
