@@ -729,26 +729,18 @@ function formatMainReport(data, monthLabel) {
 
     text += `OUTLET ${outlet}\n\n`;
 
-    text += `💰 TOTAL USAGE COST RM ${o.totalCost.toFixed(0)}\n\n`;
-	
-	const top = Object.entries(o.itemMap)
-	  .sort((a,b) => b[1] - a[1])
-	  .slice(0,5);
-
-    top.forEach(([n,v]) => {
-      text += `${n}: RM${v.toFixed(0)}\n`;
-    });
+    text += `💰 TOTAL USAGE COST RM ${o.totalCost.toFixed(2)}\n\n`;
 
     text += "\n📦 CATEGORY COST\n";
 
     Object.entries(o.categoryMap).forEach(([c,v]) => {
-      text += `${c}: RM${v.toFixed(0)}\n`;
+      text += `${c}: RM${v.toFixed(2)}\n`;
     });
 
     text += `\n💸 FLOW (VALUE)\n`;
-    text += `IN   : RM ${o.flowIn.toFixed(0)} (Stock Added)\n`;
-    text += `OUT  : RM ${o.flowOut.toFixed(0)} (Stock Used)\n`;
-    text += `NET  : RM ${(o.flowIn - o.flowOut).toFixed(0)} (Value Change)\n\n`;
+    text += `IN   : RM ${o.flowIn.toFixed(2)} (Stock Added)\n`;
+    text += `OUT  : RM ${o.flowOut.toFixed(2)} (Stock Used)\n`;
+    text += `NET  : RM ${(o.flowIn - o.flowOut).toFixed(2)} (Value Change)\n\n`;
   });
 
   return text;
@@ -773,7 +765,7 @@ function formatInventoryReport(data, month) {
 		  Number(r.cost_price || 0);
       total += val;
 
-      text += `${pc(r.stock_items.name)} x ${r.qty} = RM${val.toFixed(2)}\n`;
+      text += `${pc(r.item)} x ${r.qty} = RM${val.toFixed(2)}\n`;
     });
 
     text += `\nTOTAL RM${total.toFixed(2)}\n\n`;
@@ -833,9 +825,9 @@ function formatFlowReport(data, month) {
 
     text += `OUTLET ${outlet}\n\n`;
 
-    text += `IN   RM ${Number(r.inVal || 0).toFixed(2)}\n`;
-	text += `OUT  RM ${Number(r.outVal || 0).toFixed(2)}\n`;
-	text += `NET  RM ${Number(r.net || 0).toFixed(2)}\n\n`;
+    text += `IN  : RM ${Number(r.inVal || 0).toFixed(2)}\n`;
+	text += `OUT : RM ${Number(r.outVal || 0).toFixed(2)}\n`;
+	text += `NET : RM ${Number(r.net || 0).toFixed(2)}\n\n`;
 
     text += "Top 5 IN STOCK\n";
     r.topIn.forEach((t,i)=>{

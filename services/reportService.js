@@ -124,26 +124,36 @@ async function getDetailReport({ start, end, outletId }) {
     const map = {};
 
     rows.forEach(r => {
-      const id = r.item_id;
 
-      if (!map[id]) {
-        map[id] = {
-          name: r.stock_items?.name || r.item,
-          in: 0,
-          out: 0
-        };
-      }
+	  const id =
+		r.item_id || r.item || "unknown";
 
-      if (r.type === "in") map[id].in += r.qty;
-      else map[id].out += r.qty;
-    });
+	  const itemName =
+		r.stock_items?.name ||
+		r.item ||
+		"Unknown";
+
+	  if (!map[id]) {
+		map[id] = {
+		  name: itemName,
+		  in: 0,
+		  out: 0
+		};
+	  }
+
+	  if (r.type === "in") {
+		map[id].in += Number(r.qty || 0);
+	  } else {
+		map[id].out += Number(r.qty || 0);
+	  }
+	});
 
     result[outlet] = Object.values(map).map(i => ({
       ...i,
       bal: i.in - i.out
     }));
   });
-
+console.log("DETAIL REPORT:", result);
   return result;
 }
 
