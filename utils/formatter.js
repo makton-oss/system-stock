@@ -108,10 +108,10 @@ function formatItemList(rows) {
     const cost = Number(r.cost_price || 0);
     const minqty = r.min_qty ?? "-";
 
-    reply += `${name}
+    reply += `${toProperCase(name)}
 UOM: ${uom}
 Cost: RM${cost.toFixed(2)}
-Min Qty: ${toProperCase(minqty)}
+Min Qty: ${minqty}
 
 `;
   });
@@ -257,7 +257,7 @@ function formatPending(rows) {
     const chatId = r.users?.chat_id || "-";
 
     reply += `ID ${r.id} | ${date}
-${r.type?.toProperCase()} ${toProperCase(r.item)} x ${r.qty}
+${toProperCase(r.type)} ${toProperCase(r.item)} x ${r.qty}
 BY: ${toProperCase(userName)} (${chatId})
 
 `;
@@ -298,7 +298,7 @@ function formatPendingAdmin(rows) {
       const chatId = r.users?.chat_id || "-";
 
       reply += `ID ${r.id} | ${date}
-${r.type?.toProperCase()} ${toProperCase(r.item)} x ${r.qty}
+${toProperCase(r.type)} ${toProperCase(r.item)} x ${r.qty}
 BY: ${toProperCase(userName)} (${chatId})
 
 `;
@@ -446,7 +446,7 @@ function toProperCase(str = "") {
     .toString()
     .toLowerCase()
     .split(" ")
-    .map(w => w.charAt(0).toProperCase() + w.slice(1))
+    .map(w => w.charAt(0).toUpperCase() + w.slice(1))
     .join(" ");
 }
 
@@ -724,7 +724,7 @@ function formatMainReport(data, monthLabel) {
 
   Object.entries(data).forEach(([outlet, o]) => {
 
-    text += `OUTLET ${outlet}\n\n`;
+    text += `OUTLET ${toProperCase(outlet)}\n\n`;
 
     text += `💰 TOTAL USAGE COST RM ${o.totalCost.toFixed(2)}\n\n`;
 
@@ -754,7 +754,7 @@ function formatInventoryReport(data, month) {
 
     let total = 0;
 
-    text += `OUTLET ${outlet}\n\n`;
+    text += `OUTLET ${toProperCase(outlet)}\n\n`;
 
     rows.forEach(r => {
       const val =
@@ -780,7 +780,7 @@ function formatDetailReport(data, month) {
 
   Object.entries(data).forEach(([outlet, rows]) => {
 
-    text += `OUTLET ${outlet}\n\n`;
+    text += `OUTLET ${toProperCase(outlet)}\n\n`;
 
     rows.forEach(r => {
       text += `${toProperCase(r.name)}\nIN: ${r.in} OUT: ${r.out} BAL:${r.bal}\n\n`;
@@ -799,7 +799,7 @@ function formatDeadReport(data, month) {
 
   Object.entries(data).forEach(([outlet, rows]) => {
 
-    text += `OUTLET ${outlet}\n\n`;
+    text += `OUTLET ${toProperCase(outlet)}\n\n`;
 
     rows.forEach((r,i) => {
       text += `${i+1}. ${toProperCase(r.name)} (${r.last})\n`;
@@ -820,7 +820,7 @@ function formatFlowReport(data, month) {
 
   Object.entries(data).forEach(([outlet, r]) => {
 
-    text += `OUTLET ${outlet}\n\n`;
+    text += `OUTLET ${toProperCase(outlet)}\n\n`;
 
     text += `IN  : RM ${Number(r.inVal || 0).toFixed(2)}\n`;
 	text += `OUT : RM ${Number(r.outVal || 0).toFixed(2)}\n`;
