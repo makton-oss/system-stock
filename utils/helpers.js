@@ -228,7 +228,7 @@ BY: ${r.users?.nickname || "-"} (${r.requested_by})`
   for (let r of rows) {
 
     if (currentType !== r.type) {
-      text += r.type === "in" ? "📥 IN\n" : "📤 OUT\n";
+      text += r.type === "in" ? "📥 IN\n" : "\n📤 OUT\n";
       currentType = r.type;
       currentUser = null;
     }

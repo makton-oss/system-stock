@@ -1,5 +1,5 @@
 const { withRole } = require("../core/withRole");
-const { normalizeItem, safeQty, notifyManagers , notifyManagersWithButtons, notifySmartStock } = require("../utils/helpers");
+const { normalizeItem, safeQty, notifyManagers, notifyManagersWithButtons, notifySmartStock } = require("../utils/helpers");
 const { createRequest } = require("../services/requestService");
 const { getUserDisplay, toProperCase } = require("../utils/formatter");
 
@@ -14,57 +14,72 @@ module.exports = withRole(["staff"], async (ctx) => {
   // ======================
   if (rawInput.includes(",")) {
 
-    const segments = rawInput.split(",");
+    const segments = rawInput
+      .split(",")
+      .map(s => s.trim())
+      .filter(Boolean);
 
-    let successList = [];
-    let failedList = [];
+    let parsed = [];
 
+    // ======================
+    // 🔍 PHASE 1: VALIDATE
+    // ======================
     for (let seg of segments) {
 
-      const s = seg.trim().split(" ");
+      const s = seg.split(" ");
       const qty = safeQty(s.at(-1));
       const item = normalizeItem(s.slice(0, -1).join(" "));
 
       if (!item || qty === null) {
-        failedList.push(seg.trim());
-        continue;
+        await reply(chatId, `❌ FORMAT SALAH: ${seg}`);
+        return res.end();
       }
 
-      const result = await createRequest({
+      const test = await createRequest({
         item,
         qty,
+        type: "out",
+        user,
+        chatId,
+        validateOnly: true
+      });
+
+      if (test.error) {
+        await reply(chatId, `❌ ITEM TAK SAH: ${item}`);
+        return res.end();
+      }
+
+      parsed.push({ item, qty });
+    }
+
+    // ======================
+    // 🚀 PHASE 2: EXECUTE
+    // ======================
+    let successList = [];
+
+    for (let p of parsed) {
+
+      const result = await createRequest({
+        item: p.item,
+        qty: p.qty,
         type: "out",
         user,
         chatId
       });
 
-      if (result.error) {
-        failedList.push(item);
-        continue;
-      }
-
-      successList.push({ item, qty, id: result.id });
+      successList.push({
+        item: p.item,
+        qty: p.qty,
+        id: result.id
+      });
     }
 
     // ======================
-    // RESPONSE (multi)
+    // RESPONSE
     // ======================
-    let text = `📥 STOCK OUT - ${toProperCase(user.outlets?.name || "-")}\n\n`;
+    await notifySmartStock(user.outlet_id, successList[successList.length - 1]);
 
-    successList.forEach(r => {
-      text += `ID ${r.id} ${toProperCase(r.item)} x${r.qty}\n`;
-    });
-
-    text += `\nBY: ${toProperCase(user.nickname)} (${chatId})`;
-
-    if (failedList.length) {
-      text += `\n\n❌ FAILED\n${failedList.join("\n")}`;
-    }
-
-    // notify manager sekali je (summary)
-    await notifySmartStock(user.outlet_id, result);
-
-	await reply(chatId, "✅ REQUEST SENT");
+    await reply(chatId, "✅ REQUEST SENT");
     return res.end();
   }
 
@@ -100,7 +115,7 @@ module.exports = withRole(["staff"], async (ctx) => {
   try {
     const userInfo = await getUserDisplay(chatId);
 
-    const text = `📥 STOCK OUT - ${toProperCase(user.outlets?.name || "-")}
+    const text = `📤 STOCK OUT - ${toProperCase(user.outlets?.name || "-")}
 
 ID ${result?.id || "-"} ${toProperCase(item)} x${qty}
 BY: ${toProperCase(userInfo.nickname)} (${chatId})`;
@@ -111,7 +126,6 @@ BY: ${toProperCase(userInfo.nickname)} (${chatId})`;
     console.log("NOTIFY ERROR (OUT):", err);
   }
 
-  	await reply(chatId, "✅ REQUEST SENT");
-
+  await reply(chatId, "✅ REQUEST SENT");
   return res.end();
 });

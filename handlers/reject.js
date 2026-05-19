@@ -6,8 +6,25 @@ const { getAccessibleOutletIds } = require("../utils/getAccessibleOutlets");
 module.exports = withRole(["manager"], async (ctx) => {
 
   const { chatId, parts, user, reply, res } = ctx;
-  const arg = parts[1]?.toUpperCase();
 
+  // ======================
+  // BUTTON PARSE
+  // ======================
+  const raw = parts.join(" ");
+
+  const isAll = raw.startsWith("REJECT_ALL_");
+
+  let targetOutletId = null;
+
+  if (isAll) {
+    targetOutletId = Number(
+      raw.replace("REJECT_ALL_", "")
+    );
+  }
+
+  // ======================
+  // ACCESSIBLE OUTLETS
+  // ======================
   const outletIds = await getAccessibleOutletIds(user);
 
   let query = supabase
@@ -16,24 +33,54 @@ module.exports = withRole(["manager"], async (ctx) => {
     .eq("status", "pending")
     .in("outlet_id", outletIds);
 
-  if (arg !== "ALL") {
-    const id = parseInt(parts[1]);
+  // ======================
+  // SINGLE REJECT
+  // ======================
+  if (!isAll) {
+
+    const id = Number(parts[1]);
 
     if (isNaN(id)) {
-      await reply(chatId, "❌ FORMAT: REJECT ALL / REJECT 12");
+      await reply(chatId, "❌ FORMAT: REJECT 12");
       return res.end();
     }
 
     query = query.eq("id", id);
+
   }
 
-  const { data: rows } = await query;
+  // ======================
+  // REJECT ALL BY OUTLET
+  // ======================
+  else {
+
+    if (isNaN(targetOutletId)) {
+      await reply(chatId, "❌ INVALID OUTLET");
+      return res.end();
+    }
+
+    query = query.eq("outlet_id", targetOutletId);
+  }
+
+  // ======================
+  // FETCH
+  // ======================
+  const { data: rows, error } = await query;
+
+  if (error) {
+    console.log("REJECT FETCH ERROR:", error);
+    await reply(chatId, "❌ ERROR");
+    return res.end();
+  }
 
   if (!rows?.length) {
     await reply(chatId, "📭 TIADA DATA");
     return res.end();
   }
 
+  // ======================
+  // PROCESS REJECT
+  // ======================
   let logDetails = [];
 
   for (const row of rows) {
@@ -49,12 +96,25 @@ module.exports = withRole(["manager"], async (ctx) => {
       .eq("status", "pending")
       .select();
 
+    // dah kena process
     if (!updated?.length) continue;
 
     logDetails.push(`ID${row.id} ${row.item}`);
   }
 
-  await writeLog(chatId, "manager", "REJECT", logDetails.join(" | "));
+  // ======================
+  // LOG
+  // ======================
+  await writeLog(
+    chatId,
+    "manager",
+    "REJECT",
+    logDetails.join(" | ")
+  );
+
+  // ======================
+  // RESPONSE
+  // ======================
   await reply(chatId, "✅ REJECTED");
 
   return res.end();
