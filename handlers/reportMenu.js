@@ -9,9 +9,7 @@ module.exports = withRole(
 
     await sendButtons(
       chatId,
-      `📊 REPORT MENU
-
-Sila pilih jenis report:`,
+      `📊 REPORT MENU`,
 
       [
         {

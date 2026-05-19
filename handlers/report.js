@@ -9,7 +9,7 @@ module.exports = withRole(["manager", "admin"], async (ctx) => {
   // ======================
   // MODE DETECTION
   // ======================
-  const mode = parts[1]?.toUpperCase();
+  let mode = parts[1]?.toUpperCase();
   
   if (mode === "SUMMARY") {
 	  mode = undefined;
@@ -22,7 +22,9 @@ module.exports = withRole(["manager", "admin"], async (ctx) => {
   // ======================
   let monthInput = "current";
 
-  if (COMMANDS.includes(mode)) {
+  if (COMMANDS.includes(mode) ||
+	mode === undefined
+  ) {
     // contoh: REPORT FLOW may-26
     monthInput = parts[2] || "current";
   } else {

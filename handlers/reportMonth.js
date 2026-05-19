@@ -1,13 +1,13 @@
 const { withRole } = require("../core/withRole");
 const { sendButtons } = require("../utils/sendButtons");
 
-function getLast6Months() {
+function getLast3Months() {
 
   const months = [];
 
   const now = new Date();
 
-  for (let i = 0; i < 3; i++) {
+  for (let i = 0; i < 2; i++) {
 
     const d = new Date(
       now.getFullYear(),
@@ -44,7 +44,11 @@ module.exports = withRole(
       return res.end();
     }
 
-    const months = getLast6Months();
+    const months = getLast3Months();
+	global.reportModeMap =
+	  global.reportModeMap || {};
+
+	global.reportModeMap[chatId] = mode;
 
     const buttons = [
       {

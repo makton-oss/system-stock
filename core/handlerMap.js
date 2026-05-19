@@ -16,6 +16,6 @@ module.exports = {
   REMOVEROLE: require("../handlers/removeRole"),
   UPDATE: require("../handlers/update"),
   REPORTMENU: require("../handlers/reportMenu"),
-  REPORT_TYPE: require("../handlers/reportType"),
+  REPORT_MONTH: require("../handlers/reportMonth"),
   TRY: require("../handlers/try")
 };

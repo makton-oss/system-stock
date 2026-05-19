@@ -109,6 +109,48 @@ app.post("/webhook", async (req, res) => {
 		  message = clean;
 		}
 
+		// ======================
+		// REPORT TYPE
+		// ======================
+
+		else if (
+		  [
+			"SUMMARY",
+			"INVENTORY",
+			"FLOW"
+		  ].includes(clean.toUpperCase())
+		) {
+
+		  message =
+			`REPORT_MONTH ${clean.toUpperCase()}`;
+		}
+
+		// ======================
+		// REPORT MONTH
+		// ======================
+
+		else if (
+		  clean.toUpperCase() === "CURRENT" ||
+		  /^[A-Z]{3}-\d{2}$/i.test(clean)
+		) {
+
+		  if (
+			body.reply_message_id &&
+			global.reportModeMap?.[chatId]
+		  ) {
+
+			const mode =
+			  global.reportModeMap[chatId];
+
+			message =
+			  `REPORT ${mode} ${clean.toLowerCase()}`;
+		  }
+		}
+
+		// ======================
+		// DEFAULT
+		// ======================
+
 		else {
 		  message = clean.toUpperCase();
 		}
