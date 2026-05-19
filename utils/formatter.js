@@ -730,6 +730,10 @@ function formatMainReport(data, monthLabel) {
     text += `OUTLET ${outlet}\n\n`;
 
     text += `💰 TOTAL USAGE COST RM ${o.totalCost.toFixed(0)}\n\n`;
+	
+	const top = Object.entries(o.itemMap)
+	  .sort((a,b) => b[1] - a[1])
+	  .slice(0,5);
 
     top.forEach(([n,v]) => {
       text += `${n}: RM${v.toFixed(0)}\n`;
@@ -764,7 +768,9 @@ function formatInventoryReport(data, month) {
     text += `OUTLET ${outlet}\n\n`;
 
     rows.forEach(r => {
-      const val = r.qty * r.cost_price;
+      const val =
+		  Number(r.qty || 0) *
+		  Number(r.cost_price || 0);
       total += val;
 
       text += `${pc(r.stock_items.name)} x ${r.qty} = RM${val.toFixed(2)}\n`;
@@ -827,16 +833,18 @@ function formatFlowReport(data, month) {
 
     text += `OUTLET ${outlet}\n\n`;
 
-    text += `IN   RM ${r.inVal}\nOUT  RM ${r.outVal}\nNET  RM ${r.net}\n\n`;
+    text += `IN   RM ${Number(r.inVal || 0).toFixed(2)}\n`;
+	text += `OUT  RM ${Number(r.outVal || 0).toFixed(2)}\n`;
+	text += `NET  RM ${Number(r.net || 0).toFixed(2)}\n\n`;
 
     text += "Top 5 IN STOCK\n";
     r.topIn.forEach((t,i)=>{
-      text += `${i+1}. ${pc(t[0])} RM${t[1]}\n`;
+      text += `${i+1}. ${pc(t[0])} RM${Number(t[1] || 0).toFixed(2)}\n`;
     });
 
     text += "\nTop 5 OUT STOCK\n";
     r.topOut.forEach((t,i)=>{
-      text += `${i+1}. ${pc(t[0])} RM${t[1]}\n`;
+      text += `${i+1}. ${pc(t[0])} RM${Number(t[1] || 0).toFixed(2)}\n`;
     });
 
     text += "\n";
