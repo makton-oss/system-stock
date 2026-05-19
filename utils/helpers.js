@@ -256,10 +256,11 @@ BY: ${r.users?.nickname || "-"} (${r.requested_by})`
   }
 
   for (let m of managers) {
-    await sendButtons(
-      m.chat_id,
-      text,
-      [
+
+	  const sent = await sendButtons(
+		m.chat_id,
+		text,
+		[
 		  {
 			id: `APPROVE_ALL_${outletId}`,
 			title: "Approve All"
@@ -269,8 +270,12 @@ BY: ${r.users?.nickname || "-"} (${r.requested_by})`
 			title: "Reject All"
 		  }
 		]
-    );
-  }
+	  );
+
+	  if (!sent.ok) {
+		console.log("SKIP MANAGER:", m.chat_id);
+	  }
+	}
 }
 
 module.exports = {
