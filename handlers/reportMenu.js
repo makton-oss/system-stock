@@ -25,14 +25,6 @@ Sila pilih jenis report:`,
         {
           id: "REPORT_TYPE FLOW",
           title: "Flow"
-        },
-        {
-          id: "REPORT_TYPE DETAIL",
-          title: "Detail"
-        },
-        {
-          id: "REPORT_TYPE DEAD",
-          title: "Dead"
         }
       ]
     );

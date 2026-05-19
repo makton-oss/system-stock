@@ -7,7 +7,7 @@ function getLast6Months() {
 
   const now = new Date();
 
-  for (let i = 0; i < 6; i++) {
+  for (let i = 0; i < 3; i++) {
 
     const d = new Date(
       now.getFullYear(),
@@ -33,7 +33,7 @@ function getLast6Months() {
 }
 
 module.exports = withRole(
-  ["manager", "admin", "supervisor"],
+  ["manager", "admin"],
   async (ctx) => {
 
     const { chatId, parts, res } = ctx;
