@@ -77,19 +77,7 @@ module.exports = withRole(["staff"], async (ctx) => {
 	  // ======================
 	  // RESPONSE
 	  // ======================
-	  const userInfo = await getUserDisplay(chatId);
-
-	  let text = `📥 STOCK IN - ${toProperCase(user.outlets?.name || "-")}\n\n`;
-
-	  successList.forEach(r => {
-		text += `ID ${r.id} ${toProperCase(r.item)} x${r.qty}\n`;
-	  });
-
-	  text += `\nBY: ${toProperCase(userInfo.nickname)} (${chatId})`;
-
-	  for (let r of successList) {
-		  await notifySmartStock(user.outlet_id, successList[successList.length - 1]);
-		}
+	  await notifySmartStock(user.outlet_id, successList[successList.length - 1]);
 
 	  await reply(chatId, "✅ REQUEST SENT");
 	  return res.end();
