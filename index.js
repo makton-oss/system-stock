@@ -110,6 +110,12 @@ app.post("/webhook", async (req, res) => {
       message = upperClean;
     } else if (/^REJECT \d+$/i.test(clean)) {
       message = upperClean;
+    } else if (/^APPROVE ALL \d+$/i.test(upperClean)) {
+      const outletId = upperClean.match(/\d+/)?.[0];
+      message = `APPROVE_ALL_${outletId}`;
+    } else if (/^REJECT ALL \d+$/i.test(upperClean)) {
+      const outletId = upperClean.match(/\d+/)?.[0];
+      message = `REJECT_ALL_${outletId}`;
     } else if (upperClean.startsWith("APPROVE_ALL_")) {
       message = "APPROVE";
     } else if (upperClean.startsWith("REJECT_ALL_")) {

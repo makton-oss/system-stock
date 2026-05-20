@@ -274,11 +274,11 @@ BY: ${r.users?.nickname || "-"} (${r.requested_by})`
 		[
       {
       id: `APPROVE_ALL_${outletId}`,
-      title: `APPROVE ALL`
+      title: `APPROVE ALL ${outletId}`
       },
       {
       id: `REJECT_ALL_${outletId}`,
-      title: `REJECT ALL`
+      title: `REJECT ALL ${outletId}`
       }
     ]
 	  );
