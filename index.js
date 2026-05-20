@@ -17,10 +17,20 @@ app.get("/health", (req, res) => {
 });
 
 async function reply(chatId, text) {
+
   try {
-    console.log("REPLY TO:", chatId, "|", text.slice(0, 50));
+
+    console.log(
+      "REPLY TO:",
+      chatId,
+      "|",
+      text.slice(0, 50)
+    );
+
     await sendWhatsApp(chatId, text);
+
   } catch (err) {
+
     console.error("REPLY ERROR:", err);
   }
 }
@@ -30,11 +40,15 @@ async function reply(chatId, text) {
 // ======================
 app.post("/webhook", async (req, res) => {
 
-  let body = typeof req.body === "string"
-    ? JSON.parse(req.body)
-    : req.body || {};
-	
-	console.log("WEBHOOK BODY:", JSON.stringify(body, null, 2));
+  let body =
+    typeof req.body === "string"
+      ? JSON.parse(req.body)
+      : req.body || {};
+
+  console.log(
+    "WEBHOOK BODY:",
+    JSON.stringify(body, null, 2)
+  );
 
   const chatId = (
     body.chat_id ||
@@ -43,175 +57,277 @@ app.post("/webhook", async (req, res) => {
     ""
   ).split("-")[0];
 
-  if (!chatId) return res.end();
+  if (!chatId) {
+    return res.end();
+  }
 
   // ======================
   // USER FETCH
   // ======================
-  const { data: user, error: userError } = await supabase
+
+  const {
+    data: user,
+    error: userError
+  } = await supabase
     .from("users")
     .select("*, outlets(name)")
     .eq("chat_id", chatId)
     .maybeSingle();
 
   if (userError) {
-    console.log("USER FETCH ERROR:", userError);
+
+    console.log(
+      "USER FETCH ERROR:",
+      userError
+    );
+
     return res.end();
   }
 
-  if (!user) return res.end();
+  if (!user) {
+    return res.end();
+  }
 
   // ======================
   // MESSAGE PARSE
   // ======================
+
   let message =
     body.user_message ||
     body.message ||
     body.text ||
     "";
 
-	// ======================
-	// 🔥 BUTTON PARSE (FINAL FIX - WITH ID SUPPORT)
-	// ======================
-	const raw = body.user_message || "";
+  // ======================
+  // BUTTON PARSE
+  // ======================
 
-	if (raw.startsWith("#Button Reply#")) {
+  const raw = body.user_message || "";
 
-	  	const clean = raw.replace("#Button Reply#", "").trim();
+  if (raw.startsWith("#Button Reply#")) {
 
-		const upperClean = clean.toUpperCase();
+    const clean = raw
+      .replace("#Button Reply#", "")
+      .trim();
 
-		console.log("BUTTON CLICK:", clean);
+    const upperClean =
+      clean.toUpperCase();
 
-	  	// ======================
-		// APPROVE SINGLE
-		// ======================
+    console.log(
+      "BUTTON CLICK:",
+      clean
+    );
 
-		if (/^APPROVE \d+$/i.test(clean)) {
-		message = clean.toUpperCase();
-		}
+    // ======================
+    // APPROVE / REJECT SINGLE
+    // ======================
 
-		// ======================
-		// SINGLE
-		// ======================
+    if (/^APPROVE \d+$/i.test(clean)) {
 
-		if (/^APPROVE \d+$/i.test(clean)) {
-		message = upperClean;
-		}
+      message = upperClean;
+    }
 
-		else if (/^REJECT \d+$/i.test(clean)) {
-		message = upperClean;
-		}
+    else if (/^REJECT \d+$/i.test(clean)) {
 
-		// ======================
-		// MULTI OUTLET
-		// ======================
+      message = upperClean;
+    }
 
-		else if (upperClean.startsWith("APPROVE_ALL_")) {
-		message = upperClean;
-		}
+    // ======================
+    // APPROVE / REJECT ALL
+    // ======================
 
-		else if (upperClean.startsWith("REJECT_ALL_")) {
-		message = upperClean;
-		}
+    else if (
+      upperClean.startsWith(
+        "APPROVE_ALL_"
+      )
+    ) {
 
-		// ======================
-		// REPORT TYPE
-		// ======================
+      message = upperClean;
+    }
 
-		else if (upperClean.startsWith("REPORT_TYPE")) {
-		message = upperClean;
-		}
+    else if (
+      upperClean.startsWith(
+        "REJECT_ALL_"
+      )
+    ) {
 
-		else if (
-		[
-			"SUMMARY",
-			"INVENTORY",
-			"FLOW"
-		].includes(upperClean)
-		) {
-			message =
-				`REPORT_MONTH ${upperClean}`;
-		}
+      message = upperClean;
+    }
 
-		// ======================
-		// REPORT MONTH
-		// ======================
+    // ======================
+    // REPORT TYPE
+    // ======================
 
-		else if (
-		upperClean === "CURRENT" ||
-		/^[A-Z]{3}-\d{2}$/i.test(clean)
-		) {
+    else if (
+      upperClean.startsWith(
+        "REPORT_TYPE"
+      )
+    ) {
 
-		if (
-			body.reply_message_id &&
-			global.reportModeMap?.[chatId]
-		) {
+      message = upperClean;
+    }
 
-			const mode =
-			global.reportModeMap[chatId];
+    else if (
+      [
+        "SUMMARY",
+        "INVENTORY",
+        "FLOW"
+      ].includes(upperClean)
+    ) {
 
-			message =
-			`REPORT ${mode} ${clean.toLowerCase()}`;
-		}
-		}
+      message =
+        `REPORT_MONTH ${upperClean}`;
+    }
 
-		// ======================
-		// DEFAULT
-		// ======================
+    // ======================
+    // REPORT MONTH
+    // ======================
 
-		else {
-		message = upperClean;
-		}
-	}
+    else if (
 
-  if (!message) return res.end();
+      upperClean === "CURRENT" ||
 
-  const parts = message.trim().split(/\s+/);
-  const type = parts[0]?.toUpperCase();
-  
+      /^[A-Z]{3}-\d{2}$/i.test(clean)
+
+    ) {
+
+      if (
+
+        body.reply_message_id &&
+
+        global.reportModeMap?.[chatId]
+
+      ) {
+
+        const mode =
+          global.reportModeMap[chatId];
+
+        message =
+          `REPORT ${mode} ${clean.toLowerCase()}`;
+      }
+    }
+
+    // ======================
+    // DEFAULT
+    // ======================
+
+    else {
+
+      message = upperClean;
+    }
+  }
+
+  if (!message) {
+    return res.end();
+  }
+
+  const parts =
+    message
+      .trim()
+      .split(/\s+/);
+
+  let type =
+    parts[0]?.toUpperCase();
+
+  // ======================
+  // APPROVE ALL FIX
+  // ======================
+
   if (
-	  type === "REPORT" &&
-	  parts.length === 1
-	) {
-	  const handler = handlerMap.REPORTMENU;
+    type?.startsWith(
+      "APPROVE_ALL_"
+    )
+  ) {
 
-	  const ctx = createContext({
-		chatId,
-		user,
-		parts,
-		body: message,
-		res,
-		reply
-	  });
+    type = "APPROVE";
+  }
 
-	  return await handler(ctx);
-	}
+  // ======================
+  // REJECT ALL FIX
+  // ======================
 
-  if (!type) return res.end();
+  if (
+    type?.startsWith(
+      "REJECT_ALL_"
+    )
+  ) {
 
-  const handler = handlerMap[type];
+    type = "REJECT";
+  }
 
-  if (!handler) return res.end();
+  // ======================
+  // REPORT MENU
+  // ======================
+
+  if (
+    type === "REPORT" &&
+    parts.length === 1
+  ) {
+
+    const handler =
+      handlerMap.REPORTMENU;
+
+    const ctx = createContext({
+      chatId,
+      user,
+      parts,
+      body: message,
+      res,
+      reply
+    });
+
+    return await handler(ctx);
+  }
+
+  if (!type) {
+    return res.end();
+  }
+
+  const handler =
+    handlerMap[type];
+
+  if (!handler) {
+
+    console.log(
+      "NO HANDLER:",
+      type
+    );
+
+    return res.end();
+  }
 
   const ctx = createContext({
     chatId,
     user,
     parts,
-	body: message,
+    body: message,
     res,
     reply
   });
 
   try {
+
     return await handler(ctx);
+
   } catch (err) {
-    console.error("HANDLER ERROR:", err);
-    await reply(chatId, "❌ SYSTEM ERROR");
+
+    console.error(
+      "HANDLER ERROR:",
+      err
+    );
+
+    await reply(
+      chatId,
+      "❌ SYSTEM ERROR"
+    );
+
     return res.end();
   }
 });
 
 app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
+
+  console.log(
+    `🚀 Server running on port ${PORT}`
+  );
 });
