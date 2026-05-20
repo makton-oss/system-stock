@@ -82,69 +82,72 @@ app.post("/webhook", async (req, res) => {
 	  console.log("BUTTON CLICK:", clean);
 
 	  // ======================
-	  // SINGLE
-	  // ======================
+		// APPROVE SINGLE
+		// ======================
 
-	  if (/^APPROVE \d+$/i.test(clean)) {
+		if (/^APPROVE \d+$/i.test(clean)) {
 		message = clean.toUpperCase();
-	  }
-
-	  else if (/^REJECT \d+$/i.test(clean)) {
-		message = clean.toUpperCase();
-	  }
-
-	  // ======================
-	  // MULTI OUTLET
-	  // ======================
-
-	  else if (clean.startsWith("APPROVE_ALL_")) {
-		message = clean;
-	  }
-
-	  else if (clean.startsWith("REJECT_ALL_")) {
-		message = clean;
-	  }
-
-	  else if (clean.startsWith("REPORT_TYPE")) {
-		  message = clean;
 		}
 
 		// ======================
-		// REPORT TYPE
+		// REJECT SINGLE
+		// ======================
+
+		else if (/^REJECT \d+$/i.test(clean)) {
+		message = clean.toUpperCase();
+		}
+
+		// ======================
+		// APPROVE ALL
+		// ======================
+
+		else if (clean.startsWith("APPROVE_ALL_")) {
+		message = clean;
+		}
+
+		// ======================
+		// REJECT ALL
+		// ======================
+
+		else if (clean.startsWith("REJECT_ALL_")) {
+		message = clean;
+		}
+
+		// ======================
+		// REPORT TYPE BUTTON
 		// ======================
 
 		else if (
-		  [
+		[
 			"SUMMARY",
 			"INVENTORY",
 			"FLOW"
-		  ].includes(clean.toUpperCase())
+		].includes(clean.toUpperCase())
 		) {
 
-		  message =
+		message =
 			`REPORT_MONTH ${clean.toUpperCase()}`;
 		}
 
 		// ======================
-		// REPORT MONTH
+		// REPORT MONTH BUTTON
 		// ======================
 
 		else if (
-		  clean.toUpperCase() === "CURRENT" ||
-		  /^[A-Z]{3}-\d{2}$/i.test(clean)
+		clean.toUpperCase() === "CURRENT" ||
+		/^[A-Z]{3}-\d{2}$/i.test(clean)
 		) {
 
-		  if (
-			body.reply_message_id &&
+		if (
 			global.reportModeMap?.[chatId]
-		  ) {
+		) {
 
 			const mode =
-			  global.reportModeMap[chatId];
+			global.reportModeMap[chatId];
 
 			message =
-			  `REPORT ${mode} ${clean.toLowerCase()}`;
-		  }
+			`REPORT ${mode} ${clean.toLowerCase()}`;
+		}
 		}
 
 		// ======================
@@ -152,7 +155,7 @@ app.post("/webhook", async (req, res) => {
 		// ======================
 
 		else {
-		  message = clean.toUpperCase();
+		message = clean.toUpperCase();
 		}
 	}
 
