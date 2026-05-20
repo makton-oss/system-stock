@@ -77,11 +77,13 @@ app.post("/webhook", async (req, res) => {
 
 	if (raw.startsWith("#Button Reply#")) {
 
-	  const clean = raw.replace("#Button Reply#", "").trim();
+	  	const clean = raw.replace("#Button Reply#", "").trim();
 
-	  console.log("BUTTON CLICK:", clean);
+		const upperClean = clean.toUpperCase();
 
-	  // ======================
+		console.log("BUTTON CLICK:", clean);
+
+	  	// ======================
 		// APPROVE SINGLE
 		// ======================
 
@@ -90,55 +92,59 @@ app.post("/webhook", async (req, res) => {
 		}
 
 		// ======================
-		// REJECT SINGLE
+		// SINGLE
 		// ======================
+
+		if (/^APPROVE \d+$/i.test(clean)) {
+		message = upperClean;
+		}
 
 		else if (/^REJECT \d+$/i.test(clean)) {
-		message = clean.toUpperCase();
+		message = upperClean;
 		}
 
 		// ======================
-		// APPROVE ALL
+		// MULTI OUTLET
 		// ======================
 
-		else if (clean.startsWith("APPROVE_ALL_")) {
-		message = clean;
+		else if (upperClean.startsWith("APPROVE_ALL_")) {
+		message = upperClean;
+		}
+
+		else if (upperClean.startsWith("REJECT_ALL_")) {
+		message = upperClean;
 		}
 
 		// ======================
-		// REJECT ALL
+		// REPORT TYPE
 		// ======================
 
-		else if (clean.startsWith("REJECT_ALL_")) {
-		message = clean;
+		else if (upperClean.startsWith("REPORT_TYPE")) {
+		message = upperClean;
 		}
-
-		// ======================
-		// REPORT TYPE BUTTON
-		// ======================
 
 		else if (
 		[
 			"SUMMARY",
 			"INVENTORY",
 			"FLOW"
-		].includes(clean.toUpperCase())
+		].includes(upperClean)
 		) {
-
-		message =
-			`REPORT_MONTH ${clean.toUpperCase()}`;
+			message =
+				`REPORT_MONTH ${upperClean}`;
 		}
 
 		// ======================
-		// REPORT MONTH BUTTON
+		// REPORT MONTH
 		// ======================
 
 		else if (
-		clean.toUpperCase() === "CURRENT" ||
+		upperClean === "CURRENT" ||
 		/^[A-Z]{3}-\d{2}$/i.test(clean)
 		) {
 
 		if (
+			body.reply_message_id &&
 			global.reportModeMap?.[chatId]
 		) {
 
@@ -155,7 +161,7 @@ app.post("/webhook", async (req, res) => {
 		// ======================
 
 		else {
-		message = clean.toUpperCase();
+		message = upperClean;
 		}
 	}
 
