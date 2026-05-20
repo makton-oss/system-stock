@@ -64,7 +64,6 @@ app.post("/webhook", async (req, res) => {
   // ======================
   // USER FETCH
   // ======================
-
   const {
     data: user,
     error: userError
@@ -91,7 +90,6 @@ app.post("/webhook", async (req, res) => {
   // ======================
   // MESSAGE PARSE
   // ======================
-
   let message =
     body.user_message ||
     body.message ||
@@ -101,118 +99,31 @@ app.post("/webhook", async (req, res) => {
   // ======================
   // BUTTON PARSE
   // ======================
-
   const raw = body.user_message || "";
-
   if (raw.startsWith("#Button Reply#")) {
+    const clean = raw.replace("#Button Reply#", "").trim();
+    const upperClean = clean.toUpperCase();
+    console.log("BUTTON CLICK:", clean);
 
-    const clean = raw
-      .replace("#Button Reply#", "")
-      .trim();
-
-    const upperClean =
-      clean.toUpperCase();
-
-    console.log(
-      "BUTTON CLICK:",
-      clean
-    );
-
-    // ======================
-    // APPROVE / REJECT SINGLE
-    // ======================
-
+    // Handle approve/reject commands
     if (/^APPROVE \d+$/i.test(clean)) {
-
       message = upperClean;
-    }
-
-    else if (/^REJECT \d+$/i.test(clean)) {
-
+    } else if (/^REJECT \d+$/i.test(clean)) {
       message = upperClean;
-    }
-
-    // ======================
-    // APPROVE / REJECT ALL
-    // ======================
-
-    else if (
-      upperClean.startsWith(
-        "APPROVE_ALL_"
-      )
-    ) {
-
+    } else if (upperClean.startsWith("APPROVE_ALL_")) {
+      message = "APPROVE";
+    } else if (upperClean.startsWith("REJECT_ALL_")) {
+      message = "REJECT";
+    } else if (upperClean.startsWith("REPORT_TYPE")) {
       message = upperClean;
-    }
-
-    else if (
-      upperClean.startsWith(
-        "REJECT_ALL_"
-      )
-    ) {
-
-      message = upperClean;
-    }
-
-    // ======================
-    // REPORT TYPE
-    // ======================
-
-    else if (
-      upperClean.startsWith(
-        "REPORT_TYPE"
-      )
-    ) {
-
-      message = upperClean;
-    }
-
-    else if (
-      [
-        "SUMMARY",
-        "INVENTORY",
-        "FLOW"
-      ].includes(upperClean)
-    ) {
-
-      message =
-        `REPORT_MONTH ${upperClean}`;
-    }
-
-    // ======================
-    // REPORT MONTH
-    // ======================
-
-    else if (
-
-      upperClean === "CURRENT" ||
-
-      /^[A-Z]{3}-\d{2}$/i.test(clean)
-
-    ) {
-
-      if (
-
-        body.reply_message_id &&
-
-        global.reportModeMap?.[chatId]
-
-      ) {
-
-        const mode =
-          global.reportModeMap[chatId];
-
-        message =
-          `REPORT ${mode} ${clean.toLowerCase()}`;
+    } else if (["SUMMARY", "INVENTORY", "FLOW"].includes(upperClean)) {
+      message = `REPORT_MONTH ${upperClean}`;
+    } else if (upperClean === "CURRENT" || /^[A-Z]{3}-\d{2}$/i.test(clean)) {
+      if (body.reply_message_id && global.reportModeMap?.[chatId]) {
+        const mode = global.reportModeMap[chatId];
+        message = `REPORT ${mode} ${clean.toLowerCase()}`;
       }
-    }
-
-    // ======================
-    // DEFAULT
-    // ======================
-
-    else {
-
+    } else {
       message = upperClean;
     }
   }
@@ -229,41 +140,17 @@ app.post("/webhook", async (req, res) => {
   let type =
     parts[0]?.toUpperCase();
 
-  // ======================
-  // APPROVE ALL FIX
-  // ======================
-
-  if (
-    type?.startsWith(
-      "APPROVE_ALL_"
-    )
-  ) {
-
+  // Fix for "APPROVE_ALL_" and "REJECT_ALL_"
+  if (type?.startsWith("APPROVE_ALL_")) {
     type = "APPROVE";
-  }
-
-  // ======================
-  // REJECT ALL FIX
-  // ======================
-
-  if (
-    type?.startsWith(
-      "REJECT_ALL_"
-    )
-  ) {
-
+  } else if (type?.startsWith("REJECT_ALL_")) {
     type = "REJECT";
   }
 
   // ======================
   // REPORT MENU
   // ======================
-
-  if (
-    type === "REPORT" &&
-    parts.length === 1
-  ) {
-
+  if (type === "REPORT" && parts.length === 1) {
     const handler =
       handlerMap.REPORTMENU;
 
@@ -277,10 +164,6 @@ app.post("/webhook", async (req, res) => {
     });
 
     return await handler(ctx);
-  }
-
-  if (!type) {
-    return res.end();
   }
 
   const handler =
