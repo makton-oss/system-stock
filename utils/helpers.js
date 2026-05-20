@@ -157,6 +157,8 @@ async function notifyManagersWithButtons(text, outletId, buttons) {
 // ======================
 async function notifySmartStock(outletId, latestRequest) {
 
+  console.log("NOTIFY OUTLET:", outletId);
+  console.log("LATEST REQUEST:", latestRequest);
   const { data: rows } = await supabase
     .from("requests")
     .select(`
@@ -173,6 +175,15 @@ async function notifySmartStock(outletId, latestRequest) {
     .eq("outlet_id", outletId);
 
   if (!rows?.length) return;
+
+  console.log(
+    "REQUEST OUTLETS:",
+    rows.map(x => ({
+      id: x.id,
+      item: x.item,
+      outlet: x.outlets?.name
+    }))
+  );
 
   console.log("SMART STOCK TRIGGER:", outletId, latestRequest);
 
@@ -261,15 +272,15 @@ BY: ${r.users?.nickname || "-"} (${r.requested_by})`
 		m.chat_id,
 		text,
 		[
-		  {
-			id: `APPROVE_ALL_${outletId}`,
-			title: "Approve All"
-		  },
-		  {
-			id: `REJECT_ALL_${outletId}`,
-			title: "Reject All"
-		  }
-		]
+      {
+      id: `APPROVE_ALL_${outletId}`,
+      title: `APPROVE_ALL_${outletId}`
+      },
+      {
+      id: `REJECT_ALL_${outletId}`,
+      title: `REJECT_ALL_${outletId}`
+      }
+    ]
 	  );
 
 	  if (!sent.ok) {
