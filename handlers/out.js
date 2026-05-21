@@ -1,7 +1,9 @@
 const { withRole } = require("../core/withRole");
-const { normalizeItem, safeQty, notifyManagers, notifyManagersWithButtons, notifySmartStock } = require("../utils/helpers");
-const { createRequest } = require("../services/requestService");
+const { normalizeItem, safeQty } = require("../utils/helpers");
+const { createRequest } = require("../services/stock/createRequest");
 const { getUserDisplay, toProperCase } = require("../utils/formatter");
+const { notifyManagers } = require("../services/notification/notifyManager");
+const { notifySmartStock } = require("../services/notification/smartStockNotifier");
 
 module.exports = withRole(["staff"], async (ctx) => {
 

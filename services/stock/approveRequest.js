@@ -1,6 +1,6 @@
-const supabase = require("./db");
+const supabase = require("../db");
 
-async function approveRequests(rows, chatId) {
+async function approveRequest(rows, chatId) {
 
   let summary = {};
   let logDetails = [];
@@ -115,4 +115,4 @@ async function approveRequests(rows, chatId) {
   return { summary, logDetails, rows };
 }
 
-module.exports = { approveRequests };
+module.exports = { approveRequest };

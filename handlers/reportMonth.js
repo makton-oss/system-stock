@@ -1,5 +1,5 @@
 const { withRole } = require("../core/withRole");
-const { sendButtons } = require("../utils/sendButtons");
+const { sendButtons } = require("../services/notification/buttonService");
 
 function getLast3Months() {
 

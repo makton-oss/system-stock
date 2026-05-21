@@ -1,6 +1,6 @@
 const { withRole } = require("../core/withRole");
 const supabase = require("../services/db");
-const { sendMessage } = require("../utils/helpers");
+const { sendWhatsApp } = require("../services/notification/WhatsappService");
 const { sendBatchMessages } = require("../utils/broadcast");
 
 module.exports = withRole(["admin"], async (ctx) => {

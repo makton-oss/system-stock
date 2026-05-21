@@ -1,6 +1,6 @@
-const supabase = require("./db");
+const supabase = require("../db");
 
-async function rejectRequests(rows, chatId) {
+async function rejectRequest(rows, chatId) {
 
   let logDetails = [];
 
@@ -32,4 +32,4 @@ async function rejectRequests(rows, chatId) {
   return { logDetails, rows };
 }
 
-module.exports = { rejectRequests };
+module.exports = { rejectRequest };

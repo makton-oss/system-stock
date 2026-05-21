@@ -4,7 +4,7 @@ require("dotenv").config();
 const supabase = require("./services/db");
 const handlerMap = require("./core/handlerMap");
 const { createContext } = require("./core/context");
-const { sendWhatsApp } = require("./utils/helpers");
+const { sendWhatsApp } = require("./services/notification/whatsappService");
 const { parseButtonMessage } = require("./utils/parseButtonMessage");
 
 const app = express();

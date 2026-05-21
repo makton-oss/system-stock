@@ -1,94 +1,88 @@
 const { withRole } = require("../core/withRole");
-const supabase = require("../services/db");
-const { approveRequests } = require("../services/approveService");
-const { writeLog, formatLowStockAlert } = require("../utils/formatter");
-const { notifyManagers } = require("../utils/helpers");
-const { getAccessibleOutletIds } = require("../utils/getAccessibleOutlets");
+const { approveRequest } = require("../services/stock/approveRequest");
+const { processRequestAction } = require("../services/stock/processRequestAction");
+const { notifyManagers } = require("../services/notification/notifyManager");
+const { writeLog , formatLowStockAlert } = require("../utils/formatter");
+const { buildApproveMessage } = require("../utils/messages/buildApproveMessage");
+const { emitEvent } = require("../services/events/emitEvent");
 
-module.exports = withRole(["supervisor" , "manager"], async (ctx) => {
+module.exports = withRole(["supervisor", "manager"], async (ctx) => {
 
   const { chatId, parts, user, reply, res } = ctx;
-  const raw = parts.join(" ");
 
-	const isAll = raw.startsWith("APPROVE_ALL_");
+  // ======================
+  // REQUEST ACTION
+  // ======================
 
-	let targetOutletId = null;
+  const raw =
+    parts.join(" ");
 
-	if (isAll) {
-	  targetOutletId = Number(
-		raw.replace("APPROVE_ALL_", "")
-	  );
-	}
+  const rows =
+    await processRequestAction({
+      raw,
+      user,
+      chatId,
+      reply,
+      mode: "approve"
+    });
 
-  const outletIds = await getAccessibleOutletIds(user);
-
-  let query = supabase
-    .from("requests")
-    .select("*")
-    .eq("status", "pending")
-    .in("outlet_id", outletIds);
-
-  if (!isAll) {
-
-	  const id = Number(parts[1]);
-
-	  if (isNaN(id)) {
-		await reply(chatId, "❌ FORMAT: APPROVE 12");
-		return res.end();
-	  }
-
-	  query = query.eq("id", id);
-
-	} else {
-
-	  if (isNaN(targetOutletId)) {
-		await reply(chatId, "❌ INVALID OUTLET");
-		return res.end();
-	  }
-
-	query = query.eq("outlet_id", targetOutletId);
-
-	  if (!outletIds.includes(targetOutletId)) {
-		  await reply(chatId, "❌ NO ACCESS");
-		  return res.end();
-		}
-	}
-
-  const { data: rows, error } = await query;
-
-  if (error) {
-    console.log("APPROVE FETCH ERROR:", error);
-    await reply(chatId, "❌ ERROR");
+  if (!rows) {
     return res.end();
   }
 
-  if (!rows?.length) {
-    await reply(chatId, "📭 TIADA DATA");
-    return res.end();
-  }
+  // ======================
+  // PROCESS APPROVAL
+  // ======================
 
-  const { summary, logDetails, rows: processed } =
-    await approveRequests(rows, chatId);
+  const {
+    summary,
+    logDetails,
+    rows: processed
+  } = await approveRequest(
+    rows,
+    chatId
+  );
+
+  // ======================
+  // LOW STOCK ALERT
+  // ======================
 
   for (const r of processed) {
+
     if (!r._lowStock) continue;
 
-    const alertText = formatLowStockAlert(
-      r._lowStock.item,
-      r._lowStock.qty,
-      r._lowStock.min
-    );
+    const alertText =
+      formatLowStockAlert(
+        r._lowStock.item,
+        r._lowStock.qty,
+        r._lowStock.min
+      );
 
-    await notifyManagers(alertText, r._lowStock.outlet_id);
+    await notifyManagers(
+      alertText,
+      r._lowStock.outlet_id
+    );
   }
 
-  let text = "✅ APPROVED\n\n";
+  // ======================
+  // RESPONSE
+  // ======================
+  const text = buildApproveMessage(summary);
 
-  Object.entries(summary).forEach(([i, q]) => {
-    text += `${i} ${q > 0 ? "+" : ""}${q}\n`;
-  });
+  // ======================
+  // LOG
+  // ======================
 
   await writeLog(chatId, "manager", "APPROVE", logDetails.join(" | "));
+
+  await emitEvent(
+    "stock.approved",
+    {
+      by: chatId,
+      rows: processed
+    }
+  );
+
   await reply(chatId, text);
 
   return res.end();
