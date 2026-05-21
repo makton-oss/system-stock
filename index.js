@@ -5,6 +5,7 @@ const supabase = require("./services/db");
 const handlerMap = require("./core/handlerMap");
 const { createContext } = require("./core/context");
 const { sendWhatsApp } = require("./utils/helpers");
+const { parseButtonMessage } = require("./utils/parseButtonMessage");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -100,39 +101,12 @@ app.post("/webhook", async (req, res) => {
   // BUTTON PARSE
   // ======================
   const raw = body.user_message || "";
-  if (raw.startsWith("#Button Reply#")) {
-    const clean = raw.replace("#Button Reply#", "").trim();
-    const upperClean = clean.toUpperCase();
-    console.log("BUTTON CLICK:", clean);
 
-    // Handle approve/reject commands
-    if (/^APPROVE \d+$/i.test(clean)) {
-      message = upperClean;
-    } else if (/^REJECT \d+$/i.test(clean)) {
-      message = upperClean;
-    } else if (/^APPROVE ALL \d+$/i.test(upperClean)) {
-      const outletId = upperClean.match(/\d+/)?.[0];
-      message = `APPROVE_ALL_${outletId}`;
-    } else if (/^REJECT ALL \d+$/i.test(upperClean)) {
-      const outletId = upperClean.match(/\d+/)?.[0];
-      message = `REJECT_ALL_${outletId}`;
-    } else if (upperClean.startsWith("APPROVE_ALL_")) {
-      message = "APPROVE";
-    } else if (upperClean.startsWith("REJECT_ALL_")) {
-      message = "REJECT";
-    } else if (upperClean.startsWith("REPORT_TYPE")) {
-      message = upperClean;
-    } else if (["SUMMARY", "INVENTORY", "FLOW"].includes(upperClean)) {
-      message = `REPORT_MONTH ${upperClean}`;
-    } else if (upperClean === "CURRENT" || /^[A-Z]{3}-\d{2}$/i.test(clean)) {
-      if (body.reply_message_id && global.reportModeMap?.[chatId]) {
-        const mode = global.reportModeMap[chatId];
-        message = `REPORT ${mode} ${clean.toLowerCase()}`;
-      }
-    } else {
-      message = upperClean;
-    }
-  }
+  message = parseButtonMessage({
+    raw,
+    chatId,
+    body
+  });
 
   if (!message) {
     return res.end();
