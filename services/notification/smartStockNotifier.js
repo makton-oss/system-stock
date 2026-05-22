@@ -131,10 +131,10 @@ async function notifySmartStock(
   for (let m of managers) {
 
     const approveTitle =
-      `APPROVE_ALL_${outletName.toUpperCase()}`;
+      `APPROVE ${outletName.toUpperCase()}`;
 
     const rejectTitle =
-      `REJECT_ALL_${outletName.toUpperCase()}`;
+      `REJECT ${outletName.toUpperCase()}`;
 
     const sent =
       await sendButtons(

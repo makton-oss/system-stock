@@ -1,4 +1,7 @@
-function parseButtonMessage({
+const supabase = require("../services/db");
+const { getOutletIdByCode } = require("./getOutletByCode");
+
+async function parseButtonMessage({
   raw,
   chatId,
   body
@@ -9,7 +12,10 @@ function parseButtonMessage({
   }
 
   const clean =
-    raw.replace("#Button Reply#", "").trim();
+    raw.replace(
+      "#Button Reply#",
+      ""
+    ).trim();
 
   const upperClean =
     clean.toUpperCase();
@@ -20,19 +26,55 @@ function parseButtonMessage({
   );
 
   // ======================
+  // APPROVE / REJECT ALL
+  // ======================
+
+  if (
+    upperClean.startsWith("APPROVE ") ||
+    upperClean.startsWith("REJECT ")
+  ) {
+
+    const [action, value] =
+      upperClean.split(" ");
+
+    // SINGLE REQUEST
+    if (/^\d+$/.test(value)) {
+      return upperClean;
+    }
+
+    // OUTLET CODE
+    const outletId =
+      await getOutletIdByCode(
+        value
+      );
+
+    if (!outletId) {
+      return upperClean;
+    }
+
+    return `${action}_ALL_${outletId}`;
+  }
+
+  // ======================
   // REPORT FLOW
   // ======================
 
   if (
-    upperClean.startsWith("REPORT_TYPE")
+    upperClean.startsWith(
+      "REPORT_TYPE"
+    )
   ) {
     return upperClean;
   }
 
   if (
-    ["SUMMARY", "INVENTORY", "FLOW"]
-    .includes(upperClean)
+    [
+      "SUMMARY",
+      "INVENTORY",
+      "FLOW"
+    ].includes(upperClean)
   ) {
+
     return `REPORT_MONTH ${upperClean}`;
   }
 
@@ -47,7 +89,9 @@ function parseButtonMessage({
     ) {
 
       const mode =
-        global.reportModeMap[chatId];
+        global.reportModeMap[
+          chatId
+        ];
 
       return `REPORT ${mode} ${clean.toLowerCase()}`;
     }
