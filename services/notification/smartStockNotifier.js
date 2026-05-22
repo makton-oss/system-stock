@@ -83,14 +83,14 @@ async function notifySmartStock(
     const buttons = [
       {
         id:
-          `approve_${r.id}`,
+          `approve ${r.id}`,
 
         title:
           `APPROVE ${r.id}`
       },
       {
         id:
-          `reject_${r.id}`,
+          `reject ${r.id}`,
 
         title:
           `REJECT ${r.id}`
@@ -131,10 +131,10 @@ async function notifySmartStock(
   for (let m of managers) {
 
     const approveTitle =
-      `APPROVE ${outletName.toUpperCase()}`;
+      `APPROVE_ALL_${outletName.toUpperCase()}`;
 
     const rejectTitle =
-      `REJECT ${outletName.toUpperCase()}`;
+      `REJECT_ALL_${outletName.toUpperCase()}`;
 
     const sent =
       await sendButtons(
