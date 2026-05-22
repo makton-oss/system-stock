@@ -1,5 +1,6 @@
 async function sendButtons(chatId, message, buttons) {
   try {
+    console.log("SEND BUTTON TO:", chatId);
     const response = await fetch(process.env.BOTCOMMERCE_BUTTONS, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
