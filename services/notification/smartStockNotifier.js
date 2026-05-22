@@ -1,7 +1,16 @@
+const supabase = require("../db");
+const { toProperCase } = require("../../utils/helpers");
+const { sendButtons } = require("./buttonService");
+const { getManagersByOutlet } = require("../../utils/getManagersByOutlet");
+const { buildStockRequestMessage } = require("../../utils/messages/buildStockRequestMessage");
+
 // ======================
 // NOTIFY SMART
 // ======================
-async function notifySmartStock(outletId,latestRequest) {
+
+async function notifySmartStock(
+  outletId
+) {
 
   console.log(
     "NOTIFY OUTLET:",
@@ -29,7 +38,9 @@ async function notifySmartStock(outletId,latestRequest) {
   }
 
   const managers =
-    await getManagersByOutlet(outletId);
+    await getManagersByOutlet(
+      outletId
+    );
 
   const { data: outlet } =
     await supabase
@@ -52,39 +63,30 @@ async function notifySmartStock(outletId,latestRequest) {
     const r = rows[0];
 
     const text =
-`📥 STOCK ${r.type.toUpperCase()} - ${outletName}
-
-ID ${r.id} ${r.item} x${r.qty}
-BY: ${r.users?.nickname || "-"}
-
-`;
+      buildStockRequestMessage({
+        outletName,
+        rows
+      });
 
     for (let m of managers) {
-
-      global.buttonMap =
-        global.buttonMap || {};
-
-      global.buttonMap[m.chat_id] = {
-        ...(global.buttonMap[m.chat_id] || {}),
-
-        APPROVE:
-          `APPROVE ${r.id}`,
-
-        REJECT:
-          `REJECT ${r.id}`
-      };
 
       await sendButtons(
         m.chat_id,
         text,
         [
           {
-            id: `APPROVE_${r.id}`,
-            title: "APPROVE"
+            id:
+              `approve_${r.id}`,
+
+            title:
+              `APPROVE ${r.id}`
           },
           {
-            id: `REJECT_${r.id}`,
-            title: "REJECT"
+            id:
+              `reject_${r.id}`,
+
+            title:
+              `REJECT ${r.id}`
           }
         ]
       );
@@ -94,91 +96,14 @@ BY: ${r.users?.nickname || "-"}
   }
 
   // ======================
-  // MULTI STACK
+  // MULTI
   // ======================
 
-  rows.sort((a, b) => {
-
-    if (a.type !== b.type) {
-      return a.type === "in"
-        ? -1
-        : 1;
-    }
-
-    if (
-      a.requested_by !==
-      b.requested_by
-    ) {
-      return a.requested_by
-        .localeCompare(
-          b.requested_by
-        );
-    }
-
-    return (
-      new Date(a.created_at) -
-      new Date(b.created_at)
-    );
-  });
-
-  let text =
-`📦 STOCK REQUEST - ${outletName.toUpperCase()}
-
-`;
-
-  let currentType = null;
-  let currentUser = null;
-
-  for (let r of rows) {
-
-    if (currentType !== r.type) {
-
-      text +=
-        r.type === "in"
-          ? "📥 IN\n"
-          : "\n📤 OUT\n";
-
-      currentType = r.type;
-      currentUser = null;
-    }
-
-    if (
-      currentUser !== r.requested_by
-    ) {
-
-      const { data: reqUser } =
-        await supabase
-          .from("users")
-          .select(`
-            nickname,
-            chat_id
-          `)
-          .eq(
-            "chat_id",
-            r.requested_by
-          )
-          .maybeSingle();
-
-      const displayName =
-        reqUser?.nickname ||
-        r.requested_by;
-
-      const displayPhone =
-        reqUser?.chat_id ||
-        r.requested_by;
-
-      text +=
-`BY: ${toProperCase(displayName)} (${displayPhone})
-`;
-
-      currentUser =
-        r.requested_by;
-    }
-
-    text +=
-`ID ${r.id} ${r.item} x${r.qty}
-`;
-  }
+  const text =
+    buildStockRequestMessage({
+      outletName,
+      rows
+    });
 
   for (let m of managers) {
 
@@ -188,19 +113,6 @@ BY: ${r.users?.nickname || "-"}
     const rejectTitle =
       `REJECT ${outletName.toUpperCase()}`;
 
-    global.buttonMap =
-      global.buttonMap || {};
-
-    global.buttonMap[m.chat_id] = {
-      ...(global.buttonMap[m.chat_id] || {}),
-
-      [approveTitle.toUpperCase()]:
-        `APPROVE_ALL_${outletId}`,
-
-      [rejectTitle.toUpperCase()]:
-        `REJECT_ALL_${outletId}`
-    };
-
     const sent =
       await sendButtons(
         m.chat_id,
@@ -208,14 +120,14 @@ BY: ${r.users?.nickname || "-"}
         [
           {
             id:
-              `APPROVE_ALL_${outletId}`,
+              `approve_all_${outletId}`,
 
             title:
               approveTitle
           },
           {
             id:
-              `REJECT_ALL_${outletId}`,
+              `reject_all_${outletId}`,
 
             title:
               rejectTitle

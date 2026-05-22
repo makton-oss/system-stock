@@ -19,22 +19,6 @@ function parseButtonMessage({
     clean
   );
 
-  global.buttonMap =
-    global.buttonMap || {};
-
-  const mapped =
-    global.buttonMap?.[chatId]?.[upperClean];
-
-  if (mapped) {
-
-    console.log(
-      "BUTTON MAPPED:",
-      mapped
-    );
-
-    return mapped;
-  }
-
   // ======================
   // REPORT FLOW
   // ======================
