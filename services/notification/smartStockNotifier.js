@@ -60,44 +60,63 @@ async function notifySmartStock(
 
   if (rows.length === 1) {
 
-    const r = rows[0];
+  const r = rows[0];
 
-    const text =
-      buildStockRequestMessage({
-        outletName,
-        rows
-      });
+  const text =
+    buildStockRequestMessage({
+      outletName,
+      rows
+    });
 
-    console.log("MANAGERS:", managers);
-    console.log("BUTTON TEXT:", text);
-    console.log("BUTTONS:", buttons);
+  console.log(
+    "MANAGERS:",
+    managers
+  );
 
-    for (let m of managers) {
+  console.log(
+    "BUTTON TEXT:",
+    text
+  );
 
+  for (let m of managers) {
+
+    const buttons = [
+      {
+        id:
+          `approve_${r.id}`,
+
+        title:
+          `APPROVE ${r.id}`
+      },
+      {
+        id:
+          `reject_${r.id}`,
+
+        title:
+          `REJECT ${r.id}`
+      }
+    ];
+
+    console.log(
+      "BUTTONS:",
+      buttons
+    );
+
+    const sent =
       await sendButtons(
         m.chat_id,
         text,
-        [
-          {
-            id:
-              `approve_${r.id}`,
-
-            title:
-              `APPROVE ${r.id}`
-          },
-          {
-            id:
-              `reject_${r.id}`,
-
-            title:
-              `REJECT ${r.id}`
-          }
-        ]
+        buttons
       );
-    }
 
-    return;
+    console.log(
+      "BUTTON RESULT:",
+      sent
+    );
   }
+
+  return;
+}
 
   // ======================
   // MULTI
