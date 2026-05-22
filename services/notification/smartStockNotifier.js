@@ -1,5 +1,5 @@
 const supabase = require("../db");
-const { toProperCase } = require("../../utils/helpers");
+const { toProperCase } = require("../../utils/formatter");
 const { sendButtons } = require("./buttonService");
 const { getManagersByOutlet } = require("../../utils/getManagersByOutlet");
 const { buildStockRequestMessage } = require("../../utils/messages/buildStockRequestMessage");
@@ -67,6 +67,10 @@ async function notifySmartStock(
         outletName,
         rows
       });
+
+    console.log("MANAGERS:", managers);
+    console.log("BUTTON TEXT:", text);
+    console.log("BUTTONS:", buttons);
 
     for (let m of managers) {
 
