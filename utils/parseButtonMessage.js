@@ -48,9 +48,22 @@ async function parseButtonMessage({
         value
       );
 
+      console.log(
+  "OUTLET LOOKUP:",
+  value,
+  outletId
+);
+
     if (!outletId) {
       return upperClean;
     }
+
+    console.log(
+  "CONVERT:",
+  upperClean,
+  "->",
+  `${action}_ALL_${outletId}`
+);
 
     return `${action}_ALL_${outletId}`;
   }
