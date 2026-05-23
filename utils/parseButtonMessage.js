@@ -48,22 +48,22 @@ async function parseButtonMessage({
         value
       );
 
-      console.log(
-  "OUTLET LOOKUP:",
-  value,
-  outletId
-);
+    console.log(
+      "OUTLET LOOKUP:",
+      value,
+      outletId
+    );
 
     if (!outletId) {
       return upperClean;
     }
 
     console.log(
-  "CONVERT:",
-  upperClean,
-  "->",
-  `${action}_ALL_${outletId}`
-);
+      "CONVERT:",
+      upperClean,
+      "->",
+      `${action}_ALL_${outletId}`
+    );
 
     return `${action}_ALL_${outletId}`;
   }
@@ -80,6 +80,23 @@ async function parseButtonMessage({
     return upperClean;
   }
 
+  // 🔥 FULL REPORT PAYLOAD
+  // REPORT FLOW current
+  // REPORT INVENTORY apr-26
+
+  if (
+    upperClean.startsWith(
+      "REPORT "
+    )
+  ) {
+    return upperClean;
+  }
+
+  // 🔥 REPORT MENU
+  // FLOW
+  // INVENTORY
+  // SUMMARY
+
   if (
     [
       "SUMMARY",
@@ -89,25 +106,6 @@ async function parseButtonMessage({
   ) {
 
     return `REPORT_MONTH ${upperClean}`;
-  }
-
-  if (
-    upperClean === "CURRENT" ||
-    /^[A-Z]{3}-\d{2}$/i.test(clean)
-  ) {
-
-    if (
-      body.reply_message_id &&
-      global.reportModeMap?.[chatId]
-    ) {
-
-      const mode =
-        global.reportModeMap[
-          chatId
-        ];
-
-      return `REPORT ${mode} ${clean.toLowerCase()}`;
-    }
   }
 
   return upperClean;

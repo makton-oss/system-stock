@@ -7,8 +7,8 @@ function getLast3Months() {
 
   const now = new Date();
 
-  // start dari bulan lepas
-  for (let i = 1; i <= 2; i++) {
+  // current + 2 previous
+  for (let i = 0; i <= 2; i++) {
 
     const d = new Date(
       now.getFullYear(),
@@ -45,21 +45,32 @@ module.exports = withRole(
       return res.end();
     }
 
-    const months = getLast3Months();
-	global.reportModeMap =
-	  global.reportModeMap || {};
+    const months =
+      getLast3Months();
 
-	global.reportModeMap[chatId] = mode;
+    const currentMonth =
+      months[0];
+
+    const previousMonths =
+      months.slice(1);
 
     const buttons = [
+
       {
-        id: `REPORT ${mode} current`,
-        title: "Current"
+        id:
+          `REPORT ${mode} current`,
+
+        title:
+          `CURRENT (${currentMonth.toUpperCase()})`
       },
 
-      ...months.map(m => ({
-        id: `REPORT ${mode} ${m}`,
-        title: m.toUpperCase()
+      ...previousMonths.map(m => ({
+
+        id:
+          `REPORT ${mode} ${m}`,
+
+        title:
+          m.toUpperCase()
       }))
     ];
 
