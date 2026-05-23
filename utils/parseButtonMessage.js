@@ -145,7 +145,6 @@ async function parseButtonMessage({
       return `REPORT ${mode} ${clean}`;
     }
   }
-  }
 
   return upperClean;
 }
