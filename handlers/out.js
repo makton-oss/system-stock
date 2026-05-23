@@ -2,6 +2,7 @@ const { withRole } = require("../core/withRole");
 const { normalizeItem, safeQty } = require("../utils/helpers");
 const { createRequest } = require("../services/stock/createRequest");
 const { queueStockNotification } = require("../services/notification/queueStockNotification");
+const { getUserDisplay, toProperCase } = require("../utils/formatter");
 
 module.exports = withRole(["staff"], async (ctx) => {
 
