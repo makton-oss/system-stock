@@ -881,6 +881,79 @@ function formatItemNameList(rows) {
   return reply;
 }
 
+// ======================
+// FORMAT CURRENCY
+// ======================
+function formatCurrency(n = 0) {
+
+  return `RM${Number(n)
+    .toFixed(0)
+    .replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`;
+}
+
+// ======================
+// FORMAT SUMMARY REPORT
+// ======================
+function formatSummaryReport( data, monthLabel ) {
+
+  let text =
+`📊 MONTHLY SUMMARY
+${monthLabel}
+
+`;
+
+  Object.entries(data)
+    .forEach(([outlet, o]) => {
+
+      text +=
+`🏪 ${toProperCase(outlet)}
+━━━━━━━━━━
+
+💸 STOCK USED
+${formatCurrency(o.stockOut)}
+
+📥 STOCK IN
+${formatCurrency(o.stockIn)}
+
+⚠️ WASTAGE
+${formatCurrency(o.wastage)}
+
+📦 INVENTORY VALUE
+${formatCurrency(o.inventoryValue)}
+
+📉 WASTAGE %
+${o.wastagePercent.toFixed(1)}%
+
+🔥 TOP USAGE
+`;
+
+      o.topUsage.forEach(([item, val]) => {
+
+        text +=
+`${item} ${formatCurrency(val)}
+`;
+      });
+
+      text += `
+🧨 TOP WASTAGE
+`;
+
+      o.topWastage.forEach(([item, val]) => {
+
+        text +=
+`${item} ${formatCurrency(val)}
+`;
+      });
+
+      text += `
+━━━━━━━━━━
+
+`;
+    });
+
+  return text;
+}
+
 module.exports = {
   getRoleGuide,
   formatLowStockAlert,
@@ -907,7 +980,8 @@ module.exports = {
   formatDeadReport,
   formatFlowReport,
   formatMonthLabel,
-  formatItemNameList
+  formatItemNameList,
+  formatSummaryReport
 };
 	
 	
