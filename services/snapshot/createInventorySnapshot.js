@@ -3,98 +3,114 @@ const supabase = require("../db");
 async function createInventorySnapshot() {
 
   // ======================
-  // TODAY
+  // SNAPSHOT DATE
   // ======================
 
-  const today =
-    new Date()
-      .toISOString()
-      .split("T")[0];
+  const now = new Date();
+
+  const snapshotDate =
+    now.toISOString().split("T")[0];
 
   // ======================
-  // GET LIVE STOCK
+  // PERIOD MONTH
+  // snapshot 1 may = april closing
   // ======================
 
-  const {
-    data: stocks,
-    error
-  } = await supabase
-    .from("stock")
-    .select(`
-      item_id,
-      outlet_id,
-      item,
-      qty,
-      cost_price
-    `);
-
-  if (error) {
-
-    console.log(
-      "SNAPSHOT FETCH ERROR:",
-      error
+  const prevMonthDate =
+    new Date(
+      now.getFullYear(),
+      now.getMonth() - 1,
+      1
     );
 
-    return;
-  }
+  const month =
+    prevMonthDate
+      .toLocaleString("en-MY", {
+        month: "short"
+      })
+      .toLowerCase();
 
-  if (!stocks?.length) {
-    return;
+  const year =
+    prevMonthDate
+      .getFullYear()
+      .toString()
+      .slice(-2);
+
+  const periodMonth =
+    `${month}-${year}`;
+
+  // ======================
+  // FETCH STOCK
+  // ======================
+
+  const { data, error } =
+    await supabase
+      .from("stock")
+      .select(`
+        qty,
+        cost_price,
+        outlet_id,
+        item_id,
+        item
+      `);
+
+  if (error) {
+    throw error;
   }
 
   // ======================
   // BUILD SNAPSHOT
   // ======================
 
-  const rows = stocks.map(s => ({
+  const rows = data.map(r => ({
 
-    snapshot_date: today,
+    snapshot_date:
+      snapshotDate,
+
+    period_month:
+      periodMonth,
 
     outlet_id:
-      s.outlet_id,
+      r.outlet_id,
 
     item_id:
-      s.item_id,
+      r.item_id,
 
-    item:
-      s.item,
+    item_name:
+      r.item,
 
     qty:
-      Number(s.qty || 0),
+      Number(r.qty || 0),
 
     cost_price:
-      Number(s.cost_price || 0),
+      Number(r.cost_price || 0),
 
     inventory_value:
-      Number(s.qty || 0) *
-      Number(s.cost_price || 0)
+      Number(r.qty || 0) *
+      Number(r.cost_price || 0)
   }));
 
   // ======================
-  // INSERT
+  // UPSERT
   // ======================
 
   const {
-    error: insertError
-    } = await supabase
+    error: upsertError
+  } = await supabase
     .from("stock_snapshots")
     .upsert(rows, {
-        onConflict:
-        "snapshot_date,outlet_id,item_id"
+      onConflict:
+        "period_month,outlet_id,item_id"
     });
 
-  if (insertError) {
-
-    console.log(
-      "SNAPSHOT INSERT ERROR:",
-      insertError
-    );
-
-    return;
+  if (upsertError) {
+    throw upsertError;
   }
 
   console.log(
-    `SNAPSHOT CREATED: ${rows.length}`
+    "SNAPSHOT SAVED:",
+    periodMonth,
+    rows.length
   );
 }
 
