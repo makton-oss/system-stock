@@ -746,29 +746,53 @@ function formatMainReport(data, monthLabel) {
 // ======================
 // INVENTORY FORMAT
 // ======================
-function formatInventoryReport(data, month) {
+function formatInventoryReport(
+  data,
+  monthLabel
+) {
 
-  let text = `📦 INVENTORY VALUE REPORT - ${month}\n`;
+  let text =
+`📦 INVENTORY REPORT
+📅 ${monthLabel}
 
-  Object.entries(data).forEach(([outlet, rows]) => {
+`;
 
-    let total = 0;
+  Object.entries(data)
+    .forEach(([outlet, r]) => {
 
-    text += `OUTLET ${toProperCase(outlet)}\n\n`;
+    text +=
+`🏪 ${toProperCase(outlet)}
 
-    rows.forEach(r => {
-      const val =
-		  Number(r.qty || 0) *
-		  Number(r.cost_price || 0);
-      total += val;
+💰 Inventory Value:
+RM${Number(r.totalValue || 0)
+  .toFixed(2)}
 
-      text += `${toProperCase(r.item)} x ${r.qty} = RM${val.toFixed(2)}\n`;
+📦 Total Unit:
+${r.totalItems}
+
+📋 Top Holding Stock
+`;
+
+    if (!r.items.length) {
+
+      text += "-\n\n";
+      return;
+    }
+
+    r.items.forEach(i => {
+
+      text +=
+`• ${toProperCase(i.item)}
+  ${i.qty} unit
+  RM${Number(i.value || 0)
+    .toFixed(2)}
+`;
     });
 
-    text += `\nTOTAL RM${total.toFixed(2)}\n\n`;
+    text += "\n";
   });
 
-  return text;
+  return text.trim();
 }
 
 // ======================

@@ -109,21 +109,25 @@ async function getMainReport({
 // INVENTORY
 // ======================
 async function getInventoryReport({
-  outletIds
+  outletIds,
+  snapshotDate
 }) {
 
   let q = supabase
-    .from("stock")
+    .from("stock_snapshots")
     .select(`
       qty,
-      item,
+      value,
       outlet_id,
-      cost_price,
-      stock_items(name),
+      item_name,
       outlets(name)
-    `);
+    `)
+    .eq(
+      "snapshot_date",
+      snapshotDate
+    );
 
-  if (outletIds?.length) {
+  if (outletIds) {
 
     q = q.in(
       "outlet_id",
@@ -131,12 +135,60 @@ async function getInventoryReport({
     );
   }
 
-  const { data, error } =
-    await q;
+  const {
+    data,
+    error
+  } = await q;
 
-  if (error) return { error };
+  if (error) {
+    return { error };
+  }
 
-  return groupByOutlet(data);
+  const grouped = {};
+
+  data.forEach(r => {
+
+    const outlet =
+      r.outlets?.name || "Outlet";
+
+    if (!grouped[outlet]) {
+
+      grouped[outlet] = {
+        totalValue: 0,
+        totalItems: 0,
+        items: []
+      };
+    }
+
+    grouped[outlet]
+      .totalValue +=
+        Number(r.value || 0);
+
+    grouped[outlet]
+      .totalItems +=
+        Number(r.qty || 0);
+
+    grouped[outlet]
+      .items.push({
+        item: r.item_name,
+        qty: r.qty,
+        value: r.value
+      });
+  });
+
+  Object.values(grouped)
+    .forEach(g => {
+
+      g.items =
+        g.items
+          .sort(
+            (a,b)=>
+              b.value - a.value
+          )
+          .slice(0,10);
+    });
+
+  return grouped;
 }
 
 // ======================

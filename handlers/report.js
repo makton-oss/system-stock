@@ -76,7 +76,13 @@ module.exports = withRole(["manager", "admin"], async (ctx) => {
     switch (mode) {
 
       case "INVENTORY":
-        result = await getInventoryReport({ outletIds, start, end });
+        result = await getInventoryReport({
+          outletIds,
+          snapshotDate:
+            range.end
+              .toISOString()
+              .slice(0,10)
+        });
 
         if (result.error) throw result.error;
 
