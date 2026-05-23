@@ -29,7 +29,7 @@ async function approveRequest(rows, chatId) {
     // ======================
     const { data: before } = await supabase
       .from("stock")
-      .select("qty, min_qty")
+      .select("qty, min_qty", "cost_price")
       .eq("item_id", row.item_id)
       .eq("outlet_id", row.outlet_id)
       .maybeSingle();
@@ -44,7 +44,7 @@ async function approveRequest(rows, chatId) {
     // ======================
     let rpcRes;
 
-    if (row.type === "out") {
+    if (row.type === "out" || row.type === "wastage") {
       rpcRes = await supabase.rpc("decrease_stock", {
         p_item_id: row.item_id,
         p_qty: row.qty,
@@ -82,7 +82,7 @@ async function approveRequest(rows, chatId) {
     // ======================
     const { data: after } = await supabase
       .from("stock")
-      .select("qty, min_qty")
+      .select("qty, min_qty", "cost_price")
       .eq("item_id", row.item_id)
       .eq("outlet_id", row.outlet_id)
       .maybeSingle();

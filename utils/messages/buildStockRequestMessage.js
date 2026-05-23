@@ -33,7 +33,8 @@ BY: ${r.users?.nickname || "-"}
 
   const grouped = {
     in: {},
-    out: {}
+    out: {},
+    wastage: {}
   };
 
   // ======================
@@ -47,7 +48,8 @@ BY: ${r.users?.nickname || "-"}
 
     if (
       type !== "in" &&
-      type !== "out"
+      type !== "out" &&
+      type !== "wastage"
     ) continue;
 
     const userKey =
@@ -110,6 +112,40 @@ BY: ${r.users?.nickname || "-"}
     text += "📤 OUT\n";
 
     Object.values(grouped.out)
+      .forEach(group => {
+
+      const displayName =
+        group.user?.nickname || "-";
+
+      const displayPhone =
+        group.user?.chat_id || "-";
+
+      text +=
+  `BY: ${toProperCase(displayName)} (${displayPhone})
+  `;
+
+      group.rows.forEach(r => {
+
+        text +=
+  `ID ${r.id} ${r.item} x${r.qty}
+  `;
+      });
+
+      text += "\n";
+    });
+  }
+
+  // ======================
+  // WASTAGE
+  // ======================
+
+  if (
+    Object.keys(grouped.wastage).length
+  ) {
+
+    text += "🗑️ WASTAGE\n";
+
+    Object.values(grouped.wastage)
       .forEach(group => {
 
       const displayName =

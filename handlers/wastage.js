@@ -38,7 +38,7 @@ module.exports = withRole(["staff"], async (ctx) => {
       const test = await createRequest({
         item,
         qty,
-        type: "out",
+        type: "wastage",
         user,
         chatId,
         validateOnly: true
@@ -62,7 +62,7 @@ module.exports = withRole(["staff"], async (ctx) => {
       const result = await createRequest({
         item: p.item,
         qty: p.qty,
-        type: "out",
+        type: "wastage",
         user,
         chatId
       });
@@ -79,7 +79,7 @@ module.exports = withRole(["staff"], async (ctx) => {
     // ======================
     await queueStockNotification(user.outlet_id);
 
-    await reply(chatId, "✅ REQUEST SENT");
+    await reply(chatId, "✅ WASTAGE SENT");
     return res.end();
   }
 
@@ -90,14 +90,14 @@ module.exports = withRole(["staff"], async (ctx) => {
   const item = normalizeItem(parts.slice(1, -1).join(" "));
 
   if (!item || qty === null) {
-    await reply(chatId, "❌ FORMAT: OUT ayam 5");
+    await reply(chatId, "❌ FORMAT: WASTAGE ayam 5");
     return res.end();
   }
 
   const result = await createRequest({
     item,
     qty,
-    type: "out",
+    type: "wastage",
     user,
     chatId
   });
@@ -115,6 +115,6 @@ module.exports = withRole(["staff"], async (ctx) => {
   const userInfo = await getUserDisplay(chatId);
     await queueStockNotification(user.outlet_id);
 
-  await reply(chatId, "✅ REQUEST SENT");
+  await reply(chatId, "✅ WASTAGE SENT");
   return res.end();
 });
