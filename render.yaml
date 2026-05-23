@@ -6,6 +6,9 @@ services:
     startCommand: node index.js
 
 cronJobs:
-  - name: inventory-snapshot
+  - type: cron
+    name: inventory-snapshot
+    env: node
     schedule: "0 0 * * *"
-    command: "node src/jobs/inventorySnapshotJob.js"
+    buildCommand: npm install
+    startCommand: node src/jobs/inventorySnapshotJob.js
