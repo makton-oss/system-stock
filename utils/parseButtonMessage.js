@@ -80,23 +80,6 @@ async function parseButtonMessage({
     return upperClean;
   }
 
-  // 🔥 FULL REPORT PAYLOAD
-  // REPORT FLOW current
-  // REPORT INVENTORY apr-26
-
-  if (
-    upperClean.startsWith(
-      "REPORT "
-    )
-  ) {
-    return upperClean;
-  }
-
-  // 🔥 REPORT MENU
-  // FLOW
-  // INVENTORY
-  // SUMMARY
-
   if (
     [
       "SUMMARY",
@@ -106,6 +89,33 @@ async function parseButtonMessage({
   ) {
 
     return `REPORT_MONTH ${upperClean}`;
+  }
+
+  if (
+    upperClean.startsWith("CURRENT") ||
+    /^[A-Z]{3}-\d{2}$/i.test(clean)
+  ) {
+
+    if (
+      body.reply_message_id &&
+      global.reportModeMap?.[chatId]
+    ) {
+
+      const mode =
+        global.reportModeMap[
+          chatId
+        ];
+
+      const monthMatch =
+        clean.match(/[A-Z]{3}-\d{2}/i);
+
+      const month =
+        monthMatch
+          ? monthMatch[0].toLowerCase()
+          : "current";
+
+      return `REPORT ${mode} ${month}`;
+    }
   }
 
   return upperClean;

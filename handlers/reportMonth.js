@@ -7,8 +7,7 @@ function getLast3Months() {
 
   const now = new Date();
 
-  // current + 2 previous
-  for (let i = 0; i <= 2; i++) {
+  for (let i = 1; i <= 2; i++) {
 
     const d = new Date(
       now.getFullYear(),
@@ -33,6 +32,24 @@ function getLast3Months() {
   return months;
 }
 
+function getCurrentMonthLabel() {
+
+  const now = new Date();
+
+  const month = now
+    .toLocaleString("en-MY", {
+      month: "short"
+    })
+    .toUpperCase();
+
+  const year = now
+    .getFullYear()
+    .toString()
+    .slice(-2);
+
+  return `${month}-${year}`;
+}
+
 module.exports = withRole(
   ["manager", "admin"],
   async (ctx) => {
@@ -45,32 +62,30 @@ module.exports = withRole(
       return res.end();
     }
 
+    global.reportModeMap =
+      global.reportModeMap || {};
+
+    global.reportModeMap[chatId] =
+      mode;
+
     const months =
       getLast3Months();
 
-    const currentMonth =
-      months[0];
-
-    const previousMonths =
-      months.slice(1);
+    const currentLabel =
+      getCurrentMonthLabel();
 
     const buttons = [
 
       {
-        id:
-          `REPORT ${mode} current`,
-
-        title:
-          `CURRENT (${currentMonth.toUpperCase()})`
+        id: "CURRENT",
+        title: `CURRENT (${currentLabel})`
       },
 
-      ...previousMonths.map(m => ({
+      ...months.map(m => ({
 
-        id:
-          `REPORT ${mode} ${m}`,
+        id: m.toUpperCase(),
+        title: m.toUpperCase()
 
-        title:
-          m.toUpperCase()
       }))
     ];
 

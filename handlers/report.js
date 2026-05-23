@@ -46,8 +46,24 @@ module.exports = withRole(["manager", "admin"], async (ctx) => {
   // ======================
   // ROLE CONTROL
   // ======================
-  const isAdmin = user.role === "admin";
-  const outletId = isAdmin ? null : user.outlet_id;
+
+  const isAdmin =
+    user.role === "admin";
+
+  const outletIds =
+    isAdmin
+      ? null
+      : (user.accessible_outlets || []);
+
+  if (!isAdmin && !outletIds.length) {
+
+    await reply(
+      chatId,
+      "❌ TIADA AKSES OUTLET"
+    );
+
+    return res.end();
+  }
 
   // ======================
   // ROUTING
@@ -59,7 +75,7 @@ module.exports = withRole(["manager", "admin"], async (ctx) => {
     switch (mode) {
 
       case "INVENTORY":
-        result = await getInventoryReport({ outletId });
+        result = await getInventoryReport({ outletIds, start, end });
 
         if (result.error) throw result.error;
 
@@ -68,7 +84,7 @@ module.exports = withRole(["manager", "admin"], async (ctx) => {
 
 
       case "FLOW":
-        result = await getFlowReport({ start, end, outletId });
+        result = await getFlowReport({ start, end, outletIds });
 
         if (result.error) throw result.error;
 
@@ -77,7 +93,7 @@ module.exports = withRole(["manager", "admin"], async (ctx) => {
 
 
       case "DEAD":
-        result = await getDeadReport({ start, end, outletId });
+        result = await getDeadReport({ start, end, outletIds  });      
 
         if (result.error) throw result.error;
 
@@ -97,7 +113,7 @@ module.exports = withRole(["manager", "admin"], async (ctx) => {
 
 
       case "DETAIL":
-        result = await getDetailReport({ start, end, outletId });
+        result = await getDetailReport({ start, end, outletIds });
 
         if (result.error) throw result.error;
 
@@ -118,7 +134,7 @@ module.exports = withRole(["manager", "admin"], async (ctx) => {
         result = await getMainReport({
           start,
           end,
-          outletId,
+          outletIds,
           isAdmin
         });
 
