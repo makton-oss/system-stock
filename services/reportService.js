@@ -117,7 +117,7 @@ async function getInventoryReport({
     .from("stock_snapshots")
     .select(`
       qty,
-      value,
+      inventory_value,
       outlet_id,
       item_name,
       outlets(name)
@@ -162,7 +162,7 @@ async function getInventoryReport({
 
     grouped[outlet]
       .totalValue +=
-        Number(r.value || 0);
+        Number(r.inventory_value || 0);
 
     grouped[outlet]
       .totalItems +=
@@ -172,7 +172,7 @@ async function getInventoryReport({
       .items.push({
         item: r.item_name,
         qty: r.qty,
-        value: r.value
+        value: r.inventory_value
       });
   });
 
