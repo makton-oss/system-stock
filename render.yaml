@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: sambal-gesek-bot
+    env: node
+    buildCommand: npm install
+    startCommand: node index.js
+
+cronJobs:
+  - name: inventory-snapshot
+    schedule: "0 0 * * *"
+    command: "node src/jobs/inventorySnapshotJob.js"

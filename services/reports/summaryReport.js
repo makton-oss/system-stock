@@ -59,7 +59,11 @@ async function getSummaryReport({
     data: stocks
   } = await stockQ;
 
-  const outletMap = {};
+  // ======================
+  // OUTLET MAP
+  // ======================
+
+  const outletMap = new Map();
 
   // ======================
   // MOVEMENTS
@@ -67,22 +71,28 @@ async function getSummaryReport({
 
   movements.forEach(r => {
 
-    const outlet =
+    const outletId =
+      r.outlet_id || 9999;
+
+    const outletName =
       r.outlets?.name || "Outlet";
 
-    if (!outletMap[outlet]) {
+    if (!outletMap.has(outletId)) {
 
-      outletMap[outlet] = {
+      outletMap.set(outletId, {
+        outletId,
+        outletName,
         stockIn: 0,
         stockOut: 0,
         wastage: 0,
         inventoryValue: 0,
         usageMap: {},
         wastageMap: {}
-      };
+      });
     }
 
-    const o = outletMap[outlet];
+    const o =
+      outletMap.get(outletId);
 
     const value =
       Number(r.qty || 0) *
@@ -129,58 +139,73 @@ async function getSummaryReport({
 
   stocks.forEach(s => {
 
-    const outlet =
+    const outletId =
+      s.outlet_id || 9999;
+
+    const outletName =
       s.outlets?.name || "Outlet";
 
-    if (!outletMap[outlet]) {
+    if (!outletMap.has(outletId)) {
 
-      outletMap[outlet] = {
+      outletMap.set(outletId, {
+        outletId,
+        outletName,
         stockIn: 0,
         stockOut: 0,
         wastage: 0,
         inventoryValue: 0,
         usageMap: {},
         wastageMap: {}
-      };
+      });
     }
 
-    outletMap[outlet]
+    outletMap
+      .get(outletId)
       .inventoryValue +=
         Number(s.qty || 0) *
         Number(s.cost_price || 0);
   });
 
   // ======================
+  // SORT OUTLET
+  // ======================
+
+  const sorted =
+    [...outletMap.values()]
+      .sort((a, b) =>
+        a.outletId - b.outletId
+      );
+
+  // ======================
   // FINAL FORMAT
   // ======================
 
-  Object.values(outletMap)
-    .forEach(o => {
+  sorted.forEach(o => {
 
-      o.topUsage =
-        Object.entries(o.usageMap)
-          .sort((a,b)=>b[1]-a[1])
-          .slice(0,5);
+    o.topUsage =
+      Object.entries(o.usageMap)
+        .sort((a,b)=>b[1]-a[1])
+        .slice(0,5);
 
-      o.topWastage =
-        Object.entries(o.wastageMap)
-          .sort((a,b)=>b[1]-a[1])
-          .slice(0,5);
+    o.topWastage =
+      Object.entries(o.wastageMap)
+        .sort((a,b)=>b[1]-a[1])
+        .slice(0,5);
 
-      o.wastagePercent =
-        o.stockOut > 0
-          ? (
-              o.wastage /
-              o.stockOut *
-              100
-            )
-          : 0;
+    o.wastagePercent =
+      o.stockOut > 0
+        ? (
+            o.wastage /
+            o.stockOut *
+            100
+          )
+        : 0;
 
-      delete o.usageMap;
-      delete o.wastageMap;
-    });
+    delete o.usageMap;
+    delete o.wastageMap;
+  });
 
-  return outletMap;
+  return sorted;
 }
 
 module.exports = {

@@ -954,6 +954,98 @@ ${o.wastagePercent.toFixed(1)}%
   return text;
 }
 
+// ======================
+// FORMAT USAGE REPORT
+// ======================
+function formatUsageReport(
+  data,
+  monthLabel
+) {
+
+  let text =
+`📊 USAGE REPORT
+${monthLabel}
+
+`;
+
+  data.forEach(o => {
+
+    text +=
+`🏪 ${toProperCase(o.outletName)}
+
+`;
+
+    o.items.forEach(([item, val], i) => {
+
+      text +=
+`${i + 1}. ${item}
+RM${Number(val)
+  .toFixed(0)
+  .replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
+
+`;
+    });
+
+    text +=
+`TOTAL:
+RM${Number(o.total)
+  .toFixed(0)
+  .replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
+
+━━━━━━━━━━
+
+`;
+  });
+
+  return text;
+}
+
+// ======================
+// FORMAT WASTAGE REPORT
+// ======================
+function formatWastageReport(
+  data,
+  monthLabel
+) {
+
+  let text =
+`⚠️ WASTAGE REPORT
+${monthLabel}
+
+`;
+
+  data.forEach(o => {
+
+    text +=
+`🏪 ${toProperCase(o.outletName)}
+
+TOTAL LOSS:
+RM${Number(o.total)
+  .toFixed(0)
+  .replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
+
+`;
+
+    o.items.forEach(([item, val], i) => {
+
+      text +=
+`${i + 1}. ${item}
+RM${Number(val)
+  .toFixed(0)
+  .replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
+
+`;
+    });
+
+    text +=
+`━━━━━━━━━━
+
+`;
+  });
+
+  return text;
+}
+
 module.exports = {
   getRoleGuide,
   formatLowStockAlert,
@@ -981,7 +1073,9 @@ module.exports = {
   formatFlowReport,
   formatMonthLabel,
   formatItemNameList,
-  formatSummaryReport
+  formatSummaryReport,
+  formatUsageReport,
+  formatWastageReport
 };
 	
 	
