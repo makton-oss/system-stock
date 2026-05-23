@@ -1,6 +1,6 @@
 const { withRole } = require("../core/withRole");
 const { getMainReport, getInventoryReport, getFlowReport, getDeadReport, getDetailReport } = require("../services/reportService");
-const { formatMainReport, formatInventoryReport, formatDetailReport, formatDeadReport, formatFlowReport, parseMonthInput, formatMonthLabel  } = require("../utils/formatter");
+const { formatSummaryReport, formatInventoryReport, formatDetailReport, formatDeadReport, formatFlowReport, parseMonthInput, formatMonthLabel  } = require("../utils/formatter");
 const { getSummaryReport } = require("../services/reports/summaryReport");
 
 module.exports = withRole(["manager", "admin"], async (ctx) => {
