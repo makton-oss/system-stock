@@ -82,8 +82,9 @@ module.exports = withRole(
         chatId,
 `📦 INVENTORY SNAPSHOT
 
-Taip manual:
-REPORT INVENTORY 30/04/26`,
+Klik butang di bawah untuk dapatkan laporan inventory snapshot bagi bulan lepas, atau
+taip tarikh sahaja untuk laporan inventory. Contoh:
+30/04/26`,
         [
           {
             id: `REPORT INVENTORY ${snapshotDate}`,

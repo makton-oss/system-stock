@@ -91,36 +91,34 @@ async function parseButtonMessage({
     return `REPORT_MONTH ${upperClean}`;
   }
 
+  // ======================
+  // REPORT CURRENT / MONTH
+  // ======================
+
   if (
-    upperClean.startsWith("CURRENT") ||
+    upperClean === "CURRENT" ||
     /^[A-Z]{3}-\d{2}$/i.test(clean)
   ) {
 
-      if (
-      upperClean.startsWith("CURRENT") ||
-      /^[A-Z]{3}-\d{2}$/i.test(clean)
+    if (
+      body.reply_message_id &&
+      global.reportModeMap?.[chatId]
     ) {
 
-      if (
-        body.reply_message_id &&
-        global.reportModeMap?.[chatId]
-      ) {
+      const mode =
+        global.reportModeMap[
+          chatId
+        ];
 
-        const mode =
-          global.reportModeMap[
-            chatId
-          ];
+      const monthMatch =
+        clean.match(/[A-Z]{3}-\d{2}/i);
 
-        const monthMatch =
-          clean.match(/[A-Z]{3}-\d{2}/i);
+      const month =
+        monthMatch
+          ? monthMatch[0].toLowerCase()
+          : "current";
 
-        const month =
-          monthMatch
-            ? monthMatch[0].toLowerCase()
-            : "current";
-
-        return `REPORT ${mode} ${month}`;
-      }
+      return `REPORT ${mode} ${month}`;
     }
   }
 
@@ -145,7 +143,6 @@ async function parseButtonMessage({
       return `REPORT ${mode} ${clean}`;
     }
   }
-
   return upperClean;
 }
 
