@@ -1,6 +1,6 @@
 const express = require("express");
 require("dotenv").config();
-
+require("./src/jobs/startCronJobs");
 const supabase = require("./services/db");
 const handlerMap = require("./core/handlerMap");
 const { createContext } = require("./core/context");
