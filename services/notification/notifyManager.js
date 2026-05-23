@@ -1,5 +1,5 @@
 const supabase = require("../db");
-const { sendWhatsApp } = require("./WhatsappService");
+const { sendWhatsApp } = require("./whatsappService");
 
 // ======================
 // NOTIFY MANAGER
