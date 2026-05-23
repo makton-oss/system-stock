@@ -7,6 +7,7 @@ function getLast3Months() {
 
   const now = new Date();
 
+  // start dari bulan lepas
   for (let i = 1; i <= 2; i++) {
 
     const d = new Date(
@@ -32,24 +33,6 @@ function getLast3Months() {
   return months;
 }
 
-function getCurrentMonthLabel() {
-
-  const now = new Date();
-
-  const month = now
-    .toLocaleString("en-MY", {
-      month: "short"
-    })
-    .toUpperCase();
-
-  const year = now
-    .getFullYear()
-    .toString()
-    .slice(-2);
-
-  return `${month}-${year}`;
-}
-
 module.exports = withRole(
   ["manager", "admin"],
   async (ctx) => {
@@ -62,32 +45,114 @@ module.exports = withRole(
       return res.end();
     }
 
-    global.reportModeMap =
-      global.reportModeMap || {};
+    // ======================
+    // INVENTORY MODE
+    // ======================
 
-    global.reportModeMap[chatId] =
-      mode;
+    if (mode === "INVENTORY") {
 
-    const months =
-      getLast3Months();
+      const now = new Date();
 
-    const currentLabel =
-      getCurrentMonthLabel();
+      const lastDayPrevMonth =
+        new Date(
+          now.getFullYear(),
+          now.getMonth(),
+          0
+        );
 
-    const buttons = [
+      const dd =
+        String(
+          lastDayPrevMonth.getDate()
+        ).padStart(2, "0");
 
-      {
-        id: "CURRENT",
-        title: `CURRENT (${currentLabel})`
-      },
+      const mm =
+        String(
+          lastDayPrevMonth.getMonth() + 1
+        ).padStart(2, "0");
 
-      ...months.map(m => ({
+      const yy =
+        String(
+          lastDayPrevMonth.getFullYear()
+        ).slice(-2);
 
-        id: m.toUpperCase(),
-        title: m.toUpperCase()
+      const snapshotDate =
+        `${dd}/${mm}/${yy}`;
 
-      }))
-    ];
+      await sendButtons(
+        chatId,
+`📦 INVENTORY SNAPSHOT
+
+Taip manual:
+REPORT INVENTORY 30/04/26`,
+        [
+          {
+            id: `REPORT INVENTORY ${snapshotDate}`,
+            title: "LAST MONTH"
+          }
+        ]
+      );
+
+      return res.end();
+    }
+
+    // ======================
+    // NORMAL REPORT
+    // ======================
+
+    const months = getLast3Months();
+
+    let buttons;
+
+    if (mode === "INVENTORY") {
+
+      const now = new Date();
+
+      const lastDayPrevMonth =
+        new Date(
+          now.getFullYear(),
+          now.getMonth(),
+          0
+        );
+
+      const dd =
+        String(
+          lastDayPrevMonth.getDate()
+        ).padStart(2, "0");
+
+      const mm =
+        String(
+          lastDayPrevMonth.getMonth() + 1
+        ).padStart(2, "0");
+
+      const yy =
+        String(
+          lastDayPrevMonth.getFullYear()
+        ).slice(-2);
+
+      const snapshotDate =
+        `${dd}/${mm}/${yy}`;
+
+      buttons = [
+        {
+          id: `REPORT INVENTORY ${snapshotDate}`,
+          title: "LAST MONTH"
+        }
+      ];
+
+    } else {
+
+      buttons = [
+        {
+          id: `REPORT ${mode} current`,
+          title: "Current"
+        },
+
+        ...months.map(m => ({
+          id: `REPORT ${mode} ${m}`,
+          title: m.toUpperCase()
+        }))
+      ];
+    };
 
     await sendButtons(
       chatId,

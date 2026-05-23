@@ -16,7 +16,111 @@ module.exports = withRole(["manager", "admin"], async (ctx) => {
 	  mode = undefined;
 	}
 
-  const COMMANDS = ["INVENTORY", "FLOW", "DEAD", "DETAIL"];
+  // ======================
+  // ROLE CONTROL
+  // ======================
+
+  const isAdmin =
+    user.role === "admin";
+
+  const outletIds =
+    isAdmin
+      ? null
+      : (user.accessible_outlets || []);
+
+  if (!isAdmin && !outletIds.length) {
+
+    await reply(
+      chatId,
+      "❌ TIADA AKSES OUTLET"
+    );
+
+    return res.end();
+  }
+
+  // ======================
+  // INVENTORY MODE
+  // ======================
+
+  if (mode === "INVENTORY") {
+
+    const rawDate =
+      parts[2];
+
+    if (!rawDate) {
+
+      await reply(
+        chatId,
+        "❌ FORMAT: REPORT INVENTORY 30/04/26"
+      );
+
+      return res.end();
+    }
+
+    const match =
+      rawDate.match(
+        /^(\d{1,2})\/(\d{1,2})\/(\d{2})$/
+      );
+
+    if (!match) {
+
+      await reply(
+        chatId,
+        "❌ FORMAT TARIKH: 30/04/26"
+      );
+
+      return res.end();
+    }
+
+    const [
+      ,
+      dd,
+      mm,
+      yy
+    ] = match;
+
+    const snapshotDate =
+      `20${yy}-${mm.padStart(2, "0")}-${dd.padStart(2, "0")}`;
+
+    try {
+
+      const result =
+        await getInventoryReport({
+          outletIds,
+          snapshotDate
+        });
+
+      if (result.error) {
+        throw result.error;
+      }
+
+      await reply(
+        chatId,
+        formatInventoryReport(
+          result,
+          rawDate
+        )
+      );
+
+      return res.end();
+
+    } catch (err) {
+
+      console.log(
+        "REPORT ERROR:",
+        err
+      );
+
+      await reply(
+        chatId,
+        "❌ REPORT ERROR"
+      );
+
+      return res.end();
+    }
+  }
+
+  const COMMANDS = ["FLOW", "DEAD", "DETAIL"];
 
   // ======================
   // MONTH PARSE FIX
@@ -45,28 +149,6 @@ module.exports = withRole(["manager", "admin"], async (ctx) => {
   const monthLabel = formatMonthLabel(monthInput, start);
 
   // ======================
-  // ROLE CONTROL
-  // ======================
-
-  const isAdmin =
-    user.role === "admin";
-
-  const outletIds =
-    isAdmin
-      ? null
-      : (user.accessible_outlets || []);
-
-  if (!isAdmin && !outletIds.length) {
-
-    await reply(
-      chatId,
-      "❌ TIADA AKSES OUTLET"
-    );
-
-    return res.end();
-  }
-
-  // ======================
   // ROUTING
   // ======================
   try {
@@ -74,21 +156,6 @@ module.exports = withRole(["manager", "admin"], async (ctx) => {
     let result;
 
     switch (mode) {
-
-      case "INVENTORY":
-        result = await getInventoryReport({
-          outletIds,
-          snapshotDate:
-            range.end
-              .toISOString()
-              .slice(0,10)
-        });
-
-        if (result.error) throw result.error;
-
-        await reply(chatId, formatInventoryReport(result, monthLabel));
-        return res.end();
-
 
       case "FLOW":
         result = await getFlowReport({ start, end, outletIds });

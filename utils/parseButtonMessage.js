@@ -96,6 +96,42 @@ async function parseButtonMessage({
     /^[A-Z]{3}-\d{2}$/i.test(clean)
   ) {
 
+      if (
+      upperClean.startsWith("CURRENT") ||
+      /^[A-Z]{3}-\d{2}$/i.test(clean)
+    ) {
+
+      if (
+        body.reply_message_id &&
+        global.reportModeMap?.[chatId]
+      ) {
+
+        const mode =
+          global.reportModeMap[
+            chatId
+          ];
+
+        const monthMatch =
+          clean.match(/[A-Z]{3}-\d{2}/i);
+
+        const month =
+          monthMatch
+            ? monthMatch[0].toLowerCase()
+            : "current";
+
+        return `REPORT ${mode} ${month}`;
+      }
+    }
+  }
+
+  // ======================
+  // INVENTORY SNAPSHOT
+  // ======================
+
+  if (
+    /^\d{2}\/\d{2}\/\d{2}$/.test(clean)
+  ) {
+
     if (
       body.reply_message_id &&
       global.reportModeMap?.[chatId]
@@ -106,16 +142,9 @@ async function parseButtonMessage({
           chatId
         ];
 
-      const monthMatch =
-        clean.match(/[A-Z]{3}-\d{2}/i);
-
-      const month =
-        monthMatch
-          ? monthMatch[0].toLowerCase()
-          : "current";
-
-      return `REPORT ${mode} ${month}`;
+      return `REPORT ${mode} ${clean}`;
     }
+  }
   }
 
   return upperClean;
