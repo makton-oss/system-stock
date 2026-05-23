@@ -31,47 +31,106 @@ BY: ${r.users?.nickname || "-"}
 
 `;
 
-  let currentType = null;
-  let currentUser = null;
+  const grouped = {
+    in: {},
+    out: {}
+  };
+
+  // ======================
+  // GROUP
+  // ======================
 
   for (const r of rows) {
 
-    if (currentType !== r.type) {
-
-      text +=
-        r.type === "in"
-          ? "📥 IN\n"
-          : "\n📤 OUT\n";
-
-      currentType = r.type;
-
-      currentUser = null;
-    }
+    const type =
+      r.type?.toLowerCase();
 
     if (
-      currentUser !==
-      r.requested_by
-    ) {
+      type !== "in" &&
+      type !== "out"
+    ) continue;
 
-      const displayName =
-        r.users?.nickname ||
-        r.requested_by;
+    const userKey =
+      r.requested_by;
 
-      const displayPhone =
-        r.users?.chat_id ||
-        r.requested_by;
+    if (!grouped[type][userKey]) {
 
-      text +=
-`BY: ${toProperCase(displayName)} (${displayPhone})
-`;
-
-      currentUser =
-        r.requested_by;
+      grouped[type][userKey] = {
+        user: r.users,
+        rows: []
+      };
     }
 
-    text +=
-`ID ${r.id} ${r.item} x${r.qty}
-`;
+    grouped[type][userKey]
+      .rows.push(r);
+  }
+
+  // ======================
+  // IN
+  // ======================
+
+  if (
+    Object.keys(grouped.in).length
+  ) {
+
+    text += "📥 IN\n";
+
+    Object.values(grouped.in)
+      .forEach(group => {
+
+      const displayName =
+        group.user?.nickname || "-";
+
+      const displayPhone =
+        group.user?.chat_id || "-";
+
+      text +=
+  `BY: ${toProperCase(displayName)} (${displayPhone})
+  `;
+
+      group.rows.forEach(r => {
+
+        text +=
+  `ID ${r.id} ${r.item} x${r.qty}
+  `;
+      });
+
+      text += "\n";
+    });
+  }
+
+  // ======================
+  // OUT
+  // ======================
+
+  if (
+    Object.keys(grouped.out).length
+  ) {
+
+    text += "📤 OUT\n";
+
+    Object.values(grouped.out)
+      .forEach(group => {
+
+      const displayName =
+        group.user?.nickname || "-";
+
+      const displayPhone =
+        group.user?.chat_id || "-";
+
+      text +=
+  `BY: ${toProperCase(displayName)} (${displayPhone})
+  `;
+
+      group.rows.forEach(r => {
+
+        text +=
+  `ID ${r.id} ${r.item} x${r.qty}
+  `;
+      });
+
+      text += "\n";
+    });
   }
 
   return text;

@@ -17,5 +17,6 @@ module.exports = {
   UPDATE: require("../handlers/update"),
   REPORTMENU: require("../handlers/reportMenu"),
   REPORT_MONTH: require("../handlers/reportMonth"),
+  PENDING: require("../handlers/pending"),
   TRY: require("../handlers/try")
 };
