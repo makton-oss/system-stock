@@ -80,23 +80,12 @@ async function parseButtonMessage({
     return upperClean;
   }
 
-  if (
-    [
-      "SUMMARY",
-      "INVENTORY",
-      "FLOW"
-    ].includes(upperClean)
-  ) {
-
-    return `REPORT_MONTH ${upperClean}`;
-  }
-
   // ======================
   // REPORT CURRENT / MONTH
   // ======================
 
   if (
-    upperClean === "CURRENT" ||
+    upperClean.startsWith("CURRENT") ||
     /^[A-Z]{3}-\d{2}$/i.test(clean)
   ) {
 
@@ -143,6 +132,7 @@ async function parseButtonMessage({
       return `REPORT ${mode} ${clean}`;
     }
   }
+
   return upperClean;
 }
 
