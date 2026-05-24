@@ -81,6 +81,23 @@ async function parseButtonMessage({
   }
 
   // ======================
+  // REPORT MODE
+  // ======================
+
+  if (
+    [
+      "SUMMARY",
+      "INVENTORY",
+      "FLOW",
+      "DEAD",
+      "DETAIL"
+    ].includes(upperClean)
+  ) {
+
+    return `REPORT_MONTH ${upperClean}`;
+  }
+
+  // ======================
   // REPORT CURRENT / MONTH
   // ======================
 
@@ -112,7 +129,7 @@ async function parseButtonMessage({
   }
 
   // ======================
-  // INVENTORY SNAPSHOT
+  // INVENTORY SNAPSHOT DATE
   // ======================
 
   if (
