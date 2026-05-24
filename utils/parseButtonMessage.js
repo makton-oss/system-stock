@@ -102,7 +102,7 @@ async function parseButtonMessage({
   // ======================
 
   if (
-    upperClean.startsWith("CURRENT") ||
+    clean.toLowerCase().startsWith("current") ||
     /^[A-Z]{3}-\d{2}$/i.test(clean)
   ) {
 
