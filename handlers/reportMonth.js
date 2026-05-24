@@ -78,6 +78,18 @@ module.exports = withRole(
       const snapshotDate =
         `${dd}/${mm}/${yy}`;
 
+      const buttons = [
+        {
+          id: `REPORT INVENTORY ${snapshotDate}`,
+          title: "LAST MONTH"
+        }
+      ];
+
+      console.log(
+        "REPORT BUTTONS:",
+        buttons
+      );
+
       await sendButtons(
         chatId,
 `📦 INVENTORY SNAPSHOT
@@ -85,12 +97,7 @@ module.exports = withRole(
 Klik butang di bawah untuk dapatkan laporan inventory snapshot bagi bulan lepas, atau
 taip tarikh sahaja untuk laporan inventory. Contoh:
 30/04/26`,
-        [
-          {
-            id: `REPORT INVENTORY ${snapshotDate}`,
-            title: "LAST MONTH"
-          }
-        ]
+        buttons
       );
 
       return res.end();
@@ -102,58 +109,22 @@ taip tarikh sahaja untuk laporan inventory. Contoh:
 
     const months = getLast3Months();
 
-    let buttons;
+    const buttons = [
+      {
+        id: `REPORT ${mode} current`,
+        title: "Current"
+      },
 
-    if (mode === "INVENTORY") {
+      ...months.map(m => ({
+        id: `REPORT ${mode} ${m}`,
+        title: m.toUpperCase()
+      }))
+    ];
 
-      const now = new Date();
-
-      const lastDayPrevMonth =
-        new Date(
-          now.getFullYear(),
-          now.getMonth(),
-          0
-        );
-
-      const dd =
-        String(
-          lastDayPrevMonth.getDate()
-        ).padStart(2, "0");
-
-      const mm =
-        String(
-          lastDayPrevMonth.getMonth() + 1
-        ).padStart(2, "0");
-
-      const yy =
-        String(
-          lastDayPrevMonth.getFullYear()
-        ).slice(-2);
-
-      const snapshotDate =
-        `${dd}/${mm}/${yy}`;
-
-      buttons = [
-        {
-          id: `REPORT INVENTORY ${snapshotDate}`,
-          title: "LAST MONTH"
-        }
-      ];
-
-    } else {
-
-      buttons = [
-        {
-          id: `REPORT ${mode} current`,
-          title: "Current"
-        },
-
-        ...months.map(m => ({
-          id: `REPORT ${mode} ${m}`,
-          title: m.toUpperCase()
-        }))
-      ];
-    };
+    console.log(
+      "REPORT BUTTONS:",
+      buttons
+    );
 
     await sendButtons(
       chatId,
