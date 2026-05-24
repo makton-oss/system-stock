@@ -80,9 +80,9 @@ module.exports = withRole(
 
       const buttons = [
         {
-          id: "1",
-          title:
-            `REPORT INVENTORY ${snapshotDate}`
+          id:
+            `REPORT INVENTORY ${snapshotDate}`,
+          title: "LAST MONTH"
         }
       ];
 
@@ -112,15 +112,16 @@ taip tarikh sahaja untuk laporan inventory. Contoh:
 
     const buttons = [
       {
-        id: "1",
-        title:
-          `REPORT ${mode} current`
+        id:
+          `REPORT ${mode} current`,
+        title: "CURRENT"
       },
 
-      ...months.map((m, i) => ({
-        id: String(i + 2),
+      ...months.map(m => ({
+        id:
+          `REPORT ${mode} ${m}`,
         title:
-          `REPORT ${mode} ${m}`
+          m.toUpperCase()
       }))
     ];
 
