@@ -73,6 +73,42 @@ async function parseButtonMessage({
   // ======================
 
   if (
+    upperClean === "CURRENT"
+  ) {
+
+    if (
+      body.reply_message_id &&
+      global.reportModeMap?.[chatId]
+    ) {
+
+      const mode =
+        global.reportModeMap[
+          chatId
+        ];
+
+      return `REPORT ${mode} current`;
+    }
+  }
+
+  if (
+    /^[A-Z]{3}-\d{2}$/i.test(clean)
+  ) {
+
+    if (
+      body.reply_message_id &&
+      global.reportModeMap?.[chatId]
+    ) {
+
+      const mode =
+        global.reportModeMap[
+          chatId
+        ];
+
+      return `REPORT ${mode} ${clean.toLowerCase()}`;
+    }
+  }
+
+  if (
     upperClean.startsWith("REPORT ")
   ) {
 
@@ -104,6 +140,18 @@ async function parseButtonMessage({
       "DETAIL"
     ].includes(upperClean)
   ) {
+
+    global.reportModeMap =
+      global.reportModeMap || {};
+
+    global.reportModeMap[chatId] =
+      upperClean;
+
+    console.log(
+      "SET REPORT MODE:",
+      chatId,
+      upperClean
+    );
 
     return `REPORT_MONTH ${upperClean}`;
   }
