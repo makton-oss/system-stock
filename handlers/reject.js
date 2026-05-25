@@ -29,7 +29,7 @@ module.exports = withRole(["supervisor", "manager"], async (ctx) => {
 
   const {
     logDetails
-  } = await rejectRequests(
+  } = await rejectRequest(
     rows,
     chatId
   );
