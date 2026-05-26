@@ -7,27 +7,16 @@ const { createInventorySnapshot } = require("../../services/snapshot/createInven
 // ======================
 
 cron.schedule(
-  "5 0 1 * *",
+  "5 0 * * *",   // setiap hari 12:05AM
   async () => {
 
-    console.log(
-      "RUNNING INVENTORY SNAPSHOT..."
-    );
+    console.log("RUNNING DAILY INVENTORY SNAPSHOT...");
 
     try {
-
       await createInventorySnapshot();
-
-      console.log(
-        "SNAPSHOT SUCCESS"
-      );
-
+      console.log("SNAPSHOT SUCCESS");
     } catch (err) {
-
-      console.log(
-        "SNAPSHOT ERROR:",
-        err
-      );
+      console.log("SNAPSHOT ERROR:", err);
     }
   },
   {

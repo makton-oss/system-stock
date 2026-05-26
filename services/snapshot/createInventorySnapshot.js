@@ -1,117 +1,56 @@
 const supabase = require("../db");
+const { DateTime } = require("luxon");
 
 async function createInventorySnapshot() {
 
   // ======================
-  // SNAPSHOT DATE
+  // SNAPSHOT DATE (daily)
   // ======================
-
-  const now = new Date();
-
-  const snapshotDate =
-    now.toISOString().split("T")[0];
-
-  // ======================
-  // PERIOD MONTH
-  // snapshot 1 may = april closing
-  // ======================
-
-  const prevMonthDate =
-    new Date(
-      now.getFullYear(),
-      now.getMonth() - 1,
-      1
-    );
-
-  const month =
-    prevMonthDate
-      .toLocaleString("en-MY", {
-        month: "short"
-      })
-      .toLowerCase();
-
-  const year =
-    prevMonthDate
-      .getFullYear()
-      .toString()
-      .slice(-2);
-
-  const periodMonth =
-    `${month}-${year}`;
+  const now = DateTime.now().setZone("Asia/Kuala_Lumpur");
+  const snapshotDate = now.toFormat("yyyy-MM-dd");
+  const periodMonth = now.toFormat("MMM-yy").toLowerCase(); // "may-26"
 
   // ======================
   // FETCH STOCK
   // ======================
+  const { data, error } = await supabase
+    .from("stock")
+    .select(`
+      qty,
+      cost_price,
+      outlet_id,
+      item_id,
+      item
+    `);
 
-  const { data, error } =
-    await supabase
-      .from("stock")
-      .select(`
-        qty,
-        cost_price,
-        outlet_id,
-        item_id,
-        item
-      `);
-
-  if (error) {
-    throw error;
-  }
+  if (error) throw error;
 
   // ======================
   // BUILD SNAPSHOT
   // ======================
-
   const rows = data.map(r => ({
-
-    snapshot_date:
-      snapshotDate,
-
-    period_month:
-      periodMonth,
-
-    outlet_id:
-      r.outlet_id,
-
-    item_id:
-      r.item_id,
-
-    item_name:
-      r.item,
-
-    qty:
-      Number(r.qty || 0),
-
-    cost_price:
-      Number(r.cost_price || 0),
-
-    inventory_value:
-      Number(r.qty || 0) *
-      Number(r.cost_price || 0)
+    snapshot_date: snapshotDate,
+    period_month: periodMonth,
+    outlet_id: r.outlet_id,
+    item_id: r.item_id,
+    item_name: r.item,
+    qty: Number(r.qty || 0),
+    cost_price: Number(r.cost_price || 0),
+    inventory_value: Number(r.qty || 0) * Number(r.cost_price || 0)
   }));
 
   // ======================
-  // UPSERT
+  // UPSERT (by date now)
   // ======================
-
-  const {
-    error: upsertError
-  } = await supabase
+  const { error: upsertError } = await supabase
     .from("stock_snapshots")
     .upsert(rows, {
-      onConflict:
-        "period_month,outlet_id,item_id"
+      onConflict: "snapshot_date,outlet_id,item_id"  // ← changed
     });
 
-  if (upsertError) {
-    throw upsertError;
-  }
+  if (upsertError) throw upsertError;
 
-  console.log(
-    "SNAPSHOT SAVED:",
-    periodMonth,
-    rows.length
-  );
+  console.log("SNAPSHOT SAVED:", snapshotDate, periodMonth, rows.length);
 }
 
 module.exports = {
