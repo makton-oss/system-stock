@@ -1,13 +1,14 @@
 const { withRole } = require("../core/withRole");
 const { sendButtons } = require("../services/notification/buttonService");
 
-function getLast3Months() {
+// ======================
+// LAST 2 MONTHS
+// ======================
+function getLast2Months() {
 
   const months = [];
-
   const now = new Date();
 
-  // start dari bulan lepas
   for (let i = 1; i <= 2; i++) {
 
     const d = new Date(
@@ -17,9 +18,7 @@ function getLast3Months() {
     );
 
     const month = d
-      .toLocaleString("en-MY", {
-        month: "short"
-      })
+      .toLocaleString("en-MY", { month: "short" })
       .toLowerCase();
 
     const year = d
@@ -33,6 +32,26 @@ function getLast3Months() {
   return months;
 }
 
+// ======================
+// LAST MONTH dd/mm/yy
+// ======================
+function getLastMonthDate() {
+
+  const now = new Date();
+
+  const lastDay = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    0
+  );
+
+  const dd = String(lastDay.getDate()).padStart(2, "0");
+  const mm = String(lastDay.getMonth() + 1).padStart(2, "0");
+  const yy = String(lastDay.getFullYear()).slice(-2);
+
+  return `${dd}/${mm}/${yy}`;
+}
+
 module.exports = withRole(
   ["manager", "admin"],
   async (ctx) => {
@@ -41,99 +60,47 @@ module.exports = withRole(
 
     const mode = parts[1]?.toUpperCase();
 
-    if (!mode) {
-      return res.end();
-    }
+    if (!mode) return res.end();
 
     // ======================
-    // INVENTORY MODE
+    // INVENTORY
     // ======================
-
     if (mode === "INVENTORY") {
 
-      const now = new Date();
-
-      const lastDayPrevMonth =
-        new Date(
-          now.getFullYear(),
-          now.getMonth(),
-          0
-        );
-
-      const dd =
-        String(
-          lastDayPrevMonth.getDate()
-        ).padStart(2, "0");
-
-      const mm =
-        String(
-          lastDayPrevMonth.getMonth() + 1
-        ).padStart(2, "0");
-
-      const yy =
-        String(
-          lastDayPrevMonth.getFullYear()
-        ).slice(-2);
-
-      const snapshotDate =
-        `${dd}/${mm}/${yy}`;
-
-      const buttons = [
-        {
-          id:
-            `REPORT INVENTORY ${snapshotDate}`,
-          title: "LAST MONTH"
-        }
-      ];
-
-      console.log(
-        "REPORT BUTTONS:",
-        buttons
-      );
+      const lastMonthDate = getLastMonthDate();
 
       await sendButtons(
         chatId,
-`📦 INVENTORY SNAPSHOT
-
-Klik butang di bawah untuk dapatkan laporan inventory snapshot bagi bulan lepas, atau
-taip tarikh sahaja untuk laporan inventory. Contoh:
-30/04/26`,
-        buttons
+        `📦 INVENTORY REPORT\n\nKlik butang atau taip tarikh:\nContoh: REPORT INVENTORY 30/04/26`,
+        [
+          {
+            id: `REPORT INVENTORY ${lastMonthDate}`,
+            title: lastMonthDate  // "30/04/26" ← dynamic, boleh parse
+          }
+        ]
       );
 
       return res.end();
     }
 
     // ======================
-    // NORMAL REPORT
+    // OTHER REPORTS
     // ======================
-
-    const months = getLast3Months();
-
-    const buttons = [
-      {
-        id:
-          `REPORT ${mode} current`,
-        title: "CURRENT"
-      },
-
-      ...months.map(m => ({
-        id:
-          `REPORT ${mode} ${m}`,
-        title:
-          m.toUpperCase()
-      }))
-    ];
-
-    console.log(
-      "REPORT BUTTONS:",
-      buttons
-    );
+    const months = getLast2Months();
 
     await sendButtons(
       chatId,
       `📅 PILIH BULAN\n\n${mode} REPORT`,
-      buttons
+      [
+        {
+          id: `REPORT ${mode} current`,
+          title: "current"
+        },
+        ...months.map(m => ({
+          id: `REPORT ${mode} ${m}`,
+          title: m
+        }))
+      ]
     );
 
     return res.end();

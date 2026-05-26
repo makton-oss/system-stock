@@ -9,21 +9,11 @@ module.exports = withRole(
 
     await sendButtons(
       chatId,
-      `📊 REPORT MENU`,
-
+      `📊 REPORT MENU\n\nPilih jenis report:`,
       [
-        {
-          id: "REPORT_TYPE SUMMARY",
-          title: "Summary"
-        },
-        {
-          id: "REPORT_TYPE INVENTORY",
-          title: "Inventory"
-        },
-        {
-          id: "REPORT_TYPE FLOW",
-          title: "Flow"
-        }
+        { id: "SUMMARY",   title: "Summary"   },
+        { id: "INVENTORY", title: "Inventory" },
+        { id: "FLOW",      title: "Flow"      }
       ]
     );
 
