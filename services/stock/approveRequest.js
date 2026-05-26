@@ -29,7 +29,7 @@ async function approveRequest(rows, chatId) {
     // ======================
     const { data: before } = await supabase
       .from("stock")
-      .select("qty, min_qty", "cost_price")
+      .select("qty, min_qty, cost_price")
       .eq("item_id", row.item_id)
       .eq("outlet_id", row.outlet_id)
       .maybeSingle();
@@ -82,14 +82,16 @@ async function approveRequest(rows, chatId) {
     // ======================
     const { data: after } = await supabase
       .from("stock")
-      .select("qty, min_qty", "cost_price")
+      .select("qty, min_qty, cost_price")
       .eq("item_id", row.item_id)
       .eq("outlet_id", row.outlet_id)
       .maybeSingle();
 
     const minQty = after?.min_qty || 0;
 
+    // FIX — add type guard
     const isLow =
+      (row.type === "out" || row.type === "wastage") &&
       before.qty > minQty &&
       after.qty <= minQty;
 

@@ -202,17 +202,8 @@ async function getDetailReport({
 
   let q = supabase
     .from("stock_movements")
-    .select(`
-      qty,
-      type,
-      item_id,
-      outlet_id,
-      item,
-      stock_items(name),
-      outlets(name)
-    `)
-    .gte("created_at", start)
-    .lte("created_at", end);
+    .select(`item_id, outlet_id, created_at`)
+    .gte("created_at", new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString());
 
   if (outletIds?.length) {
 

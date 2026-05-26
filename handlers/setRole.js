@@ -44,8 +44,8 @@ module.exports = withRole(["admin"], async (ctx) => {
   // ======================
   // VALIDATION
   // ======================
-  if (role === "staff" && outletIds.length > 1) {
-    await reply(chatId, "❌ STAFF hanya boleh 1 outlet");
+  if ((role === "staff" || role === "supervisor") && outletIds.length > 1) {
+    await reply(chatId, "❌ STAFF dan SUPERVISOR hanya boleh 1 outlet");
     return res.end();
   }
 
@@ -56,7 +56,7 @@ module.exports = withRole(["admin"], async (ctx) => {
 	  chat_id: phone,
 	  role,
 	  nickname,
-	  outlet_id: role === "staff" ? outletIds[0] : null
+	  outlet_id: (role === "staff" || role === "supervisor") ? outletIds[0] : null
 	});
 
   // ======================

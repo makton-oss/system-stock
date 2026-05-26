@@ -39,7 +39,7 @@ module.exports = withRole(["admin"], async (ctx) => {
   const { success, failed } = await sendBatchMessages(
     managers,
     `📢 SYSTEM UPDATE\n\n${message}`,
-    sendMessage,
+    sendWhatsApp,
     5,       // batch size
     1000     // delay ms
   );

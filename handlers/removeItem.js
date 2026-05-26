@@ -1,32 +1,29 @@
+// services/stock/removeItem.js — REPLACE entire handler
+
 const { withRole } = require("../core/withRole");
 const supabase = require("../services/db");
 const { normalizeItem } = require("../utils/helpers");
 
-module.exports = withRole(["admin", "manager"], async (ctx) => {
-  const { chatId, parts, user, reply, res } = ctx;
+module.exports = withRole(["admin"], async (ctx) => {
+  const { chatId, parts, reply, res } = ctx;
 
-  const item = normalizeItem(parts[1]);
-  const category = parts[2];
-  const minQty = parseInt(parts[3]);
-  const cost = parseFloat(parts[4]);
+  const item = normalizeItem(parts.slice(1).join(" "));
 
-  if (!item || !category || isNaN(minQty) || isNaN(cost)) {
-    await reply(chatId, "❌ FORMAT: ADDITEM ayam poultry 5 12.50");
+  if (!item) {
+    await reply(chatId, "❌ FORMAT: REMOVEITEM ayam");
     return res.end();
   }
 
-  const { error } = await supabase.from("stock_items").insert({
-    name: item,
-    category,
-    min_qty: minQty,
-    cost_price: cost
-  });
+  const { error } = await supabase
+    .from("stock")
+    .delete()
+    .eq("item", item);
 
   if (error) {
     await reply(chatId, "❌ DB ERROR");
     return res.end();
   }
 
-  await reply(chatId, `✅ ITEM ADDED: ${item}`);
+  await reply(chatId, `✅ ITEM REMOVED: ${item}`);
   return res.end();
 });
