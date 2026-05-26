@@ -35,7 +35,7 @@ async function queueStockNotification( outletId ) {
       ];
     }
 
-  }, 30000); // 30 sec
+  }, 120000); // 2 mins
 }
 
 module.exports = {
