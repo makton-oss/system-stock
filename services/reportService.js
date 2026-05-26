@@ -194,84 +194,54 @@ async function getInventoryReport({
 // ======================
 // DETAIL REPORT
 // ======================
-async function getDetailReport({
-  start,
-  end,
-  outletIds
-}) {
+async function getDetailReport({ start, end, outletIds }) {
 
   let q = supabase
     .from("stock_movements")
-    .select(`item_id, outlet_id, created_at`)
-    .gte("created_at", new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString());
+    .select(`
+      item_id,
+      item,
+      qty,
+      type,
+      outlet_id,
+      outlets(name)
+    `)
+    .gte("created_at", start)
+    .lte("created_at", end);
 
   if (outletIds?.length) {
-
-    q = q.in(
-      "outlet_id",
-      outletIds
-    );
+    q = q.in("outlet_id", outletIds);
   }
 
-  const { data, error } =
-    await q;
-
+  const { data, error } = await q;
   if (error) return { error };
 
-  const grouped =
-    groupByOutlet(data);
-
+  const grouped = groupByOutlet(data);
   const result = {};
 
-  Object.entries(grouped)
-    .forEach(([outlet, rows]) => {
+  Object.entries(grouped).forEach(([outlet, rows]) => {
 
     const map = {};
 
     rows.forEach(r => {
+      const key = r.item || "unknown";
 
-      const id =
-        r.item_id ||
-        r.item ||
-        "unknown";
-
-      const itemName =
-        r.stock_items?.name ||
-        r.item ||
-        "Unknown";
-
-      if (!map[id]) {
-
-        map[id] = {
-          name: itemName,
-          in: 0,
-          out: 0
-        };
+      if (!map[key]) {
+        map[key] = { name: r.item || "Unknown", in: 0, out: 0 };
       }
 
       if (r.type === "in") {
-
-        map[id].in +=
-          Number(r.qty || 0);
-
+        map[key].in += Number(r.qty || 0);
       } else {
-
-        map[id].out +=
-          Number(r.qty || 0);
+        map[key].out += Number(r.qty || 0);
       }
     });
 
-    result[outlet] =
-      Object.values(map).map(i => ({
-        ...i,
-        bal: i.in - i.out
-      }));
+    result[outlet] = Object.values(map).map(i => ({
+      ...i,
+      bal: i.in - i.out
+    }));
   });
-
-  console.log(
-    "DETAIL REPORT:",
-    result
-  );
 
   return result;
 }

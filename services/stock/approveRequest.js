@@ -100,7 +100,7 @@ async function approveRequest(rows, chatId) {
     // ======================
     summary[row.item] =
       (summary[row.item] || 0) +
-      (row.type === "out" ? -row.qty : row.qty);
+      (row.type === "out" || row.type === "wastage" ? -row.qty : row.qty);
 
     logDetails.push(`ID${row.id} ${row.item}`);
 

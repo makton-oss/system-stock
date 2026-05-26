@@ -28,7 +28,8 @@ module.exports = withRole(["supervisor", "manager"], async (ctx) => {
   // ======================
 
   const {
-    logDetails
+    logDetails,
+    rows: processed
   } = await rejectRequest(
     rows,
     chatId
