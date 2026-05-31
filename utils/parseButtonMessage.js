@@ -1,5 +1,5 @@
 const supabase = require("../services/db");
-const { getOutletIdByCode } = require("./getOutletByCode");
+const { getOutletByCode } = require("./getOutletByCode");
 
 async function parseButtonMessage({ raw, chatId, body }) {
 
@@ -24,10 +24,10 @@ async function parseButtonMessage({ raw, chatId, body }) {
 
     if (/^\d+$/.test(value)) return upperClean;
 
-    const outletId = await getOutletIdByCode(value);
-    if (!outletId) return upperClean;
+    const outlet = await getOutletByCode(value);
+    if (!outlet) return upperClean;
 
-    return `${action}_ALL_${outletId}`;
+    return `${action}_ALL_${outlet.id}`;
   }
 
   // ======================

@@ -1,20 +1,17 @@
-const supabase =
-  require("../services/db");
+const supabase = require("../services/db");
 
-async function getOutletIdByCode(
-  code
-) {
+async function getOutletByCode(code) {
 
   const { data } =
     await supabase
       .from("outlets")
-      .select("id")
+      .select("id, name")
       .ilike("name", code)
       .maybeSingle();
 
-  return data?.id || null;
+  return data || null;
 }
 
 module.exports = {
-  getOutletIdByCode
+  getOutletByCode
 };
