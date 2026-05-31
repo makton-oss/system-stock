@@ -76,5 +76,5 @@ async function createInventorySnapshot()
   );
 }
 
-module.exports =
-  createInventorySnapshot;
+module.exports = {
+  createInventorySnapshot };
