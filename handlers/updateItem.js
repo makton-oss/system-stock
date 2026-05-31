@@ -1,5 +1,5 @@
 const { withRole } = require("../core/withRole");
-const { parseUpItem } = require("../utils/parseUpdateItem");
+const { parseUpItem } = require("../utils/parseUpdateItems");
 const { updateStockItem } = require("../services/stock/updateItem");
 
 const FORMAT_MSG =
