@@ -1,6 +1,6 @@
 const express = require("express");
 require("dotenv").config();
-require("./src/jobs/startCronJobs");
+const startCronJobs = require("./src/jobs/startCronJobs");
 const supabase = require("./services/db");
 const handlerMap = require("./core/handlerMap");
 const { createContext } = require("./core/context");
@@ -16,6 +16,8 @@ app.use(express.urlencoded({ extended: true }));
 app.get("/health", (req, res) => {
   res.send("OK");
 });
+
+startCronJobs();
 
 async function reply(chatId, text) {
 
@@ -194,3 +196,4 @@ app.listen(PORT, () => {
     `🚀 Server running on port ${PORT}`
   );
 });
+

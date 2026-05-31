@@ -1,8 +1,4 @@
-const {
-  createInventorySnapshot
-} = require(
-  "../services/snapshot/createInventorySnapshot"
-);
+const { createInventorySnapshot } = require("../services/snapshot/createInventorySnapshot");
 
 (async () => {
 
