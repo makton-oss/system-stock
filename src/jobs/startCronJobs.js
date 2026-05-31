@@ -1,5 +1,5 @@
 const cron = require("node-cron");
-const createInventorySnapshot = require("../../services/snapshot/createInventorySnapshot");
+const { createInventorySnapshot } = require("../../services/snapshot/createInventorySnapshot");
 
 function startCronJobs()
 {

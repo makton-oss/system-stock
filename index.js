@@ -197,3 +197,8 @@ app.listen(PORT, () => {
   );
 });
 
+app.get("/test-snapshot", async (req, res) => {
+  const { createInventorySnapshot } = require("./services/snapshot/createInventorySnapshot");
+  await createInventorySnapshot();
+  res.send("SNAPSHOT DONE");
+});
