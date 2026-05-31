@@ -1,4 +1,4 @@
-require("dotenv").config({ path: require("path").resolve(__dirname, "../.env") });
+require("dotenv").config({ path: "../.env" });
 const { createInventorySnapshot } = require("../services/snapshot/createInventorySnapshot");
 
 (async () => {
