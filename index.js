@@ -17,12 +17,6 @@ app.get("/health", (req, res) => {
   res.send("OK");
 });
 
-app.get("/test-snapshot", async (req, res) => {
-  const { createInventorySnapshot } = require("./services/snapshot/createInventorySnapshot");
-  await createInventorySnapshot();
-  res.send("SNAPSHOT DONE");
-});
-
 startCronJobs();
 
 async function reply(chatId, text) {
