@@ -98,9 +98,12 @@ async function approveRequest(rows, chatId) {
     // ======================
     // SUMMARY
     // ======================
-    summary[row.item] =
-      (summary[row.item] || 0) +
-      (row.type === "out" || row.type === "wastage" ? -row.qty : row.qty);
+    summary[row.item] = {
+      qty: (summary[row.item]?.qty || 0) +
+        (row.type === "out" || row.type === "wastage" ? -row.qty : row.qty),
+      balance: after?.qty ?? null,
+      min: after?.min_qty ?? 0
+    };
 
     logDetails.push(`ID${row.id} ${row.item}`);
 
