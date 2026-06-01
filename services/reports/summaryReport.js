@@ -20,24 +20,14 @@ async function getSummaryReport({
     .lte("created_at", end);
 
   if (outletIds) {
-    movementQ = movementQ.in(
-      "outlet_id",
-      outletIds
-    );
+    movementQ = movementQ.in("outlet_id", outletIds);
   }
 
-  const {
-    data: movements,
-    error
-  } = await movementQ;
+  const { data: movements, error } = await movementQ;
 
   if (error) {
     return { error };
   }
-
-  // ======================
-  // INVENTORY VALUE
-  // ======================
 
   let stockQ = supabase
     .from("stock")
@@ -49,36 +39,19 @@ async function getSummaryReport({
     `);
 
   if (outletIds) {
-    stockQ = stockQ.in(
-      "outlet_id",
-      outletIds
-    );
+    stockQ = stockQ.in("outlet_id", outletIds);
   }
 
-  const {
-    data: stocks
-  } = await stockQ;
-
-  // ======================
-  // OUTLET MAP
-  // ======================
+  const { data: stocks } = await stockQ;
 
   const outletMap = new Map();
 
-  // ======================
-  // MOVEMENTS
-  // ======================
-
   movements.forEach(r => {
 
-    const outletId =
-      r.outlet_id || 9999;
-
-    const outletName =
-      r.outlets?.name || "Outlet";
+    const outletId   = r.outlet_id || 9999;
+    const outletName = r.outlets?.name || "Outlet";
 
     if (!outletMap.has(outletId)) {
-
       outletMap.set(outletId, {
         outletId,
         outletName,
@@ -91,62 +64,30 @@ async function getSummaryReport({
       });
     }
 
-    const o =
-      outletMap.get(outletId);
-
-    const value =
-      Number(r.qty || 0) *
-      Number(r.cost_price || 0);
-
-    // ======================
-    // STOCK IN
-    // ======================
+    const o     = outletMap.get(outletId);
+    const value = Number(r.qty || 0) * Number(r.cost_price || 0);
 
     if (r.type === "in") {
       o.stockIn += value;
     }
 
-    // ======================
-    // STOCK OUT (USAGE)
-    // ======================
-
     if (r.type === "out") {
-
       o.stockOut += value;
-
-      o.usageMap[r.item] =
-        (o.usageMap[r.item] || 0) +
-        value;
+      o.usageMap[r.item] = (o.usageMap[r.item] || 0) + value;
     }
 
-    // ======================
-    // WASTAGE
-    // ======================
-
     if (r.type === "wastage") {
-
       o.wastage += value;
-
-      o.wastageMap[r.item] =
-        (o.wastageMap[r.item] || 0) +
-        value;
+      o.wastageMap[r.item] = (o.wastageMap[r.item] || 0) + value;
     }
   });
 
-  // ======================
-  // INVENTORY VALUE
-  // ======================
-
   stocks.forEach(s => {
 
-    const outletId =
-      s.outlet_id || 9999;
-
-    const outletName =
-      s.outlets?.name || "Outlet";
+    const outletId   = s.outlet_id || 9999;
+    const outletName = s.outlets?.name || "Outlet";
 
     if (!outletMap.has(outletId)) {
-
       outletMap.set(outletId, {
         outletId,
         outletName,
@@ -159,47 +100,25 @@ async function getSummaryReport({
       });
     }
 
-    outletMap
-      .get(outletId)
-      .inventoryValue +=
-        Number(s.qty || 0) *
-        Number(s.cost_price || 0);
+    outletMap.get(outletId).inventoryValue +=
+      Number(s.qty || 0) * Number(s.cost_price || 0);
   });
 
-  // ======================
-  // SORT OUTLET
-  // ======================
-
-  const sorted =
-    [...outletMap.values()]
-      .sort((a, b) =>
-        a.outletId - b.outletId
-      );
-
-  // ======================
-  // FINAL FORMAT
-  // ======================
+  const sorted = [...outletMap.values()].sort((a, b) => a.outletId - b.outletId);
 
   sorted.forEach(o => {
 
-    o.topUsage =
-      Object.entries(o.usageMap)
-        .sort((a,b)=>b[1]-a[1])
-        .slice(0,5);
+    o.topUsage = Object.entries(o.usageMap)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5);
 
-    o.topWastage =
-      Object.entries(o.wastageMap)
-        .sort((a,b)=>b[1]-a[1])
-        .slice(0,5);
+    o.topWastage = Object.entries(o.wastageMap)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5);
 
-    o.wastagePercent =
-      o.stockOut > 0
-        ? (
-            o.wastage /
-            o.stockOut *
-            100
-          )
-        : 0;
+    // FIX: bahagi dengan (stockOut + wastage), bukan stockOut sahaja
+    const totalOut = o.stockOut + o.wastage;
+    o.wastagePercent = totalOut > 0 ? (o.wastage / totalOut * 100) : 0;
 
     delete o.usageMap;
     delete o.wastageMap;
@@ -208,6 +127,4 @@ async function getSummaryReport({
   return sorted;
 }
 
-module.exports = {
-  getSummaryReport
-};
+module.exports = { getSummaryReport };

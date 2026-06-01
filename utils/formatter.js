@@ -797,6 +797,7 @@ ${r.totalItems}
 
 // ======================
 // DETAIL FORMAT
+// FIX: tunjuk wastage column berasingan
 // ======================
 function formatDetailReport(data, month) {
 
@@ -807,7 +808,8 @@ function formatDetailReport(data, month) {
     text += `OUTLET ${toProperCase(outlet)}\n\n`;
 
     rows.forEach(r => {
-      text += `${toProperCase(r.name)}\nIN: ${r.in} OUT: ${r.out} BAL:${r.bal}\n\n`;
+      const wastageStr = r.wastage > 0 ? ` WS:${r.wastage}` : "";
+      text += `${toProperCase(r.name)}\nIN: ${r.in} OUT: ${r.out}${wastageStr} BAL:${r.bal}\n\n`;
     });
   });
 
@@ -837,6 +839,7 @@ function formatDeadReport(data, month) {
 
 // ======================
 // FLOW FORMAT
+// FIX: tunjuk wastage berasingan + NET betul
 // ======================
 function formatFlowReport(data, month) {
 
@@ -846,19 +849,27 @@ function formatFlowReport(data, month) {
 
     text += `OUTLET ${toProperCase(outlet)}\n\n`;
 
-    text += `IN  : RM ${Number(r.inVal || 0).toFixed(2)}\n`;
-	text += `OUT : RM ${Number(r.outVal || 0).toFixed(2)}\n`;
-	text += `NET : RM ${Number(r.net || 0).toFixed(2)}\n\n`;
+    text += `IN      : RM ${Number(r.inVal     || 0).toFixed(2)} (Stock Added)\n`;
+    text += `OUT     : RM ${Number(r.outVal    || 0).toFixed(2)} (Stock Used)\n`;
+    text += `WASTAGE : RM ${Number(r.wastageVal|| 0).toFixed(2)} (Buang)\n`;
+    text += `NET     : RM ${Number(r.net       || 0).toFixed(2)} (Value Change)\n\n`;
 
     text += "Top 5 IN STOCK\n";
-    r.topIn.forEach((t,i)=>{
-      text += `${i+1}. ${toProperCase(t[0])} RM${Number(t[1] || 0).toFixed(2)}\n`;
+    r.topIn.forEach((t, i) => {
+      text += `${i + 1}. ${toProperCase(t[0])} RM${Number(t[1] || 0).toFixed(2)}\n`;
     });
 
     text += "\nTop 5 OUT STOCK\n";
-    r.topOut.forEach((t,i)=>{
-      text += `${i+1}. ${toProperCase(t[0])} RM${Number(t[1] || 0).toFixed(2)}\n`;
+    r.topOut.forEach((t, i) => {
+      text += `${i + 1}. ${toProperCase(t[0])} RM${Number(t[1] || 0).toFixed(2)}\n`;
     });
+
+    if (r.topWastage?.length) {
+      text += "\nTop 5 WASTAGE\n";
+      r.topWastage.forEach((t, i) => {
+        text += `${i + 1}. ${toProperCase(t[0])} RM${Number(t[1] || 0).toFixed(2)}\n`;
+      });
+    }
 
     text += "\n";
   });

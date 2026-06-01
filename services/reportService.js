@@ -1,33 +1,19 @@
 const supabase = require("./db");
 
-// helper: group by outlet
 function groupByOutlet(rows) {
-
   const map = {};
-
   rows.forEach(r => {
-
-    const outletKey =
-      r.outlets?.name || "Outlet";
-
-    if (!map[outletKey]) {
-      map[outletKey] = [];
-    }
-
+    const outletKey = r.outlets?.name || "Outlet";
+    if (!map[outletKey]) map[outletKey] = [];
     map[outletKey].push(r);
   });
-
   return map;
 }
 
 // ======================
 // MAIN REPORT
 // ======================
-async function getMainReport({
-  start,
-  end,
-  outletIds
-}) {
+async function getMainReport({ start, end, outletIds }) {
 
   let query = supabase
     .from("stock_movements")
@@ -44,31 +30,19 @@ async function getMainReport({
     .lte("created_at", end);
 
   if (outletIds?.length) {
-
-    query = query.in(
-      "outlet_id",
-      outletIds
-    );
+    query = query.in("outlet_id", outletIds);
   }
 
-  const { data, error } =
-    await query;
-
+  const { data, error } = await query;
   if (error) return { error };
 
   const outletMap = {};
 
   data.forEach(r => {
-
-    const outlet =
-      r.outlets?.name || "Outlet";
-
-    const cost =
-      r.qty *
-      (r.cost_price || 0);
+    const outlet = r.outlets?.name || "Outlet";
+    const cost   = r.qty * (r.cost_price || 0);
 
     if (!outletMap[outlet]) {
-
       outletMap[outlet] = {
         totalCost: 0,
         flowIn: 0,
@@ -80,26 +54,18 @@ async function getMainReport({
 
     const o = outletMap[outlet];
 
-    if (r.type === "out") {
-
+    if (r.type === "out" || r.type === "wastage") {
       o.totalCost += cost;
-      o.flowOut += cost;
-
+      o.flowOut   += cost;
     } else {
-
       o.flowIn += cost;
     }
 
     const name = r.item;
+    o.itemMap[name] = (o.itemMap[name] || 0) + cost;
 
-    o.itemMap[name] =
-      (o.itemMap[name] || 0) + cost;
-
-    const cat =
-      r.stock_items?.category || "lain";
-
-    o.categoryMap[cat] =
-      (o.categoryMap[cat] || 0) + cost;
+    const cat = r.stock_items?.category || "lain";
+    o.categoryMap[cat] = (o.categoryMap[cat] || 0) + cost;
   });
 
   return outletMap;
@@ -108,10 +74,7 @@ async function getMainReport({
 // ======================
 // INVENTORY
 // ======================
-async function getInventoryReport({
-  outletIds,
-  snapshotDate
-}) {
+async function getInventoryReport({ outletIds, snapshotDate }) {
 
   let q = supabase
     .from("stock_snapshots")
@@ -122,37 +85,21 @@ async function getInventoryReport({
       item_name,
       outlets(name)
     `)
-    .eq(
-      "snapshot_date",
-      snapshotDate
-    );
+    .eq("snapshot_date", snapshotDate);
 
   if (outletIds) {
-
-    q = q.in(
-      "outlet_id",
-      outletIds
-    );
+    q = q.in("outlet_id", outletIds);
   }
 
-  const {
-    data,
-    error
-  } = await q;
-
-  if (error) {
-    return { error };
-  }
+  const { data, error } = await q;
+  if (error) return { error };
 
   const grouped = {};
 
   data.forEach(r => {
-
-    const outlet =
-      r.outlets?.name || "Outlet";
+    const outlet = r.outlets?.name || "Outlet";
 
     if (!grouped[outlet]) {
-
       grouped[outlet] = {
         totalValue: 0,
         totalItems: 0,
@@ -160,39 +107,25 @@ async function getInventoryReport({
       };
     }
 
-    grouped[outlet]
-      .totalValue +=
-        Number(r.inventory_value || 0);
-
-    grouped[outlet]
-      .totalItems +=
-        Number(r.qty || 0);
-
-    grouped[outlet]
-      .items.push({
-        item: r.item_name,
-        qty: r.qty,
-        value: r.inventory_value
-      });
+    grouped[outlet].totalValue += Number(r.inventory_value || 0);
+    grouped[outlet].totalItems += Number(r.qty || 0);
+    grouped[outlet].items.push({
+      item:  r.item_name,
+      qty:   r.qty,
+      value: r.inventory_value
+    });
   });
 
-  Object.values(grouped)
-    .forEach(g => {
-
-      g.items =
-        g.items
-          .sort(
-            (a,b)=>
-              b.value - a.value
-          )
-          .slice(0,10);
-    });
+  Object.values(grouped).forEach(g => {
+    g.items = g.items.sort((a, b) => b.value - a.value).slice(0, 10);
+  });
 
   return grouped;
 }
 
 // ======================
 // DETAIL REPORT
+// FIX: explicit type check untuk out + wastage
 // ======================
 async function getDetailReport({ start, end, outletIds }) {
 
@@ -217,7 +150,7 @@ async function getDetailReport({ start, end, outletIds }) {
   if (error) return { error };
 
   const grouped = groupByOutlet(data);
-  const result = {};
+  const result  = {};
 
   Object.entries(grouped).forEach(([outlet, rows]) => {
 
@@ -227,19 +160,22 @@ async function getDetailReport({ start, end, outletIds }) {
       const key = r.item || "unknown";
 
       if (!map[key]) {
-        map[key] = { name: r.item || "Unknown", in: 0, out: 0 };
+        map[key] = { name: r.item || "Unknown", in: 0, out: 0, wastage: 0 };
       }
 
       if (r.type === "in") {
         map[key].in += Number(r.qty || 0);
-      } else {
+      } else if (r.type === "out") {
         map[key].out += Number(r.qty || 0);
+      } else if (r.type === "wastage") {
+        // FIX: wastage diasingkan, tapi masuk bal kiraan juga
+        map[key].wastage += Number(r.qty || 0);
       }
     });
 
     result[outlet] = Object.values(map).map(i => ({
       ...i,
-      bal: i.in - i.out
+      bal: i.in - i.out - i.wastage   // FIX: tolak wastage dari bal
     }));
   });
 
@@ -249,11 +185,7 @@ async function getDetailReport({ start, end, outletIds }) {
 // ======================
 // DEAD STOCK
 // ======================
-async function getDeadReport({
-  start,
-  end,
-  outletIds
-}) {
+async function getDeadReport({ start, end, outletIds }) {
 
   let stockQ = supabase
     .from("stock")
@@ -266,15 +198,10 @@ async function getDeadReport({
     `);
 
   if (outletIds?.length) {
-
-    stockQ = stockQ.in(
-      "outlet_id",
-      outletIds
-    );
+    stockQ = stockQ.in("outlet_id", outletIds);
   }
 
-  const { data: stock } =
-    await stockQ;
+  const { data: stock } = await stockQ;
 
   let moveQ = supabase
     .from("stock_movements")
@@ -287,40 +214,20 @@ async function getDeadReport({
     .lte("created_at", end);
 
   if (outletIds?.length) {
-
-    moveQ = moveQ.in(
-      "outlet_id",
-      outletIds
-    );
+    moveQ = moveQ.in("outlet_id", outletIds);
   }
 
-  const { data: move } =
-    await moveQ;
+  const { data: move } = await moveQ;
 
-  const used = new Set(
-    move.map(
-      m => `${m.item_id}-${m.outlet_id}`
-    )
-  );
+  const used    = new Set(move.map(m => `${m.item_id}-${m.outlet_id}`));
+  const grouped = groupByOutlet(stock);
+  const result  = {};
 
-  const grouped =
-    groupByOutlet(stock);
-
-  const result = {};
-
-  Object.entries(grouped)
-    .forEach(([outlet, rows]) => {
-
+  Object.entries(grouped).forEach(([outlet, rows]) => {
     result[outlet] = rows
-      .filter(r =>
-        !used.has(
-          `${r.item_id}-${r.outlet_id}`
-        )
-      )
+      .filter(r => !used.has(`${r.item_id}-${r.outlet_id}`))
       .map(r => ({
-        name:
-          r.stock_items?.name ||
-          r.item,
+        name: r.stock_items?.name || r.item,
         last: "-"
       }));
   });
@@ -330,12 +237,9 @@ async function getDeadReport({
 
 // ======================
 // FLOW REPORT
+// FIX: wastage diasingkan dari out, label berbeza
 // ======================
-async function getFlowReport({
-  start,
-  end,
-  outletIds
-}) {
+async function getFlowReport({ start, end, outletIds }) {
 
   let q = supabase
     .from("stock_movements")
@@ -353,68 +257,60 @@ async function getFlowReport({
     .lte("created_at", end);
 
   if (outletIds?.length) {
-
-    q = q.in(
-      "outlet_id",
-      outletIds
-    );
+    q = q.in("outlet_id", outletIds);
   }
 
-  const { data, error } =
-    await q;
-
+  const { data, error } = await q;
   if (error) return { error };
 
-  const grouped =
-    groupByOutlet(data);
+  const grouped = groupByOutlet(data);
+  const result  = {};
 
-  const result = {};
+  Object.entries(grouped).forEach(([outlet, rows]) => {
 
-  Object.entries(grouped)
-    .forEach(([outlet, rows]) => {
+    let inVal      = 0;
+    let outVal     = 0;
+    let wastageVal = 0;
 
-    let inVal = 0;
-    let outVal = 0;
-
-    const inMap = {};
-    const outMap = {};
+    const inMap      = {};
+    const outMap     = {};
+    const wastageMap = {};
 
     rows.forEach(r => {
-
-      const val =
-        r.qty *
-        (r.cost_price || 0);
+      const val = r.qty * (r.cost_price || 0);
 
       if (r.type === "in") {
-
         inVal += val;
+        inMap[r.item] = (inMap[r.item] || 0) + val;
 
-        inMap[r.item] =
-          (inMap[r.item] || 0) + val;
-
-      } else {
-
+      } else if (r.type === "out") {
         outVal += val;
+        outMap[r.item] = (outMap[r.item] || 0) + val;
 
-        outMap[r.item] =
-          (outMap[r.item] || 0) + val;
+      } else if (r.type === "wastage") {
+        // FIX: wastage berasingan
+        wastageVal += val;
+        wastageMap[r.item] = (wastageMap[r.item] || 0) + val;
       }
     });
 
     result[outlet] = {
       inVal,
       outVal,
-      net: inVal - outVal,
+      wastageVal,
+      net: inVal - outVal - wastageVal,   // FIX: net tolak wastage juga
 
-      topIn:
-        Object.entries(inMap)
-          .sort((a,b)=>b[1]-a[1])
-          .slice(0,5),
+      topIn: Object.entries(inMap)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5),
 
-      topOut:
-        Object.entries(outMap)
-          .sort((a,b)=>b[1]-a[1])
-          .slice(0,5)
+      topOut: Object.entries(outMap)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5),
+
+      topWastage: Object.entries(wastageMap)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5)
     };
   });
 
