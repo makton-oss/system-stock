@@ -14,6 +14,7 @@ module.exports = {
   ITEM: require("../handlers/item"),
   SETROLE: require("../handlers/setRole"),
   REMOVEROLE: require("../handlers/removeRole"),
+  REMOVEOUTLET: require("../handlers/removeOutlet"),
   UPDATE: require("../handlers/update"),
   REACTIVATE: require("../handlers/reactivate"),
   REPORTMENU: require("../handlers/reportMenu"),

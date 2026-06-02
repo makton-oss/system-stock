@@ -53,38 +53,55 @@ module.exports = withRole(["admin"], async (ctx) => {
   // UPSERT USER
   // ======================
   await supabase.from("users").upsert({
-	  chat_id: phone,
-	  role,
-	  nickname,
-	  outlet_id: (role === "staff" || role === "supervisor") ? outletIds[0] : null
-	});
+    chat_id: phone,
+    role,
+    nickname,
+    outlet_id: (role === "staff" || role === "supervisor") ? outletIds[0] : null
+  });
 
   // ======================
   // UPDATE PIVOT (manager sahaja)
   // ======================
-  await supabase
-    .from("user_outlets")
-    .delete()
-    .eq("user_chat_id", phone);
-
   if (role === "manager") {
-    const rows = outletIds.map(id => ({
-      user_chat_id: phone,
-      outlet_id: id
-    }));
 
-    await supabase.from("user_outlets").insert(rows);
+    // get existing outlets
+    const { data: existing } = await supabase
+      .from("user_outlets")
+      .select("outlet_id")
+      .eq("user_chat_id", phone);
+
+    const existingIds = existing?.map(r => r.outlet_id) || [];
+
+    // insert only new outlets (skip duplicates)
+    const newIds = outletIds.filter(id => !existingIds.includes(id));
+
+    if (newIds.length) {
+      const rows = newIds.map(id => ({
+        user_chat_id: phone,
+        outlet_id: id
+      }));
+
+      await supabase.from("user_outlets").insert(rows);
+    }
+
+  } else {
+    // staff / supervisor — wipe pivot (single outlet je)
+    await supabase
+      .from("user_outlets")
+      .delete()
+      .eq("user_chat_id", phone);
   }
 
-  // notify admin
-	await reply(chatId, `✅ ${nickname} set sebagai ${role}`);
+  // ======================
+  // NOTIFY
+  // ======================
+  await reply(chatId, `✅ ${nickname} set sebagai ${role}`);
 
-	// send role guide to target user
-	const guide = getRoleGuide(role);
+  const guide = getRoleGuide(role);
 
-	if (guide) {
-	  await reply(phone, guide);
-	}
+  if (guide) {
+    await reply(phone, guide);
+  }
 
-	return res.end();
+  return res.end();
 });
