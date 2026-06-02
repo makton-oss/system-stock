@@ -8,78 +8,74 @@ module.exports = withRole(["manager", "admin"], async (ctx) => {
   const { chatId, user, reply, res } = ctx;
 
   // ======================
-  // 🔥 ADMIN → ALL OUTLETS (UNCHANGED)
+  // 🔥 ADMIN → ALL OUTLETS
   // ======================
   if (user.role === "admin") {
 
-  const { data, error } = await supabase
-    .from("users")
-    .select(`
-      chat_id,
-      nickname,
-      role,
-      outlet_id,
-      outlets(name),
-      user_outlets(
+    const { data, error } = await supabase
+      .from("users")
+      .select(`
+        chat_id,
+        nickname,
+        role,
         outlet_id,
-        outlets(name)
-      )
-    `)
-    .neq("role", "admin");
+        outlets(name),
+        user_outlets(
+          outlet_id,
+          outlets(name)
+        )
+      `)
+      .neq("role", "admin")
+      .eq("is_active", true);        // ← tambah ini
 
-  if (error) {
-    console.log("STAFF ERROR:", error);
-    await reply(chatId, "❌ ERROR");
-    return res.end();
-  }
-
-  // ======================
-  // 🔥 NORMALIZE DATA
-  // ======================
-  let normalized = [];
-
-  for (let u of data) {
-
-    // staff (single outlet)
-    if (u.role === "staff") {
-      normalized.push({
-        ...u,
-        outlets: u.outlets
-      });
-      continue;
+    if (error) {
+      console.log("STAFF ERROR:", error);
+      await reply(chatId, "❌ ERROR");
+      return res.end();
     }
 
-    // manager (multi outlet)
-    if (u.role === "manager") {
+    // normalize data
+    let normalized = [];
 
-      if (!u.user_outlets?.length) {
+    for (let u of data) {
+
+      if (u.role === "staff" || u.role === "supervisor") {
         normalized.push({
           ...u,
-          outlets: { name: "-" }
+          outlets: u.outlets
         });
         continue;
       }
 
-      for (let rel of u.user_outlets) {
-        normalized.push({
-          ...u,
-          outlet_id: rel.outlet_id,
-          outlets: rel.outlets
-        });
+      if (u.role === "manager") {
+
+        if (!u.user_outlets?.length) {
+          normalized.push({
+            ...u,
+            outlets: { name: "-" }
+          });
+          continue;
+        }
+
+        for (let rel of u.user_outlets) {
+          normalized.push({
+            ...u,
+            outlet_id: rel.outlet_id,
+            outlets: rel.outlets
+          });
+        }
       }
     }
-  }
 
-  await reply(chatId, formatStaffListAdmin(normalized));
-  return res.end();
+    await reply(chatId, formatStaffListAdmin(normalized));
+    return res.end();
   }
 
   // ======================
-  // 🔥 MANAGER → MULTI OUTLET SUPPORT
+  // 🔥 MANAGER → MULTI OUTLET
   // ======================
   const outletIds = await getAccessibleOutletIds(user);
 
-  // 🔥 IMPORTANT: include manager + staff (exclude admin only)
   const { data, error } = await supabase
     .from("users")
     .select(`
@@ -90,7 +86,8 @@ module.exports = withRole(["manager", "admin"], async (ctx) => {
       outlets(name)
     `)
     .in("outlet_id", outletIds)
-    .neq("role", "admin");
+    .neq("role", "admin")
+    .eq("is_active", true);          // ← tambah ini
 
   if (error) {
     console.log("STAFF ERROR:", error);
@@ -98,16 +95,11 @@ module.exports = withRole(["manager", "admin"], async (ctx) => {
     return res.end();
   }
 
-  // ======================
-  // 🔥 SINGLE vs MULTI OUTLET
-  // ======================
   const uniqueOutletIds = [...new Set(data.map(r => r.outlet_id))];
 
   if (uniqueOutletIds.length > 1) {
-    // MULTI → same format macam ADMIN
     await reply(chatId, formatStaffListAdmin(data));
   } else {
-    // SINGLE → simple format
     await reply(chatId, formatStaffList(data));
   }
 
