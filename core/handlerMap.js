@@ -19,5 +19,6 @@ module.exports = {
   REPORT_MONTH: require("../handlers/reportMonth"),
   PENDING: require("../handlers/pending"),
   UPITEM: require("../handlers/updateItem"),
+  REACTIVATE: require("../handlers/reactivate"),
   TRY: require("../handlers/try")
 };

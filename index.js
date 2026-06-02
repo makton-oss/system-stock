@@ -74,6 +74,7 @@ app.post("/webhook", async (req, res) => {
     .from("users")
     .select("*, outlets(name)")
     .eq("chat_id", chatId)
+    .eq("is_active", true)
     .maybeSingle();
 
   if (userError) {
