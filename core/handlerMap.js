@@ -15,10 +15,10 @@ module.exports = {
   SETROLE: require("../handlers/setRole"),
   REMOVEROLE: require("../handlers/removeRole"),
   UPDATE: require("../handlers/update"),
+  REACTIVATE: require("../handlers/reactivate"),
   REPORTMENU: require("../handlers/reportMenu"),
   REPORT_MONTH: require("../handlers/reportMonth"),
   PENDING: require("../handlers/pending"),
   UPITEM: require("../handlers/updateItem"),
-  REACTIVATE: require("../handlers/reactivate"),
   TRY: require("../handlers/try")
 };
