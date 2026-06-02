@@ -92,8 +92,8 @@ async function approveRequest(rows, chatId) {
     // FIX — add type guard
     const isLow =
       (row.type === "out" || row.type === "wastage") &&
-      before.qty > minQty &&
-      after.qty <= minQty;
+      after.qty <= minQty &&
+      minQty > 0;
 
     // ======================
     // SUMMARY

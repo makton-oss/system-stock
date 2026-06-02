@@ -21,5 +21,6 @@ module.exports = {
   REPORT_MONTH: require("../handlers/reportMonth"),
   PENDING: require("../handlers/pending"),
   UPITEM: require("../handlers/updateItem"),
+  WASTAGE: require("../handlers/wastage"),
   TRY: require("../handlers/try")
 };

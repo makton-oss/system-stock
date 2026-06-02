@@ -1,41 +1,31 @@
 const { pendingNotifyQueue } = require("./pendingNotifyQueue");
 const { notifySmartStock } = require("./smartStockNotifier");
 
-async function queueStockNotification( outletId ) {
+const QUEUE_DELAY = 1 * 60 * 1000; // 1 minit
 
-  // already waiting
-  if (
-    pendingNotifyQueue[outletId]
-  ) {
-    return;
+async function queueStockNotification(outletId) {
+
+  // ======================
+  // CLEAR EXISTING TIMER (DEBOUNCE)
+  // ======================
+  if (pendingNotifyQueue[outletId]) {
+    clearTimeout(pendingNotifyQueue[outletId]);
   }
 
-  pendingNotifyQueue[outletId] =
-    true;
-
-  setTimeout(async () => {
+  // ======================
+  // SET NEW TIMER
+  // ======================
+  pendingNotifyQueue[outletId] = setTimeout(async () => {
 
     try {
-
-      await notifySmartStock(
-        outletId
-      );
-
+      await notifySmartStock(outletId);
     } catch (err) {
-
-      console.log(
-        "QUEUE ERROR:",
-        err
-      );
-
+      console.log("QUEUE ERROR:", err);
     } finally {
-
-      delete pendingNotifyQueue[
-        outletId
-      ];
+      delete pendingNotifyQueue[outletId];
     }
 
-  }, 120000); // 2 mins
+  }, QUEUE_DELAY);
 }
 
 module.exports = {

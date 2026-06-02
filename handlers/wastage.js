@@ -113,8 +113,7 @@ module.exports = withRole(["staff"], async (ctx) => {
     return res.end();
   }
 
-  const userInfo = await getUserDisplay(chatId);
-    await queueStockNotification(user.outlet_id);
+  await queueStockNotification(user.outlet_id);
 
   await reply(chatId, "✅ WASTAGE SENT");
   return res.end();

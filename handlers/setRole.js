@@ -52,12 +52,18 @@ module.exports = withRole(["admin"], async (ctx) => {
   // ======================
   // UPSERT USER
   // ======================
-  await supabase.from("users").upsert({
+  const { error: upsertError } = await supabase.from("users").upsert({
     chat_id: phone,
     role,
     nickname,
     outlet_id: (role === "staff" || role === "supervisor") ? outletIds[0] : null
   });
+
+  if (upsertError) {
+    console.log("UPSERT ERROR:", upsertError);
+    await reply(chatId, "❌ ERROR SET ROLE");
+    return res.end();
+  }
 
   // ======================
   // UPDATE PIVOT (manager sahaja)

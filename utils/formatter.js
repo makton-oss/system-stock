@@ -31,20 +31,7 @@ async function writeLog(chatId, role, command, details = "") {
       details
     });
 
-    // keep last 50 logs
-    const { data } = await supabase
-      .from("logs")
-      .select("id")
-      .order("id", { ascending: false });
-
-    if (data && data.length > 50) {
-      const idsToDelete = data.slice(50).map(x => x.id);
-
-      await supabase
-        .from("logs")
-        .delete()
-        .in("id", idsToDelete);
-    }
+    await supabase.rpc("trim_logs");
 
   } catch (err) {
     console.log("LOG ERROR:", err);

@@ -1,5 +1,6 @@
 const supabase = require("../services/db");
 const { getOutletByCode } = require("./getOutletByCode");
+const reportModeStore = require("./reportModeStore");
 
 async function parseButtonMessage({ raw, chatId, body }) {
 
@@ -38,8 +39,7 @@ async function parseButtonMessage({ raw, chatId, body }) {
 
   if (REPORT_MODES.includes(upperClean) && hasReplyId) {
 
-    global.reportModeMap = global.reportModeMap || {};
-    global.reportModeMap[chatId] = upperClean;
+    reportModeStore.set(chatId, upperClean);
 
     console.log("SET REPORT MODE:", chatId, upperClean);
 
@@ -49,29 +49,27 @@ async function parseButtonMessage({ raw, chatId, body }) {
   // ======================
   // MONTH SELECTION
   // click dari reportMonth (non-inventory)
-  // "current" atau "may-26"
   // ======================
   if (hasReplyId) {
 
-    const mode = global.reportModeMap?.[chatId];
+    const mode = reportModeStore.get(chatId);
 
     if (
       upperClean === "CURRENT" ||
       /^[A-Z]{3}-\d{2}$/i.test(clean)
     ) {
       if (mode && mode !== "INVENTORY") {
-        delete global.reportModeMap[chatId];
+        reportModeStore.del(chatId);
         return `REPORT ${mode} ${clean.toLowerCase()}`;
       }
     }
 
     // ======================
     // INVENTORY DATE BUTTON
-    // click "30/04/26" button
     // ======================
     if (/^\d{1,2}\/\d{1,2}\/\d{2}$/.test(clean)) {
       if (mode === "INVENTORY") {
-        delete global.reportModeMap[chatId];
+        reportModeStore.del(chatId);
         return `REPORT INVENTORY ${clean}`;
       }
     }
