@@ -7,7 +7,7 @@ function buildApproveMessage(summary) {
     const sign = data.qty > 0 ? "+" : "";
 
     const balanceStr = data.balance !== null
-      ? ` → Baki: ${data.balance}`
+      ? ` ➡️ Baki: ${data.balance}`
       : "";
 
     const warn = data.balance !== null && data.balance <= data.min
