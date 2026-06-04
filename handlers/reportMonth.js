@@ -2,14 +2,14 @@ const { withRole } = require("../core/withRole");
 const { sendButtons } = require("../services/notification/buttonService");
 
 // ======================
-// LAST 2 MONTHS
+// LAST 3 MONTHS
 // ======================
-function getLast2Months() {
+function getLast3Months() {
 
   const months = [];
   const now = new Date();
 
-  for (let i = 1; i <= 2; i++) {
+  for (let i = 1; i <= 3; i++) {
 
     const d = new Date(
       now.getFullYear(),
@@ -63,44 +63,17 @@ module.exports = withRole(
     if (!mode) return res.end();
 
     // ======================
-    // INVENTORY
-    // ======================
-    if (mode === "INVENTORY") {
-
-      const lastMonthDate = getLastMonthDate();
-
-      await sendButtons(
-        chatId,
-        `📦 INVENTORY REPORT\n\nKlik butang atau taip tarikh:\nContoh: REPORT INVENTORY 30/04/26`,
-        [
-          {
-            id: `REPORT INVENTORY ${lastMonthDate}`,
-            title: lastMonthDate  // "30/04/26" ← dynamic, boleh parse
-          }
-        ]
-      );
-
-      return res.end();
-    }
-
-    // ======================
     // OTHER REPORTS
     // ======================
-    const months = getLast2Months();
+    const months = getLast3Months();
 
     await sendButtons(
       chatId,
-      `📅 PILIH BULAN\n\n${mode} REPORT`,
-      [
-        {
-          id: `REPORT ${mode} current`,
-          title: "current"
-        },
-        ...months.map(m => ({
-          id: `REPORT ${mode} ${m}`,
-          title: m
-        }))
-      ]
+      `📅 PILIH BULAN\n\n${mode} REPORT`, 
+      months.map(m => ({
+        id: `REPORT ${mode} ${m}`,
+        title: m
+      }))
     );
 
     return res.end();

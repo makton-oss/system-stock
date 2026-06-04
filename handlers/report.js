@@ -2,15 +2,7 @@ const { withRole } = require("../core/withRole");
 const { getAccessibleOutletIds } = require("../utils/getAccessibleOutlets");
 const { getInventoryReport, getFlowReport, getDeadReport, getDetailReport } = require("../services/reportService");
 const { getSummaryReport } = require("../services/reports/summaryReport");
-const {
-  formatSummaryReport,
-  formatInventoryReport,
-  formatDetailReport,
-  formatDeadReport,
-  formatFlowReport,
-  parseMonthInput,
-  formatMonthLabel
-} = require("../utils/formatter");
+const { formatSummaryReport, formatInventoryReport, formatDetailReport, formatDeadReport, formatFlowReport, parseMonthInput, formatMonthLabel } = require("../utils/formatter");
 
 module.exports = withRole(["manager", "admin"], async (ctx) => {
 
