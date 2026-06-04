@@ -1,7 +1,6 @@
 const { withRole } = require("../core/withRole");
 const { normalizeItem, safeQty } = require("../utils/helpers");
 const { createRequest } = require("../services/stock/createRequest");
-const { getUserDisplay, toProperCase } = require("../utils/formatter");
 const { queueStockNotification } = require("../services/notification/queueStockNotification");
 
 module.exports = withRole(["staff"], async (ctx) => {
@@ -113,20 +112,8 @@ module.exports = withRole(["staff"], async (ctx) => {
     return res.end();
   }
 
-  try {
-    const userInfo = await getUserDisplay(chatId);
+  	await queueStockNotification(user.outlet_id);
 
-    const text = `📥 STOCK IN - ${toProperCase(user.outlets?.name || "-")}
-
-ID ${result?.id || "-"} ${toProperCase(item)} x${qty}
-BY: ${toProperCase(userInfo.nickname)} (${chatId})`;
-
-    await queueStockNotification(user.outlet_id);
-
-  } catch (err) {
-    console.log("NOTIFY ERROR (IN):", err);
-  }
-
-  await reply(chatId, "✅ REQUEST SENT");
-  return res.end();
+  	await reply(chatId, "✅ REQUEST SENT");
+	return res.end();
 });

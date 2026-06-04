@@ -21,11 +21,10 @@ async function approveRequest(rows, chatId) {
       .eq("status", "pending")
       .select();
 
-    // skip kalau dah kena process
     if (!updated?.length) continue;
 
     // ======================
-    // GET STOCK (FIXED)
+    // GET STOCK BEFORE
     // ======================
     const { data: before } = await supabase
       .from("stock")
@@ -35,7 +34,7 @@ async function approveRequest(rows, chatId) {
       .maybeSingle();
 
     if (!before) {
-      console.log("STOCK NOT FOUND:", row.item_id, row.outlet_id);
+      console.log("BEFORE STOCK NOT FOUND:", row.item_id, row.outlet_id);
       continue;
     }
 
@@ -73,12 +72,12 @@ async function approveRequest(rows, chatId) {
       item: row.item,
       qty: row.qty,
       type: row.type,
-	  cost_price: before.cost_price || 0,
+      cost_price: before.cost_price || 0,
       created_by: chatId
     });
 
     // ======================
-    // AFTER STOCK
+    // GET STOCK AFTER
     // ======================
     const { data: after } = await supabase
       .from("stock")
@@ -87,13 +86,29 @@ async function approveRequest(rows, chatId) {
       .eq("outlet_id", row.outlet_id)
       .maybeSingle();
 
-    const minQty = after?.min_qty || 0;
+    // 🔥 GUARD: after stock mesti ada
+    if (!after) {
+      console.log("AFTER STOCK NOT FOUND:", row.item_id, row.outlet_id);
 
-    // FIX — add type guard
+      // Still record summary without balance info
+      summary[row.item] = {
+        qty: (summary[row.item]?.qty || 0) +
+          (row.type === "out" || row.type === "wastage" ? -row.qty : row.qty),
+        balance: null,
+        min: 0
+      };
+
+      logDetails.push(`ID${row.id} ${row.item}`);
+      continue;
+    }
+
+    // ======================
+    // LOW STOCK CHECK
+    // ======================
     const isLow =
       (row.type === "out" || row.type === "wastage") &&
-      after.qty <= minQty &&
-      minQty > 0;
+      after.min_qty > 0 &&
+      after.qty <= after.min_qty;
 
     // ======================
     // SUMMARY
@@ -101,8 +116,8 @@ async function approveRequest(rows, chatId) {
     summary[row.item] = {
       qty: (summary[row.item]?.qty || 0) +
         (row.type === "out" || row.type === "wastage" ? -row.qty : row.qty),
-      balance: after?.qty ?? null,
-      min: after?.min_qty ?? 0
+      balance: after.qty,
+      min: after.min_qty
     };
 
     logDetails.push(`ID${row.id} ${row.item}`);
@@ -111,7 +126,7 @@ async function approveRequest(rows, chatId) {
       row._lowStock = {
         item: row.item,
         qty: after.qty,
-        min: minQty,
+        min: after.min_qty,
         outlet_id: row.outlet_id
       };
     }

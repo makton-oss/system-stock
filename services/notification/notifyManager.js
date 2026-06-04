@@ -1,9 +1,7 @@
 const supabase = require("../db");
 const { sendWhatsApp } = require("./whatsappService");
+const { sendBatchMessages } = require("../../utils/broadcast");
 
-// ======================
-// NOTIFY MANAGER
-// ======================
 async function notifyManagers(message, outletId, senderChatId = null) {
   try {
 
@@ -22,38 +20,27 @@ async function notifyManagers(message, outletId, senderChatId = null) {
     }
 
     if (!data?.length) {
-      console.log(`❌ NO MANAGER MATCH OUTLET: ${outletId}`);
+      console.log(`❌ NO MANAGER FOR OUTLET: ${outletId}`);
       return;
     }
 
     const targets = data
-      .map(r => r.users.chat_id)
-      .filter(id => !senderChatId || id !== senderChatId);
+      .map(r => ({ chat_id: r.users.chat_id }))
+      .filter(u => !senderChatId || u.chat_id !== senderChatId);
 
-    const batchSize = 5;
+    if (!targets.length) return;
 
-    for (let i = 0; i < targets.length; i += batchSize) {
-
-      const batch = targets.slice(i, i + batchSize);
-
-      const results = await Promise.allSettled(
-        batch.map(id => sendWhatsApp(id, message))
-      );
-
-      results.forEach((r, idx) => {
-        if (r.status === "rejected") {
-          console.log("FAILED SEND:", batch[idx], r.reason);
-        }
-      });
-
-      await new Promise(r => setTimeout(r, 500));
-    }
+    await sendBatchMessages(
+      targets,
+      message,
+      sendWhatsApp,
+      5,
+      500
+    );
 
   } catch (err) {
     console.log("❌ NOTIFY MANAGER ERROR:", err);
   }
 }
 
-module.exports = {
-  notifyManagers
-};
+module.exports = { notifyManagers };

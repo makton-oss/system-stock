@@ -2,22 +2,23 @@ const supabase = require("../services/db");
 
 async function getManagersByOutlet(outletId) {
 
-  const { data: links, error } = await supabase
+  const { data, error } = await supabase
     .from("user_outlets")
-    .select("user_chat_id")
-    .eq("outlet_id", outletId);
+    .select(`
+      user_chat_id,
+      users!inner(chat_id, role)
+    `)
+    .eq("outlet_id", outletId)
+    .eq("users.role", "manager");
 
   if (error) {
-    console.log("LINK ERROR:", error);
+    console.log("GETMANAGERS ERROR:", error);
     return [];
   }
 
-  if (!links?.length) return [];
+  if (!data?.length) return [];
 
-  // terus return format sama macam users table
-  return links.map(l => ({
-    chat_id: l.user_chat_id
-  }));
+  return data.map(l => ({ chat_id: l.user_chat_id }));
 }
 
 module.exports = { getManagersByOutlet };
