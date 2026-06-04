@@ -116,18 +116,14 @@ module.exports = withRole(["manager", "admin"], async (ctx) => {
         break;
 
       case "DEAD":
-        // FIX: guna 60 hari ke belakang dari hari ini, bukan ikut bulan
-        const deadEnd   = new Date().toISOString();
-        const deadStart = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString();
-
-        result = await getDeadReport({ start: deadStart, end: deadEnd, outletIds });
+        result = await getDeadReport({ start, end, outletIds });
         if (result.error) throw result.error;
 
         const hasDead = Object.values(result).some(arr => arr.length);
         if (!hasDead) {
-          await reply(chatId, "✅ TIADA STOCK YANG TIDAK BERGERAK 60 HARI SEBELUM INI.");
+          await reply(chatId, `✅ TIADA DEAD STOCK - ${monthLabel}`);
         } else {
-          await reply(chatId, formatDeadReport(result, "60 Hari Lepas"));
+          await reply(chatId, formatDeadReport(result, monthLabel));
         }
         break;
 

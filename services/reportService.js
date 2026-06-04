@@ -187,6 +187,7 @@ async function getDetailReport({ start, end, outletIds }) {
 // ======================
 async function getDeadReport({ start, end, outletIds }) {
 
+  // semua item dalam outlet
   let stockQ = supabase
     .from("stock")
     .select(`
@@ -203,13 +204,10 @@ async function getDeadReport({ start, end, outletIds }) {
 
   const { data: stock } = await stockQ;
 
+  // movement dalam bulan yang dipilih sahaja
   let moveQ = supabase
     .from("stock_movements")
-    .select(`
-      item_id,
-      outlet_id,
-      created_at
-    `)
+    .select("item_id, outlet_id")
     .gte("created_at", start)
     .lte("created_at", end);
 
@@ -226,10 +224,7 @@ async function getDeadReport({ start, end, outletIds }) {
   Object.entries(grouped).forEach(([outlet, rows]) => {
     result[outlet] = rows
       .filter(r => !used.has(`${r.item_id}-${r.outlet_id}`))
-      .map(r => ({
-        name: r.stock_items?.name || r.item,
-        last: "-"
-      }));
+      .map(r => ({ name: r.stock_items?.name || r.item }));
   });
 
   return result;

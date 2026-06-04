@@ -4,14 +4,25 @@ const { toProperCase, formatCurrency } = require("../helpers");
 // SUMMARY REPORT
 // ======================
 function formatSummaryReport(data, monthLabel) {
-  let text = `📊 MONTHLY SUMMARY\n${monthLabel}\n\n`;
+  let text = `📊 MONTHLY REPORT\n${monthLabel}\n\n`;
 
   data.forEach(o => {
     text += `🏪 ${toProperCase(o.outletName)}\n━━━━━━━━━━\n\n`;
-    text += `💸 STOCK USED\n${formatCurrency(o.stockOut)}\n\n`;
+
+    if (o.openingValue !== null) {
+      text += `📂 OPENING STOCK\n${formatCurrency(o.openingValue)}\n\n`;
+    }
+
     text += `📥 STOCK IN\n${formatCurrency(o.stockIn)}\n\n`;
+    text += `💸 STOCK USED\n${formatCurrency(o.stockOut)}\n\n`;
     text += `⚠️ WASTAGE\n${formatCurrency(o.wastage)}\n\n`;
-    text += `📦 INVENTORY VALUE\n${formatCurrency(o.inventoryValue)}\n\n`;
+
+    if (o.closingValue !== null) {
+      text += `📁 CLOSING STOCK\n${formatCurrency(o.closingValue)}\n\n`;
+    } else {
+      text += `📁 CLOSING STOCK\n(snapshot tiada)\n\n`;
+    }
+
     text += `📉 WASTAGE %\n${o.wastagePercent.toFixed(1)}%\n\n`;
 
     text += `🔥 TOP USAGE\n`;
@@ -117,11 +128,14 @@ function formatDeadReport(data, month) {
   let text = `💀 DEAD STOCK - ${month}\n`;
 
   Object.entries(data).forEach(([outlet, rows]) => {
-    text += `OUTLET ${toProperCase(outlet)}\n\n`;
+    text += `\nOUTLET ${toProperCase(outlet)}\n`;
+    if (!rows.length) {
+      text += "✅ Tiada dead stock\n";
+      return;
+    }
     rows.forEach((r, i) => {
-      text += `${i + 1}. ${toProperCase(r.name)} (${r.last})\n`;
+      text += `${i + 1}. ${toProperCase(r.name)}\n`;
     });
-    text += "\n";
   });
 
   return text;

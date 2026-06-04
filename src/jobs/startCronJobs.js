@@ -8,13 +8,10 @@ function startCronJobs()
   );
 
   cron.schedule(
-    "0 0 * * *",
+    "59 23 * * *",
     async () =>
     {
-      console.log(
-        "📸 DAILY SNAPSHOT"
-      );
-
+      console.log("📸 DAILY SNAPSHOT");
       await createInventorySnapshot();
     },
     {
