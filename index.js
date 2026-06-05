@@ -53,12 +53,14 @@ app.post("/webhook", async (req, res) => {
     JSON.stringify(body, null, 2)
   );
 
-  const chatId = (
+  const rawId = (
     body.chat_id ||
     body.subscriber_id ||
     body.user_id ||
     ""
   ).split("-")[0];
+
+  const chatId = rawId.replace(/[^\d]/g, "");
 
   if (!chatId) {
     return res.end();

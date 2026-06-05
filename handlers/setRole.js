@@ -11,8 +11,8 @@ module.exports = withRole(["admin"], async (ctx) => {
     return res.end();
   }
 
-  const phone = parts[1];
-  const role = parts[2];
+  const phone = parts[1].replace(/[^\d]/g, "");
+  const role = parts[2].toLowerCase();
   const nickname = parts[3];
   const outletNames = parts.slice(4).join(" ").split(",");
 
