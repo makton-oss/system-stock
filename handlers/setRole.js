@@ -52,15 +52,20 @@ module.exports = withRole(["admin"], async (ctx) => {
   // ======================
   // UPSERT USER
   // ======================
-  const { error: upsertError } = await supabase.from("users").upsert({
-    chat_id: phone,
-    role,
-    nickname,
-    outlet_id: (role === "staff" || role === "supervisor") ? outletIds[0] : null,
-    is_active: true
-  }), {
-    onConflict: "chat_id"
-  });
+  const upsertResult = await supabase
+  .from("users")
+  .upsert(
+    {
+      chat_id: phone,
+      role,
+      nickname,
+      outlet_id: (role === "staff" || role === "supervisor") ? outletIds[0] : null,
+      is_active: true
+    },
+    { onConflict: "chat_id" }
+  );
+
+  const upsertError = upsertResult.error;
 
 
   if (upsertError) {
