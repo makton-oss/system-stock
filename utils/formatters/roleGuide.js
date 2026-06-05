@@ -1,6 +1,6 @@
 const ROLE_GUIDE = {
 
-  staff: `
+staff: `
 📦 STAFF GUIDE
 
 Hai 👋
@@ -20,20 +20,64 @@ OUT tepung 1
 
 ────────────────────
 
+🗑️ Rekod wastage:
+WASTAGE ayam 2
+
+────────────────────
+
 📦 Semak stok:
 STOCK
 
 ────────────────────
 
-📋 Semak request pending:
+📋 Semak request:
 LIST
 
 ────────────────────
 
-💡 TIPS:
-- IN = tambah stok
-- OUT = tolak stok
-- Semua request perlu approve manager
+⚠️ PENTING:
+- Rekod IN dan OUT boleh dibuat pada bila-bila masa
+- JANGAN tunggu waktu closing baru nak rekod
+- Rekod terus bila barang masuk atau digunakan
+- Rekod tepat = stok tepat
+
+❓ Bantuan:
+HELP
+`,
+
+supervisor: `
+📋 SUPERVISOR GUIDE
+
+Hai 👋
+Anda semak dan luluskan request outlet anda.
+
+────────────────────
+
+📥 Request masuk:
+- Notifikasi akan masuk bila staff hantar request
+- Tekan butang APPROVE atau REJECT pada notifikasi
+
+────────────────────
+
+📋 Semak request pending:
+PENDING
+
+────────────────────
+
+📦 Semak stok:
+STOCK
+
+────────────────────
+
+📦 Semak item config:
+ITEM
+
+────────────────────
+
+⚠️ PENTING:
+- Semua request MESTI di-approve atau reject
+  sebelum jam 12 malam
+- Jangan biarkan request pending hingga esok
 
 ❓ Bantuan:
 HELP
@@ -47,30 +91,19 @@ Anda urus approval & pantau stok outlet.
 
 ────────────────────
 
+📥 Request masuk:
+- Notifikasi akan masuk bila staff hantar request
+- Tekan butang APPROVE atau REJECT pada notifikasi
+
+────────────────────
+
 📋 Semak request:
-LIST
-
-────────────────────
-
-✅ Luluskan request:
-APPROVE 12
-APPROVE ALL
-
-────────────────────
-
-❌ Tolak request:
-REJECT 12
-REJECT ALL
+PENDING
 
 ────────────────────
 
 📦 Semak stok:
 STOCK
-
-────────────────────
-
-📦 Semak item config:
-ITEM
 
 ────────────────────
 
@@ -93,9 +126,40 @@ STAFF
 
 ────────────────────
 
+⚠️ PENTING:
+- Semua request MESTI di-approve atau reject
+  sebelum jam 12 malam
+- Jangan biarkan request pending hingga esok
+
+❓ Bantuan:
+HELP
+`,
+
+  owner: `
+👔 OWNER GUIDE
+
+Hai 👋
+Pantau operasi dan laporan semua outlet.
+
+────────────────────
+
+📊 REPORT
+
+Main report:
+REPORT
+REPORT may-26
+
+Detail:
+REPORT INVENTORY
+REPORT DETAIL
+REPORT FLOW
+REPORT DEAD
+
+────────────────────
+
 💡 TIPS:
-- Check LIST sebelum approve
-- Pastikan request betul sebelum approve
+- REPORT untuk tengok prestasi outlet
+- STOCK untuk semak stok semua outlet
 
 ❓ Bantuan:
 HELP
@@ -110,10 +174,10 @@ Akses penuh semua outlet & sistem.
 ────────────────────
 
 👤 Urus user:
-SETROLE 60123456789 manager ali muiz
+SETROLE 60123456789 ali manager muiz
 
 ✅ Format:
-[phone] [role] [nickname] [outlet]
+[phone] [nickname] [role] [outlet]
 
 ────────────────────
 
@@ -132,17 +196,17 @@ LOG
 
 ────────────────────
 
-📦 STOCK (semua outlet):
+📦 Semak stok:
 STOCK
 
 ────────────────────
 
-📦 ITEM CONFIG:
+📦 Semak item config:
 ITEM
 
 ────────────────────
 
-📊 REPORT (semua outlet)
+📊 REPORT
 
 Main:
 REPORT
@@ -177,7 +241,7 @@ REMOVEITEM minyak bijan
 💡 TIPS:
 - Nama item mesti konsisten (elak duplicate)
 - Pastikan cost, uom & min qty betul
-- Item akan digunakan oleh outlet tersebut
+- Format SETROLE: phone nickname role outlet
 
 ❓ Bantuan:
 HELP
