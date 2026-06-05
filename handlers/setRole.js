@@ -56,8 +56,12 @@ module.exports = withRole(["admin"], async (ctx) => {
     chat_id: phone,
     role,
     nickname,
-    outlet_id: (role === "staff" || role === "supervisor") ? outletIds[0] : null
+    outlet_id: (role === "staff" || role === "supervisor") ? outletIds[0] : null,
+    is_active: true
+  }), {
+    onConflict: "chat_id"
   });
+
 
   if (upsertError) {
     console.log("UPSERT ERROR:", upsertError);
