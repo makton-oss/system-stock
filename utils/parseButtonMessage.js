@@ -48,7 +48,7 @@ async function parseButtonMessage({ raw, chatId, body }) {
 
   // ======================
   // MONTH SELECTION
-  // click dari reportMonth (non-inventory)
+  // click dari reportMonth (all modes including INVENTORY)
   // ======================
   if (hasReplyId) {
 
@@ -58,7 +58,7 @@ async function parseButtonMessage({ raw, chatId, body }) {
       upperClean === "CURRENT" ||
       /^[A-Z]{3}-\d{2}$/i.test(clean)
     ) {
-      if (mode && mode !== "INVENTORY") {
+      if (mode) {
         reportModeStore.del(chatId);
         return `REPORT ${mode} ${clean.toLowerCase()}`;
       }
