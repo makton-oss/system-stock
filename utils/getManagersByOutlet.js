@@ -2,23 +2,49 @@ const supabase = require("../services/db");
 
 async function getManagersByOutlet(outletId) {
 
-  const { data, error } = await supabase
+  // ======================
+  // MANAGERS (dari user_outlets)
+  // ======================
+  const { data: managerLinks, error: managerError } = await supabase
     .from("user_outlets")
     .select(`
       user_chat_id,
-      users!inner(chat_id, role)
+      users!inner(chat_id, role, is_active)
     `)
     .eq("outlet_id", outletId)
-    .eq("users.role", "manager");
+    .eq("users.role", "manager")
+    .eq("users.is_active", true);
 
-  if (error) {
-    console.log("GETMANAGERS ERROR:", error);
-    return [];
+  if (managerError) {
+    console.log("GETMANAGERS ERROR:", managerError);
   }
 
-  if (!data?.length) return [];
+  // ======================
+  // SUPERVISORS (dari users.outlet_id)
+  // ======================
+  const { data: supervisors, error: svError } = await supabase
+    .from("users")
+    .select("chat_id")
+    .eq("outlet_id", outletId)
+    .eq("role", "supervisor")
+    .eq("is_active", true);
 
-  return data.map(l => ({ chat_id: l.user_chat_id }));
+  if (svError) {
+    console.log("GETSUPERVISORS ERROR:", svError);
+  }
+
+  const managers = (managerLinks || []).map(l => ({ chat_id: l.user_chat_id }));
+  const svList   = (supervisors  || []).map(u => ({ chat_id: u.chat_id }));
+
+  // dedupe kalau ada overlap
+  const seen = new Set();
+  const combined = [...managers, ...svList].filter(u => {
+    if (seen.has(u.chat_id)) return false;
+    seen.add(u.chat_id);
+    return true;
+  });
+
+  return combined;
 }
 
 module.exports = { getManagersByOutlet };
