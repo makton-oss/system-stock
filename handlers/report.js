@@ -4,6 +4,13 @@ const { getInventoryReport, getFlowReport, getDeadReport, getDetailReport } = re
 const { getSummaryReport } = require("../services/reports/summaryReport");
 const { formatSummaryReport, formatInventoryReport, formatDetailReport, formatDeadReport, formatFlowReport, parseMonthInput, formatMonthLabel } = require("../utils/formatter");
 
+// end of month inclusive (23:59:59.999)
+function toEndOfMonth(rangeEnd) {
+  const d = new Date(rangeEnd);
+  d.setMilliseconds(-1);
+  return d.toISOString();
+}
+
 module.exports = withRole(["manager", "admin"], async (ctx) => {
 
   const { chatId, parts, user, reply, res } = ctx;
@@ -47,20 +54,19 @@ module.exports = withRole(["manager", "admin"], async (ctx) => {
   // ======================
   if (mode === "INVENTORY") {
 
-    const monthInput = parts[2]?.toLowerCase() || "current";
-    const range = parseMonthInput(monthInput);
+    const invMonthInput = parts[2]?.toLowerCase() || "current";
+    const range = parseMonthInput(invMonthInput);
 
     if (!range) {
       await reply(chatId, "❌ FORMAT: REPORT INVENTORY may-26");
       return res.end();
     }
 
-    // last day of month as snapshot date
     const endDate = new Date(range.end);
     endDate.setDate(endDate.getDate() - 1);
-    const snapshotDate = endDate.toISOString().split("T")[0]; // e.g. "2026-05-31"
+    const snapshotDate = endDate.toISOString().split("T")[0];
 
-    const monthLabel = formatMonthLabel(monthInput, range.start.toISOString());
+    const monthLabel = formatMonthLabel(invMonthInput, range.start.toISOString());
 
     try {
       const result = await getInventoryReport({ outletIds, snapshotDate });
@@ -92,7 +98,7 @@ module.exports = withRole(["manager", "admin"], async (ctx) => {
   }
 
   const start      = range.start.toISOString();
-  const end        = range.end.toISOString();
+  const end        = toEndOfMonth(range.end);
   const monthLabel = formatMonthLabel(monthInput, start);
 
   // ======================
@@ -116,7 +122,7 @@ module.exports = withRole(["manager", "admin"], async (ctx) => {
 
         const hasDead = Object.values(result).some(arr => arr.length);
         if (!hasDead) {
-          await reply(chatId, `✅ TIADA DEAD STOCK - ${monthLabel}`);
+          await reply(chatId, `✅ TIADA DEAD STOCK\n${monthLabel}`);
         } else {
           await reply(chatId, formatDeadReport(result, monthLabel));
         }

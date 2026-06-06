@@ -86,12 +86,19 @@ function parseMonthInput(input) {
 }
 
 function formatMonthLabel(monthInput, startDate) {
-  if (!monthInput || monthInput.toLowerCase() === "current") {
-    const d     = new Date(startDate);
-    const month = toProperCase(d.toLocaleString("en-MY", { month: "long" }));
-    return `${month} ${d.getFullYear()}`;
-  }
-  return monthInput.toUpperCase();
+  const d = monthInput && monthInput.toLowerCase() !== "current"
+    ? (() => {
+        const months = { jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11 };
+        const [m, y] = monthInput.toLowerCase().split("-");
+        return new Date(2000 + parseInt(y), months[m], 1);
+      })()
+    : new Date(startDate);
+
+  const monthName = d.toLocaleString("en-MY", { month: "long" }); // "May"
+  const year      = d.getFullYear();                               // 2026
+  const lastDay   = new Date(year, d.getMonth() + 1, 0).getDate(); // 31
+
+  return `${monthName} ${year} (1-${lastDay})`;
 }
 
 module.exports = {
