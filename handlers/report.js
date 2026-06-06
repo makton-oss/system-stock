@@ -47,28 +47,31 @@ module.exports = withRole(["manager", "admin"], async (ctx) => {
   // ======================
   if (mode === "INVENTORY") {
 
-    const rawDate = monthInput;
-    const match   = rawDate.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2})$/);
+    const monthInput = parts[2]?.toLowerCase() || "current";
+    const range = parseMonthInput(monthInput);
 
-    if (!match) {
-      await reply(chatId, "❌ FORMAT TARIKH: 30/04/26");
+    if (!range) {
+      await reply(chatId, "❌ FORMAT: REPORT INVENTORY may-26");
       return res.end();
     }
 
-    const [, dd, mm, yy] = match;
-    const snapshotDate   = `20${yy}-${mm.padStart(2, "0")}-${dd.padStart(2, "0")}`;
+    // last day of month as snapshot date
+    const endDate = new Date(range.end);
+    endDate.setDate(endDate.getDate() - 1);
+    const snapshotDate = endDate.toISOString().split("T")[0]; // e.g. "2026-05-31"
+
+    const monthLabel = formatMonthLabel(monthInput, range.start.toISOString());
 
     try {
       const result = await getInventoryReport({ outletIds, snapshotDate });
       if (result.error) throw result.error;
 
-      // FIX: handle snapshot kosong
       if (!Object.keys(result).length) {
-        await reply(chatId, `❌ TIADA SNAPSHOT UNTUK TARIKH: ${rawDate}\n\nSnapshot dijana setiap hari tengah malam. Pastikan tarikh betul.`);
+        await reply(chatId, `❌ TIADA SNAPSHOT UNTUK: ${monthLabel}\n\nSnapshot dijana setiap hari tengah malam.`);
         return res.end();
       }
 
-      await reply(chatId, formatInventoryReport(result, rawDate));
+      await reply(chatId, formatInventoryReport(result, monthLabel));
 
     } catch (err) {
       console.log("INVENTORY REPORT ERROR:", err);

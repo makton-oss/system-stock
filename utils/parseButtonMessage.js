@@ -63,16 +63,6 @@ async function parseButtonMessage({ raw, chatId, body }) {
         return `REPORT ${mode} ${clean.toLowerCase()}`;
       }
     }
-
-    // ======================
-    // INVENTORY DATE BUTTON
-    // ======================
-    if (/^\d{1,2}\/\d{1,2}\/\d{2}$/.test(clean)) {
-      if (mode === "INVENTORY") {
-        reportModeStore.del(chatId);
-        return `REPORT INVENTORY ${clean}`;
-      }
-    }
   }
 
   // ======================
