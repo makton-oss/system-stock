@@ -60,29 +60,37 @@ function formatLogDateTime(date = null) {
 // ======================
 function parseMonthInput(input) {
   if (!input || input.toLowerCase() === "current") {
-    const now = new Date();
+    const now = DateTime.now().setZone("Asia/Kuala_Lumpur");
     return {
-      start: new Date(now.getFullYear(), now.getMonth(), 1),
-      end:   new Date(now.getFullYear(), now.getMonth() + 1, 1)
+      start: now.startOf("month").toUTC().toJSDate(),
+      end:   now.startOf("month").plus({ months: 1 }).toUTC().toJSDate()
     };
   }
 
   const months = {
-    jan: 0, feb: 1, mar: 2, apr: 3,
-    may: 4, jun: 5, jul: 6, aug: 7,
-    sep: 8, oct: 9, nov: 10, dec: 11
+    jan: 1, feb: 2,  mar: 3,  apr: 4,
+    may: 5, jun: 6,  jul: 7,  aug: 8,
+    sep: 9, oct: 10, nov: 11, dec: 12
   };
 
   const [m, y] = input.toLowerCase().split("-");
   const month  = months[m];
   const year   = 2000 + parseInt(y);
 
-  if (month === undefined || isNaN(year)) return null;
+  if (!month || isNaN(year)) return null;
 
-  return {
-    start: new Date(year, month, 1),
-    end:   new Date(year, month + 1, 1)
-  };
+  const start = DateTime
+    .fromObject({ year, month, day: 1 }, { zone: "Asia/Kuala_Lumpur" })
+    .toUTC()
+    .toJSDate();
+
+  const end = DateTime
+    .fromObject({ year, month, day: 1 }, { zone: "Asia/Kuala_Lumpur" })
+    .plus({ months: 1 })
+    .toUTC()
+    .toJSDate();
+
+  return { start, end };
 }
 
 function formatMonthLabel(monthInput, startDate) {
