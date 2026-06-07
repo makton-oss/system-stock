@@ -452,10 +452,10 @@
   </div>
 
   <!-- MOCKUP WRAPPER -->
-  <div style="display:flex; gap:1.5rem; justify-content:center; flex-wrap:wrap; margin-top:3rem;">
+  <div style="display:flex; gap:1.5rem; justify-content:center; flex-wrap:wrap; margin-top:3rem; align-items:flex-start;">
 
     <!-- MOCKUP 1: STAFF -->
-    <div class="hero-mockup">
+    <div class="hero-mockup" style="max-width:280px;">
       <div class="mockup-header">
         <div class="mockup-avatar">SB</div>
         <div>
@@ -464,6 +464,7 @@
         </div>
       </div>
       <div style="font-size:0.7rem;color:#888;margin-bottom:8px;text-align:center;">👤 Staff View</div>
+
       <div class="msg">
         <div class="msg-out-wrap">
           <div class="msg-out">OUT ayam rempah 3<div class="msg-time">9:14 AM ✓✓</div></div>
@@ -476,10 +477,22 @@
           <div class="msg-time">9:14 AM</div>
         </div>
       </div>
+      <div class="msg">
+        <div class="msg-out-wrap">
+          <div class="msg-out">OUT tepung gandum 2<div class="msg-time">9:15 AM ✓✓</div></div>
+        </div>
+      </div>
+      <div class="msg">
+        <div class="msg-in">
+          <div class="msg-badge">StokBot</div>
+          ✅ REQUEST SENT
+          <div class="msg-time">9:15 AM</div>
+        </div>
+      </div>
     </div>
 
     <!-- MOCKUP 2: MANAGER -->
-    <div class="hero-mockup">
+    <div class="hero-mockup" style="max-width:280px;">
       <div class="mockup-header" style="background:#1a3c5e;">
         <div class="mockup-avatar" style="background:#E6F1FB;color:#185FA5;">MG</div>
         <div>
@@ -488,30 +501,33 @@
         </div>
       </div>
       <div style="font-size:0.7rem;color:#888;margin-bottom:8px;text-align:center;">👔 Manager View</div>
+
       <div class="msg">
         <div class="msg-in">
           <div class="msg-badge" style="background:#185FA5;">StokBot</div>
-          <b>📥 STOCK IN — Outlet Muiz</b><br><br>
+          <b>📤 STOCK OUT — Outlet Muiz</b><br><br>
           ID 42 | Ayam Rempah x3<br>
+          ID 43 | Tepung Gandum x2<br>
           BY: Ali (60123456789)
           <div style="display:flex;gap:8px;margin-top:10px;">
-            <span style="background:#e6f7f1;color:#0F6E56;border-radius:6px;padding:4px 10px;font-size:0.75rem;font-weight:700;">APPROVE</span>
-            <span style="background:#fef2f2;color:#A32D2D;border-radius:6px;padding:4px 10px;font-size:0.75rem;font-weight:700;">REJECT</span>
+            <span style="background:#e6f7f1;color:#0F6E56;border-radius:6px;padding:4px 10px;font-size:0.75rem;font-weight:700;">APPROVE ALL</span>
+            <span style="background:#fef2f2;color:#A32D2D;border-radius:6px;padding:4px 10px;font-size:0.75rem;font-weight:700;">REJECT ALL</span>
           </div>
-          <div class="msg-time">9:15 AM</div>
+          <div class="msg-time">9:16 AM</div>
         </div>
       </div>
       <div class="msg">
         <div class="msg-out-wrap">
-          <div class="msg-out">APPROVE 42<div class="msg-time">9:16 AM ✓✓</div></div>
+          <div class="msg-out">APPROVE ALL<div class="msg-time">9:17 AM ✓✓</div></div>
         </div>
       </div>
       <div class="msg">
         <div class="msg-in">
           <div class="msg-badge" style="background:#185FA5;">StokBot</div>
           ✅ APPROVED<br>
-          Ayam Rempah +3 ➡️ Baki: 15
-          <div class="msg-time">9:16 AM</div>
+          Ayam Rempah −3 ➡️ Baki: 12<br>
+          Tepung Gandum −2 ➡️ Baki: 8
+          <div class="msg-time">9:17 AM</div>
         </div>
       </div>
     </div>
@@ -658,6 +674,94 @@
   </div>
 </section>
 
+<!-- PRICING -->
+<section class="section" id="pricing" style="background:#f9fafb;">
+  <div class="section-label">Harga</div>
+  <div class="section-title">Pakej yang berbaloi</div>
+  <div class="section-sub">Harga tetap, tiada kos tersembunyi. Setup sekali, guna selamanya.</div>
+
+  <!-- ONE-TIME PACKAGES -->
+  <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:1.25rem; margin-bottom:2.5rem;">
+
+    <!-- STARTER -->
+    <div style="background:#fff; border:1px solid #e5e7eb; border-radius:16px; padding:1.75rem; position:relative;">
+      <div style="font-size:0.72rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#6b7280;margin-bottom:0.75rem;">Pakej Starter</div>
+      <div style="font-size:0.8rem;color:#9ca3af;text-decoration:line-through;margin-bottom:2px;">Harga asal RM4,000</div>
+      <div style="font-family:'Sora',sans-serif;font-size:2.25rem;font-weight:800;color:#0a0a0a;line-height:1;">RM2,500</div>
+      <div style="font-size:0.8rem;color:#6b7280;margin-bottom:1.5rem;">bayaran sekali sahaja</div>
+      <div style="background:#E1F5EE;color:#0F6E56;font-size:0.75rem;font-weight:700;padding:4px 10px;border-radius:100px;display:inline-block;margin-bottom:1.25rem;">1 Outlet</div>
+      <ul style="list-style:none;padding:0;margin-bottom:1.5rem;">
+        <li style="font-size:0.875rem;padding:5px 0;color:#374151;">✓ Setup sistem & WhatsApp</li>
+        <li style="font-size:0.875rem;padding:5px 0;color:#374151;">✓ Sehingga 5 pengguna</li>
+        <li style="font-size:0.875rem;padding:5px 0;color:#374151;">✓ Sehingga 1,000 transaksi / bulan</li>
+        <li style="font-size:0.875rem;padding:5px 0;color:#374151;">✓ Latihan & panduan penggunaan</li>
+        <li style="font-size:0.875rem;padding:5px 0;color:#374151;">✓ Nombor WhatsApp sistem disediakan</li>
+        <li style="font-size:0.875rem;padding:5px 0;color:#9ca3af;">+ RM800 jika guna nombor sendiri</li>
+      </ul>
+      <a href="#cta" style="display:block;text-align:center;background:#1D9E75;color:#fff;padding:0.7rem;border-radius:10px;font-weight:600;font-size:0.9rem;text-decoration:none;">Pilih Starter</a>
+    </div>
+
+    <!-- BUSINESS -->
+    <div style="background:#fff;border:2px solid #1D9E75;border-radius:16px;padding:1.75rem;position:relative;">
+      <div style="position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:#1D9E75;color:#fff;font-size:0.72rem;font-weight:700;padding:4px 14px;border-radius:100px;white-space:nowrap;">PALING POPULAR</div>
+      <div style="font-size:0.72rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#6b7280;margin-bottom:0.75rem;">Pakej Business</div>
+      <div style="font-size:0.8rem;color:#9ca3af;text-decoration:line-through;margin-bottom:2px;">Harga asal RM8,000</div>
+      <div style="font-family:'Sora',sans-serif;font-size:2.25rem;font-weight:800;color:#0a0a0a;line-height:1;">RM5,000</div>
+      <div style="font-size:0.8rem;color:#6b7280;margin-bottom:1.5rem;">bayaran sekali sahaja</div>
+      <div style="background:#E1F5EE;color:#0F6E56;font-size:0.75rem;font-weight:700;padding:4px 10px;border-radius:100px;display:inline-block;margin-bottom:1.25rem;">Sehingga 3 Outlet</div>
+      <ul style="list-style:none;padding:0;margin-bottom:1.5rem;">
+        <li style="font-size:0.875rem;padding:5px 0;color:#374151;">✓ Setup sistem & WhatsApp</li>
+        <li style="font-size:0.875rem;padding:5px 0;color:#374151;">✓ Sehingga 20 pengguna</li>
+        <li style="font-size:0.875rem;padding:5px 0;color:#374151;">✓ Sehingga 5,000 transaksi / bulan</li>
+        <li style="font-size:0.875rem;padding:5px 0;color:#374151;">✓ Latihan & panduan penggunaan</li>
+        <li style="font-size:0.875rem;padding:5px 0;color:#374151;">✓ Nombor WhatsApp sistem disediakan</li>
+        <li style="font-size:0.875rem;padding:5px 0;color:#9ca3af;">+ RM800 jika guna nombor sendiri</li>
+      </ul>
+      <a href="#cta" style="display:block;text-align:center;background:#1D9E75;color:#fff;padding:0.7rem;border-radius:10px;font-weight:600;font-size:0.9rem;text-decoration:none;">Pilih Business</a>
+    </div>
+
+  </div>
+
+  <!-- MAINTENANCE -->
+  <div style="margin-top:0.5rem;">
+    <div style="font-size:0.9rem;font-weight:700;color:#374151;margin-bottom:0.25rem;">🔧 Sokongan & Penyelenggaraan <span style="font-weight:400;color:#9ca3af;font-size:0.82rem;">(Optional — tiada kontrak wajib)</span></div>
+    <div style="font-size:0.82rem;color:#6b7280;margin-bottom:1rem;">Pilih untuk langgan atau urus sistem sendiri.</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;">
+
+      <!-- BASIC CARE -->
+      <div style="background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:1.25rem;">
+        <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:#6b7280;margin-bottom:0.5rem;">Basic Care</div>
+        <div style="font-family:'Sora',sans-serif;font-size:1.6rem;font-weight:800;color:#0a0a0a;">RM100 <span style="font-size:0.9rem;font-weight:400;color:#9ca3af;">/ bulan</span></div>
+        <ul style="list-style:none;padding:0;margin-top:0.85rem;">
+          <li style="font-size:0.82rem;padding:3px 0;color:#374151;">✓ Hosting</li>
+          <li style="font-size:0.82rem;padding:3px 0;color:#374151;">✓ Backup berkala</li>
+          <li style="font-size:0.82rem;padding:3px 0;color:#374151;">✓ Monitoring sistem</li>
+        </ul>
+      </div>
+
+      <!-- BUSINESS CARE -->
+      <div style="background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:1.25rem;">
+        <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:#6b7280;margin-bottom:0.5rem;">Business Care</div>
+        <div style="font-family:'Sora',sans-serif;font-size:1.6rem;font-weight:800;color:#0a0a0a;">RM200 <span style="font-size:0.9rem;font-weight:400;color:#9ca3af;">/ bulan</span></div>
+        <ul style="list-style:none;padding:0;margin-top:0.85rem;">
+          <li style="font-size:0.82rem;padding:3px 0;color:#374151;">✓ Hosting</li>
+          <li style="font-size:0.82rem;padding:3px 0;color:#374151;">✓ Backup berkala</li>
+          <li style="font-size:0.82rem;padding:3px 0;color:#374151;">✓ Monitoring sistem</li>
+          <li style="font-size:0.82rem;padding:3px 0;color:#374151;">✓ Bantuan teknikal</li>
+          <li style="font-size:0.82rem;padding:3px 0;color:#374151;">✓ Minor enhancement</li>
+        </ul>
+      </div>
+
+    </div>
+
+    <!-- NOTA -->
+    <div style="margin-top:1.25rem;background:#FAEEDA;border:1px solid #FAC775;border-radius:10px;padding:1rem 1.25rem;font-size:0.8rem;color:#854F0B;line-height:1.6;">
+      📌 <b>Nota:</b> Penggunaan melebihi had transaksi bulanan mungkin memerlukan naik taraf pakej atau caj tambahan. Harga tidak termasuk pembangunan fungsi baharu atau integrasi khas yang tidak dinyatakan dalam pakej.
+    </div>
+  </div>
+
+</section>
+
 <!-- COMMANDS -->
 <section class="section cmd-section">
   <div class="section-label">Commands</div>
@@ -700,7 +804,7 @@
 <!-- CTA -->
 <section class="cta-section" id="cta">
   <h2>Nak tengok macam mana<br>ia berfungsi untuk outlet korang?</h2>
-  <p>Hubungi kami untuk demo percuma. Setup boleh siap dalam masa 1 hari.</p>
+  <p>Hubungi kami untuk demo percuma. Setup boleh siap dalam masa 2 hari.</p>
   <a href="https://wa.me/601167609636?text=Saya%20nak%20tahu%20lebih%20tentang%20StokBot" class="btn-white" target="_blank">💬 WhatsApp Kami Sekarang</a>
 </section>
 
