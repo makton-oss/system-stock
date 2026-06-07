@@ -169,7 +169,7 @@
   /* WHATSAPP MOCKUP */
   .hero-mockup {
     margin: 3rem auto 0;
-    max-width: 360px;
+    max-width: 300px;
     background: #ece5dd;
     border-radius: 16px;
     padding: 1.25rem;
@@ -339,11 +339,13 @@
   .role-card.supervisor { background: var(--amber-light); border-color: #FAC775; }
   .role-card.manager { background: var(--green-light); border-color: #9FE1CB; }
   .role-card.admin { background: #E6F1FB; border-color: #B5D4F4; }
+  .role-card.owner { background: #F5F3FF; border-color: #C4B5FD; }
   .role-card h4 { font-size: 0.875rem; font-weight: 700; margin-bottom: 0.5rem; }
   .role-card.staff h4 { color: #3B6D11; }
   .role-card.supervisor h4 { color: #854F0B; }
   .role-card.manager h4 { color: var(--green-dark); }
   .role-card.admin h4 { color: #185FA5; }
+  .role-card.owner h4 { color: #5B21B6; }
   .role-tag {
     font-size: 0.7rem;
     font-weight: 700;
@@ -439,6 +441,7 @@
 </nav>
 
 <!-- HERO -->
+<!-- HERO -->
 <section class="hero">
   <div class="hero-badge">WhatsApp Stock Management</div>
   <h1>Urus Stok Outlet<br>Terus dari <em>WhatsApp</em></h1>
@@ -448,41 +451,71 @@
     <a href="#features" class="btn-secondary">Lihat Features →</a>
   </div>
 
-  <div class="hero-mockup">
-    <div class="mockup-header">
-      <div class="mockup-avatar">SB</div>
-      <div>
-        <div class="mockup-name">StokBot</div>
-        <div class="mockup-status">online</div>
+  <!-- MOCKUP WRAPPER -->
+  <div style="display:flex; gap:1.5rem; justify-content:center; flex-wrap:wrap; margin-top:3rem;">
+
+    <!-- MOCKUP 1: STAFF -->
+    <div class="hero-mockup">
+      <div class="mockup-header">
+        <div class="mockup-avatar">SB</div>
+        <div>
+          <div class="mockup-name">StokBot</div>
+          <div class="mockup-status">online</div>
+        </div>
       </div>
-    </div>
-    <div class="msg">
-      <div class="msg-out-wrap">
-        <div class="msg-out">OUT ayam rempah 3<div class="msg-time">9:14 AM ✓✓</div></div>
+      <div style="font-size:0.7rem;color:#888;margin-bottom:8px;text-align:center;">👤 Staff View</div>
+      <div class="msg">
+        <div class="msg-out-wrap">
+          <div class="msg-out">OUT ayam rempah 3<div class="msg-time">9:14 AM ✓✓</div></div>
+        </div>
       </div>
-    </div>
-    <div class="msg">
-      <div class="msg-in">
-        <div class="msg-badge">StokBot</div>
-        ✅ REQUEST SENT<br>
-        <span style="font-size:0.75rem;color:#555;">Manager akan approve sebentar lagi.</span>
-        <div class="msg-time">9:14 AM</div>
-      </div>
-    </div>
-    <div class="msg" style="margin-top:12px;">
-      <div class="msg-out-wrap">
-        <div class="msg-out" style="background:#fff9e6;">
-          <b>📋 PENDING LIST</b><br>
-          ID 42 | Ayam Rempah x3<br>
-          BY: Ali (60123456789)<br>
-          <div style="display:flex;gap:8px;margin-top:8px;">
-            <span style="background:#e6f7f1;color:#0F6E56;border-radius:6px;padding:4px 10px;font-size:0.75rem;font-weight:700;">APPROVE</span>
-            <span style="background:#fef2f2;color:#A32D2D;border-radius:6px;padding:4px 10px;font-size:0.75rem;font-weight:700;">REJECT</span>
-          </div>
-          <div class="msg-time">9:15 AM ✓✓</div>
+      <div class="msg">
+        <div class="msg-in">
+          <div class="msg-badge">StokBot</div>
+          ✅ REQUEST SENT
+          <div class="msg-time">9:14 AM</div>
         </div>
       </div>
     </div>
+
+    <!-- MOCKUP 2: MANAGER -->
+    <div class="hero-mockup">
+      <div class="mockup-header" style="background:#1a3c5e;">
+        <div class="mockup-avatar" style="background:#E6F1FB;color:#185FA5;">MG</div>
+        <div>
+          <div class="mockup-name">StokBot</div>
+          <div class="mockup-status">online</div>
+        </div>
+      </div>
+      <div style="font-size:0.7rem;color:#888;margin-bottom:8px;text-align:center;">👔 Manager View</div>
+      <div class="msg">
+        <div class="msg-in">
+          <div class="msg-badge" style="background:#185FA5;">StokBot</div>
+          <b>📥 STOCK IN — Outlet Muiz</b><br><br>
+          ID 42 | Ayam Rempah x3<br>
+          BY: Ali (60123456789)
+          <div style="display:flex;gap:8px;margin-top:10px;">
+            <span style="background:#e6f7f1;color:#0F6E56;border-radius:6px;padding:4px 10px;font-size:0.75rem;font-weight:700;">APPROVE</span>
+            <span style="background:#fef2f2;color:#A32D2D;border-radius:6px;padding:4px 10px;font-size:0.75rem;font-weight:700;">REJECT</span>
+          </div>
+          <div class="msg-time">9:15 AM</div>
+        </div>
+      </div>
+      <div class="msg">
+        <div class="msg-out-wrap">
+          <div class="msg-out">APPROVE 42<div class="msg-time">9:16 AM ✓✓</div></div>
+        </div>
+      </div>
+      <div class="msg">
+        <div class="msg-in">
+          <div class="msg-badge" style="background:#185FA5;">StokBot</div>
+          ✅ APPROVED<br>
+          Ayam Rempah +3 ➡️ Baki: 15
+          <div class="msg-time">9:16 AM</div>
+        </div>
+      </div>
+    </div>
+
   </div>
 </section>
 
@@ -493,15 +526,15 @@
     <div class="stat-label">WhatsApp native</div>
   </div>
   <div class="stat-item">
-    <div class="stat-num">4</div>
-    <div class="stat-label">Level akses (admin, manager, supervisor, staff)</div>
+    <div class="stat-num">5</div>
+    <div class="stat-label">Level akses (admin, manager, supervisor, staff, owner)</div>
   </div>
   <div class="stat-item">
     <div class="stat-num">Real-time</div>
     <div class="stat-label">Notifikasi & low stock alert</div>
   </div>
   <div class="stat-item">
-    <div class="stat-num">Auto</div>
+    <div class="stat-num">Auto-calculate</div>
     <div class="stat-label">Laporan bulanan & snapshot inventori</div>
   </div>
 </div>
@@ -530,7 +563,7 @@
     <div class="feat-card">
       <div class="feat-icon">📊</div>
       <h3>Laporan Lengkap</h3>
-      <p>Summary, flow, detail, dead stock, wastage — semua dalam WhatsApp. Pilih bulan, tekan butang.</p>
+      <p>Summary, flow, detail, dead stock dan wastage, semua dalam WhatsApp. Pilih bulan, tekan butang.</p>
     </div>
     <div class="feat-card">
       <div class="feat-icon">🏪</div>
@@ -549,11 +582,11 @@
 <section class="section how-section">
   <div class="section-label">Cara kerja</div>
   <div class="section-title">Simple je prosesnya</div>
-  <div class="section-sub">Dari staff rekod sampai manager approve — semua dalam WhatsApp.</div>
+  <div class="section-sub">Dari staff rekod sampai manager approve, semua dalam WhatsApp.</div>
   <div class="steps-list">
     <div class="step">
       <h3>Staff taip command</h3>
-      <p>"OUT ayam 5" atau "IN tepung 10" — terus dalam WhatsApp.</p>
+      <p>"OUT ayam 5" atau "IN tepung 10" terus dalam WhatsApp.</p>
     </div>
     <div class="step">
       <h3>Sistem proses & notify</h3>
@@ -561,11 +594,11 @@
     </div>
     <div class="step">
       <h3>Manager approve</h3>
-      <p>Tekan APPROVE — stok terus update, movement direkod, log tersimpan.</p>
+      <p>Tekan APPROVE, stok terus update, movement direkod, log tersimpan.</p>
     </div>
     <div class="step">
       <h3>Laporan auto</h3>
-      <p>Taip "REPORT" untuk tengok summary. Pilih bulan — data siap dalam saat.</p>
+      <p>Taip "REPORT" untuk tengok summary. Pilih bulan, data siap dalam saat.</p>
     </div>
   </div>
 </section>
@@ -574,7 +607,7 @@
 <section class="section">
   <div class="section-label">Sistem Roles</div>
   <div class="section-title">Setiap orang ada akses yang betul</div>
-  <div class="section-sub" style="margin-bottom:2rem;">Role-based access — staff nampak apa yang patut, manager nampak semua outlet dia.</div>
+  <div class="section-sub" style="margin-bottom:2rem;">Role-based access dimana staff nampak apa yang patut dan manager nampak semua outlet dia.</div>
   <div class="roles-grid">
     <div class="role-card staff">
       <div class="role-tag" style="color:#3B6D11;">Staff</div>
@@ -612,6 +645,14 @@
         <li>Tambah / buang item</li>
         <li>Akses semua data</li>
         <li>System log & audit</li>
+      </ul>
+    </div>
+    <div class="role-card owner" style="background:#F5F3FF;border-color:#C4B5FD;">
+      <div class="role-tag" style="color:#5B21B6;">Owner</div>
+      <h4 style="color:#5B21B6;">Owner</h4>
+      <ul>
+        <li>Akses penuh laporan</li>
+        <li>Multi-outlet access</li>
       </ul>
     </div>
   </div>
@@ -660,12 +701,17 @@
 <section class="cta-section" id="cta">
   <h2>Nak tengok macam mana<br>ia berfungsi untuk outlet korang?</h2>
   <p>Hubungi kami untuk demo percuma. Setup boleh siap dalam masa 1 hari.</p>
-  <a href="https://wa.me/60123456789?text=Saya%20nak%20tahu%20lebih%20tentang%20StokBot" class="btn-white" target="_blank">💬 WhatsApp Kami Sekarang</a>
+  <a href="https://wa.me/601167609636?text=Saya%20nak%20tahu%20lebih%20tentang%20StokBot" class="btn-white" target="_blank">💬 WhatsApp Kami Sekarang</a>
 </section>
 
 <!-- FOOTER -->
 <footer>
   <p>© 2025 <span>StokBot</span>. Sistem pengurusan stok berasaskan WhatsApp.</p>
+  <p style="margin-top:8px;">
+    <a href="/terms" style="color:#6b7280;text-decoration:none;margin:0 8px;">Terms of Service</a>
+    ·
+    <a href="/privacy" style="color:#6b7280;text-decoration:none;margin:0 8px;">Privacy Policy</a>
+  </p>
 </footer>
 
 </body>
