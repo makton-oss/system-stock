@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StokBot — Sistem Pengurusan Stok via WhatsApp</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Sora:wght@700;800&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --green: #1D9E75;
+    --green-light: #E1F5EE;
+    --green-dark: #0F6E56;
+    --amber: #EF9F27;
+    --amber-light: #FAEEDA;
+    --text: #1a1a1a;
+    --text-muted: #6b7280;
+    --border: #e5e7eb;
+    --card-bg: #ffffff;
+    --section-bg: #f9fafb;
+  }
+
+  body {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    color: var(--text);
+    background: #fff;
+    line-height: 1.6;
+    overflow-x: hidden;
+  }
+
+  /* NAV */
+  nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.2rem 5%;
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    background: rgba(255,255,255,0.97);
+    backdrop-filter: blur(8px);
+    z-index: 100;
+  }
+  .nav-logo {
+    font-family: 'Sora', sans-serif;
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: var(--green-dark);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+  }
+  .nav-logo span {
+    background: var(--green);
+    color: #fff;
+    width: 28px;
+    height: 28px;
+    border-radius: 7px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+  }
+  .nav-cta {
+    background: var(--green);
+    color: #fff;
+    border: none;
+    padding: 0.5rem 1.2rem;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background 0.2s;
+  }
+  .nav-cta:hover { background: var(--green-dark); }
+
+  /* HERO */
+  .hero {
+    text-align: center;
+    padding: 5rem 5% 4rem;
+    background: linear-gradient(180deg, #f0fdf8 0%, #fff 100%);
+  }
+  .hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--green-light);
+    color: var(--green-dark);
+    padding: 0.35rem 1rem;
+    border-radius: 100px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    margin-bottom: 1.5rem;
+    border: 1px solid #9FE1CB;
+  }
+  .hero-badge::before {
+    content: '';
+    width: 7px; height: 7px;
+    background: var(--green);
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+  .hero h1 {
+    font-family: 'Sora', sans-serif;
+    font-size: clamp(2rem, 5vw, 3.2rem);
+    font-weight: 800;
+    line-height: 1.15;
+    max-width: 700px;
+    margin: 0 auto 1.25rem;
+    color: #0a0a0a;
+  }
+  .hero h1 em {
+    font-style: normal;
+    color: var(--green);
+  }
+  .hero p {
+    font-size: 1.1rem;
+    color: var(--text-muted);
+    max-width: 520px;
+    margin: 0 auto 2.5rem;
+  }
+  .hero-btns {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .btn-primary {
+    background: var(--green);
+    color: #fff;
+    padding: 0.75rem 1.75rem;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 1rem;
+    text-decoration: none;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: background 0.2s;
+  }
+  .btn-primary:hover { background: var(--green-dark); }
+  .btn-secondary {
+    background: #fff;
+    color: var(--text);
+    padding: 0.75rem 1.75rem;
+    border-radius: 10px;
+    font-weight: 500;
+    font-size: 1rem;
+    text-decoration: none;
+    border: 1px solid var(--border);
+    cursor: pointer;
+    font-family: inherit;
+    transition: border-color 0.2s, color 0.2s;
+  }
+  .btn-secondary:hover { border-color: var(--green); color: var(--green-dark); }
+
+  /* WHATSAPP MOCKUP */
+  .hero-mockup {
+    margin: 3rem auto 0;
+    max-width: 360px;
+    background: #ece5dd;
+    border-radius: 16px;
+    padding: 1.25rem;
+    border: 1px solid #d5cdc5;
+    text-align: left;
+  }
+  .mockup-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #075e54;
+    margin: -1.25rem -1.25rem 1rem;
+    padding: 0.85rem 1.25rem;
+    border-radius: 16px 16px 0 0;
+  }
+  .mockup-avatar {
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    background: var(--green-light);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 0.85rem; color: var(--green-dark);
+  }
+  .mockup-name { color: #fff; font-size: 0.9rem; font-weight: 600; }
+  .mockup-status { color: #b5d8d4; font-size: 0.72rem; }
+  .msg { margin-bottom: 8px; }
+  .msg-in {
+    background: #fff;
+    border-radius: 0 10px 10px 10px;
+    padding: 0.55rem 0.75rem;
+    font-size: 0.82rem;
+    max-width: 85%;
+    display: inline-block;
+    color: #111;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+  }
+  .msg-out-wrap { text-align: right; }
+  .msg-out {
+    background: #d9fdd3;
+    border-radius: 10px 0 10px 10px;
+    padding: 0.55rem 0.75rem;
+    font-size: 0.82rem;
+    max-width: 85%;
+    display: inline-block;
+    color: #111;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+    text-align: left;
+  }
+  .msg-time { font-size: 0.65rem; color: #8696a0; margin-top: 2px; text-align: right; }
+  .msg-badge {
+    font-size: 0.7rem;
+    background: #25d366;
+    color: #fff;
+    border-radius: 4px;
+    padding: 1px 5px;
+    margin-bottom: 4px;
+    display: inline-block;
+  }
+
+  /* STATS */
+  .stats-row {
+    display: flex;
+    justify-content: center;
+    gap: 2rem;
+    padding: 2.5rem 5%;
+    background: var(--green-dark);
+    flex-wrap: wrap;
+  }
+  .stat-item { text-align: center; }
+  .stat-num {
+    font-family: 'Sora', sans-serif;
+    font-size: 2rem;
+    font-weight: 800;
+    color: #fff;
+  }
+  .stat-label { font-size: 0.82rem; color: #9FE1CB; margin-top: 2px; }
+
+  /* SECTIONS */
+  .section { padding: 4.5rem 5%; }
+  .section-label {
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--green);
+    margin-bottom: 0.75rem;
+  }
+  .section-title {
+    font-family: 'Sora', sans-serif;
+    font-size: clamp(1.6rem, 3vw, 2.2rem);
+    font-weight: 800;
+    line-height: 1.2;
+    margin-bottom: 0.75rem;
+    color: #0a0a0a;
+  }
+  .section-sub {
+    color: var(--text-muted);
+    font-size: 1rem;
+    max-width: 480px;
+    margin-bottom: 3rem;
+  }
+
+  /* FEATURES */
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1.25rem;
+  }
+  .feat-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 1.5rem;
+    transition: box-shadow 0.2s, transform 0.2s;
+  }
+  .feat-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.08); transform: translateY(-2px); }
+  .feat-icon {
+    width: 44px; height: 44px;
+    border-radius: 10px;
+    background: var(--green-light);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.25rem;
+    margin-bottom: 1rem;
+  }
+  .feat-card h3 { font-size: 1rem; font-weight: 700; margin-bottom: 0.4rem; color: #111; }
+  .feat-card p { font-size: 0.875rem; color: var(--text-muted); line-height: 1.55; }
+
+  /* HOW IT WORKS */
+  .how-section { background: var(--section-bg); }
+  .steps-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+    counter-reset: steps;
+  }
+  .step {
+    counter-increment: steps;
+    padding: 1.5rem;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+  }
+  .step::before {
+    content: counter(steps);
+    font-family: 'Sora', sans-serif;
+    font-size: 1.75rem;
+    font-weight: 800;
+    color: var(--green-light);
+    display: block;
+    margin-bottom: 0.75rem;
+    line-height: 1;
+  }
+  .step h3 { font-size: 0.975rem; font-weight: 700; margin-bottom: 0.4rem; }
+  .step p { font-size: 0.85rem; color: var(--text-muted); }
+
+  /* ROLES */
+  .roles-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1rem;
+  }
+  .role-card {
+    border-radius: 12px;
+    padding: 1.25rem;
+    border: 1px solid transparent;
+  }
+  .role-card.staff { background: #EAF3DE; border-color: #C0DD97; }
+  .role-card.supervisor { background: var(--amber-light); border-color: #FAC775; }
+  .role-card.manager { background: var(--green-light); border-color: #9FE1CB; }
+  .role-card.admin { background: #E6F1FB; border-color: #B5D4F4; }
+  .role-card h4 { font-size: 0.875rem; font-weight: 700; margin-bottom: 0.5rem; }
+  .role-card.staff h4 { color: #3B6D11; }
+  .role-card.supervisor h4 { color: #854F0B; }
+  .role-card.manager h4 { color: var(--green-dark); }
+  .role-card.admin h4 { color: #185FA5; }
+  .role-tag {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    background: rgba(255,255,255,0.7);
+    padding: 2px 8px;
+    border-radius: 100px;
+    margin-bottom: 0.75rem;
+    display: inline-block;
+  }
+  .role-card ul { list-style: none; padding: 0; }
+  .role-card li { font-size: 0.8rem; color: #374151; padding: 3px 0; }
+  .role-card li::before { content: '✓ '; font-weight: 700; opacity: 0.6; }
+
+  /* COMMANDS */
+  .cmd-section { background: #0a2018; }
+  .cmd-section .section-label { color: #5DCAA5; }
+  .cmd-section .section-title { color: #fff; }
+  .cmd-section .section-sub { color: #9ca3af; }
+  .cmd-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+  }
+  .cmd-item {
+    background: #0F2E1E;
+    border: 1px solid #1D4D35;
+    border-radius: 10px;
+    padding: 1rem 1.25rem;
+  }
+  .cmd-label { font-size: 0.72rem; color: #5DCAA5; font-weight: 600; margin-bottom: 6px; letter-spacing: 0.05em; text-transform: uppercase; }
+  .cmd-code { font-family: 'Courier New', monospace; font-size: 0.88rem; color: #d1fae5; font-weight: 600; margin-bottom: 6px; }
+  .cmd-desc { font-size: 0.78rem; color: #6b7280; }
+
+  /* CTA */
+  .cta-section {
+    background: var(--green);
+    padding: 5rem 5%;
+    text-align: center;
+  }
+  .cta-section h2 {
+    font-family: 'Sora', sans-serif;
+    font-size: clamp(1.6rem, 3vw, 2.4rem);
+    font-weight: 800;
+    color: #fff;
+    margin-bottom: 1rem;
+    line-height: 1.2;
+  }
+  .cta-section p { color: rgba(255,255,255,0.85); margin-bottom: 2rem; font-size: 1rem; }
+  .btn-white {
+    background: #fff;
+    color: var(--green-dark);
+    padding: 0.8rem 2rem;
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 1rem;
+    text-decoration: none;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    display: inline-block;
+    transition: opacity 0.2s;
+  }
+  .btn-white:hover { opacity: 0.92; }
+
+  /* FOOTER */
+  footer {
+    background: #0a0a0a;
+    color: #6b7280;
+    text-align: center;
+    padding: 2rem;
+    font-size: 0.82rem;
+  }
+  footer span { color: var(--green); }
+
+  /* RESPONSIVE */
+  @media (max-width: 600px) {
+    .stats-row { gap: 1.25rem; }
+    .hero { padding: 3rem 5% 2.5rem; }
+    .section { padding: 3rem 5%; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="#" class="nav-logo">
+    <span>S</span> StokBot
+  </a>
+  <a href="#cta" class="nav-cta">Hubungi Kami</a>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-badge">WhatsApp Stock Management</div>
+  <h1>Urus Stok Outlet<br>Terus dari <em>WhatsApp</em></h1>
+  <p>Sistem pengurusan stok yang mudah — staff rekod, manager approve, laporan auto. Tanpa app tambahan, tanpa training panjang.</p>
+  <div class="hero-btns">
+    <a href="#cta" class="btn-primary">📱 Minta Demo</a>
+    <a href="#features" class="btn-secondary">Lihat Features →</a>
+  </div>
+
+  <div class="hero-mockup">
+    <div class="mockup-header">
+      <div class="mockup-avatar">SB</div>
+      <div>
+        <div class="mockup-name">StokBot</div>
+        <div class="mockup-status">online</div>
+      </div>
+    </div>
+    <div class="msg">
+      <div class="msg-out-wrap">
+        <div class="msg-out">OUT ayam rempah 3<div class="msg-time">9:14 AM ✓✓</div></div>
+      </div>
+    </div>
+    <div class="msg">
+      <div class="msg-in">
+        <div class="msg-badge">StokBot</div>
+        ✅ REQUEST SENT<br>
+        <span style="font-size:0.75rem;color:#555;">Manager akan approve sebentar lagi.</span>
+        <div class="msg-time">9:14 AM</div>
+      </div>
+    </div>
+    <div class="msg" style="margin-top:12px;">
+      <div class="msg-out-wrap">
+        <div class="msg-out" style="background:#fff9e6;">
+          <b>📋 PENDING LIST</b><br>
+          ID 42 | Ayam Rempah x3<br>
+          BY: Ali (60123456789)<br>
+          <div style="display:flex;gap:8px;margin-top:8px;">
+            <span style="background:#e6f7f1;color:#0F6E56;border-radius:6px;padding:4px 10px;font-size:0.75rem;font-weight:700;">APPROVE</span>
+            <span style="background:#fef2f2;color:#A32D2D;border-radius:6px;padding:4px 10px;font-size:0.75rem;font-weight:700;">REJECT</span>
+          </div>
+          <div class="msg-time">9:15 AM ✓✓</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- STATS -->
+<div class="stats-row">
+  <div class="stat-item">
+    <div class="stat-num">100%</div>
+    <div class="stat-label">WhatsApp native</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-num">4</div>
+    <div class="stat-label">Level akses (admin, manager, supervisor, staff)</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-num">Real-time</div>
+    <div class="stat-label">Notifikasi & low stock alert</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-num">Auto</div>
+    <div class="stat-label">Laporan bulanan & snapshot inventori</div>
+  </div>
+</div>
+
+<!-- FEATURES -->
+<section class="section" id="features">
+  <div class="section-label">Features</div>
+  <div class="section-title">Semua yang korang perlukan</div>
+  <div class="section-sub">Direka khas untuk outlet F&B, kedai runcit, dan gudang yang nak sistem simple tapi reliable.</div>
+  <div class="features-grid">
+    <div class="feat-card">
+      <div class="feat-icon">📥</div>
+      <h3>Stock In / Out / Wastage</h3>
+      <p>Staff hantar request terus via WhatsApp. Support multi-item dalam satu mesej.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">✅</div>
+      <h3>Approval Flow</h3>
+      <p>Manager atau supervisor approve / reject tekan butang. Anti double-approval built-in.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">⚠️</div>
+      <h3>Low Stock Alert</h3>
+      <p>Manager auto notified bila stok bawah minimum. Takde lagi stok habis tiba-tiba.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">📊</div>
+      <h3>Laporan Lengkap</h3>
+      <p>Summary, flow, detail, dead stock, wastage — semua dalam WhatsApp. Pilih bulan, tekan butang.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">🏪</div>
+      <h3>Multi Outlet</h3>
+      <p>Satu manager boleh handle banyak outlet. Data diasingkan ikut outlet.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">📸</div>
+      <h3>Daily Snapshot</h3>
+      <p>Inventori auto-snapshot setiap tengah malam. Track nilai stok mengikut masa.</p>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="section how-section">
+  <div class="section-label">Cara kerja</div>
+  <div class="section-title">Simple je prosesnya</div>
+  <div class="section-sub">Dari staff rekod sampai manager approve — semua dalam WhatsApp.</div>
+  <div class="steps-list">
+    <div class="step">
+      <h3>Staff taip command</h3>
+      <p>"OUT ayam 5" atau "IN tepung 10" — terus dalam WhatsApp.</p>
+    </div>
+    <div class="step">
+      <h3>Sistem proses & notify</h3>
+      <p>Request masuk pending, manager dapat notifikasi automatik dengan butang approve/reject.</p>
+    </div>
+    <div class="step">
+      <h3>Manager approve</h3>
+      <p>Tekan APPROVE — stok terus update, movement direkod, log tersimpan.</p>
+    </div>
+    <div class="step">
+      <h3>Laporan auto</h3>
+      <p>Taip "REPORT" untuk tengok summary. Pilih bulan — data siap dalam saat.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ROLES -->
+<section class="section">
+  <div class="section-label">Sistem Roles</div>
+  <div class="section-title">Setiap orang ada akses yang betul</div>
+  <div class="section-sub" style="margin-bottom:2rem;">Role-based access — staff nampak apa yang patut, manager nampak semua outlet dia.</div>
+  <div class="roles-grid">
+    <div class="role-card staff">
+      <div class="role-tag" style="color:#3B6D11;">Staff</div>
+      <h4>Staff</h4>
+      <ul>
+        <li>Rekod IN / OUT / Wastage</li>
+        <li>Semak stok outlet sendiri</li>
+        <li>Lihat pending list</li>
+      </ul>
+    </div>
+    <div class="role-card supervisor">
+      <div class="role-tag" style="color:#854F0B;">Supervisor</div>
+      <h4>Supervisor</h4>
+      <ul>
+        <li>Approve / Reject request</li>
+        <li>Pantau stok outlet</li>
+        <li>Terima low stock alert</li>
+      </ul>
+    </div>
+    <div class="role-card manager">
+      <div class="role-tag" style="color:#0F6E56;">Manager</div>
+      <h4>Manager</h4>
+      <ul>
+        <li>Multi-outlet access</li>
+        <li>Approve semua request</li>
+        <li>Akses penuh laporan</li>
+        <li>Semak senarai staff</li>
+      </ul>
+    </div>
+    <div class="role-card admin">
+      <div class="role-tag" style="color:#185FA5;">Admin</div>
+      <h4>Admin</h4>
+      <ul>
+        <li>Urus user & outlet</li>
+        <li>Tambah / buang item</li>
+        <li>Akses semua data</li>
+        <li>System log & audit</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- COMMANDS -->
+<section class="section cmd-section">
+  <div class="section-label">Commands</div>
+  <div class="section-title">Mudah nak ingat, mudah nak taip</div>
+  <div class="section-sub">Semua function accessible melalui command pendek dalam WhatsApp.</div>
+  <div class="cmd-grid">
+    <div class="cmd-item">
+      <div class="cmd-label">Rekod Masuk</div>
+      <div class="cmd-code">IN ayam 10</div>
+      <div class="cmd-desc">Hantar request stock masuk</div>
+    </div>
+    <div class="cmd-item">
+      <div class="cmd-label">Rekod Keluar</div>
+      <div class="cmd-code">OUT tepung 5</div>
+      <div class="cmd-desc">Hantar request stock guna</div>
+    </div>
+    <div class="cmd-item">
+      <div class="cmd-label">Wastage</div>
+      <div class="cmd-code">WASTAGE minyak 2</div>
+      <div class="cmd-desc">Rekod pembaziran stok</div>
+    </div>
+    <div class="cmd-item">
+      <div class="cmd-label">Approval</div>
+      <div class="cmd-code">APPROVE 42</div>
+      <div class="cmd-desc">Lulus request by ID</div>
+    </div>
+    <div class="cmd-item">
+      <div class="cmd-label">Semak Stok</div>
+      <div class="cmd-code">STOCK</div>
+      <div class="cmd-desc">Tengok current stock level</div>
+    </div>
+    <div class="cmd-item">
+      <div class="cmd-label">Laporan</div>
+      <div class="cmd-code">REPORT may-26</div>
+      <div class="cmd-desc">Generate monthly report</div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-section" id="cta">
+  <h2>Nak tengok macam mana<br>ia berfungsi untuk outlet korang?</h2>
+  <p>Hubungi kami untuk demo percuma. Setup boleh siap dalam masa 1 hari.</p>
+  <a href="https://wa.me/60123456789?text=Saya%20nak%20tahu%20lebih%20tentang%20StokBot" class="btn-white" target="_blank">💬 WhatsApp Kami Sekarang</a>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <p>© 2025 <span>StokBot</span>. Sistem pengurusan stok berasaskan WhatsApp.</p>
+</footer>
+
+</body>
+</html>
