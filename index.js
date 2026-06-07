@@ -16,6 +16,7 @@ app.use(express.urlencoded({ extended: true }));
 app.get("/health", (req, res) => {
   res.send("OK");
 });
+app.use(express.static('public'));
 
 startCronJobs();
 
