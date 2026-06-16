@@ -28,11 +28,11 @@ module.exports = withRole(["manager", "admin"], async (ctx) => {
       continue;
     }
     if (u.role === "manager") {
-      if (!u.user_outlets?.length) {
+      if (!u.outlet_access?.length) {
         normalized.push({ ...u, outlets: { name: "-" } });
         continue;
       }
-      for (let rel of u.user_outlets) {
+      for (let rel of u.outlet_access) {
         normalized.push({ ...u, outlet_id: rel.outlet_id, outlets: rel.outlets });
       }
     }

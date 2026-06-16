@@ -15,7 +15,7 @@ function _groupByOutlet(rows) {
 }
 
 function _itemBlock(r) {
-  const name = toProperCase(r.stock_items?.name || r.item || "-");
+  const name = toProperCase(r.items?.name || r.item || "-");
   const cost = Number(r.cost_price || 0);
   return `${name}\nUOM: ${r.uom || "-"}\nCost: RM${cost.toFixed(2)}\nMin Qty: ${r.min_qty ?? "-"}\n\n`;
 }
@@ -72,7 +72,7 @@ function formatStock(rows) {
   const outlet = rows[0]?.outlets?.name || "-";
   let text = `📦 STOCK\n🏪 ${toProperCase(outlet)}\n${formatLogDateTime()}\n`;
   rows.forEach((r, i) => {
-    text += `${i + 1}. ${toProperCase(r.stock_items?.name || r.item || "-")} x ${r.qty} (${r.uom || "UOM"})\n`;
+    text += `${i + 1}. ${toProperCase(r.items?.name || r.item || "-")} x ${r.qty} (${r.uom || "UOM"})\n`;
   });
   return text;
 }
@@ -86,7 +86,7 @@ function formatStockAdmin(rows) {
   _groupByOutlet(rows).forEach((items, outlet) => {
     text += `🏪 ${toProperCase(outlet)}\n${formatLogDateTime()}\n`;
     items.forEach((r, i) => {
-      text += `${i + 1}. ${toProperCase(r.stock_items?.name || r.item || "-")} x ${r.qty} (${r.uom || "UOM"})\n`;
+      text += `${i + 1}. ${toProperCase(r.items?.name || r.item || "-")} x ${r.qty} (${r.uom || "UOM"})\n`;
     });
     text += "\n\n";
   });

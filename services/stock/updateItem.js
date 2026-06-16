@@ -11,7 +11,7 @@ async function updateStockItem({ item, outletName, updates, tenantId = null }) {
   }
 
   let q = supabase
-    .from("stock")
+    .from("item_stock")
     .update(updates)
     .eq("item", item)
     .eq("outlet_id", outlet.id);
