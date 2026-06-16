@@ -1,11 +1,14 @@
 const express = require("express");
 require("dotenv").config();
+const rateLimit = require("express-rate-limit");
 const startCronJobs = require("./src/jobs/startCronJobs");
 const supabase = require("./services/db");
 const handlerMap = require("./core/handlerMap");
 const { createContext } = require("./core/context");
 const { sendWhatsApp } = require("./services/notification/whatsappService");
 const { parseButtonMessage } = require("./utils/parseButtonMessage");
+const { getUserByChatId } = require("./db/users/getUserByChatId");
+const { checkUserRateLimit } = require("./utils/userRateLimit");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -13,10 +16,27 @@ const PORT = process.env.PORT || 3000;
 app.use(express.json({ strict: false }));
 app.use(express.urlencoded({ extended: true }));
 
+// ======================
+// GLOBAL RATE LIMIT
+// ======================
+const globalLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) => {
+    console.log("GLOBAL RATE LIMIT HIT:", req.ip);
+    res.status(429).end();
+  }
+});
+
 app.get("/health", (req, res) => {
   res.send("OK");
 });
-app.use(express.static('public'));
+
+app.use(express.static("public"));
+
+app.use("/webhook", globalLimiter);
 
 startCronJobs();
 
@@ -70,29 +90,29 @@ app.post("/webhook", async (req, res) => {
   // ======================
   // USER FETCH
   // ======================
-  const {
-    data: user,
-    error: userError
-  } = await supabase
-    .from("users")
-    .select("*, outlets(name)")
-    .eq("chat_id", chatId)
-    .eq("is_active", true)
-    .maybeSingle();
+  const user = await getUserByChatId(chatId);
 
-  if (userError) {
-
-    console.log(
-      "USER FETCH ERROR:",
-      userError
-    );
-
-    return res.end();
-  }
-
+  // ======================
+  // FIX: was "if (userError)" — userError tidak wujud
+  // getUserByChatId handle error internally, returns null
+  // ======================
   if (!user) {
     return res.end();
   }
+
+  // ======================
+  // PER-USER RATE LIMIT
+  // ======================
+  const { allowed } = checkUserRateLimit(chatId);
+
+  if (!allowed) {
+    console.log("USER RATE LIMIT HIT:", chatId);
+    await reply(chatId, "⏳ Terlalu banyak request. Cuba lagi sebentar.");
+    return res.end();
+  }
+
+  // superadmin — tenant_id = null (bypass semua filter)
+  const tenantId = user.tenant_id || null;
 
   // ======================
   // MESSAGE PARSE
@@ -111,7 +131,8 @@ app.post("/webhook", async (req, res) => {
   message = await parseButtonMessage({
     raw,
     chatId,
-    body
+    body,
+    user
   });
 
   if (!message) {
@@ -137,8 +158,8 @@ app.post("/webhook", async (req, res) => {
   // REPORT MENU
   // ======================
   if (type === "REPORT" && parts.length === 1) {
-    const handler =
-      handlerMap.REPORTMENU;
+
+    const handler = handlerMap.REPORTMENU;
 
     const ctx = createContext({
       chatId,
@@ -152,8 +173,7 @@ app.post("/webhook", async (req, res) => {
     return await handler(ctx);
   }
 
-  const handler =
-    handlerMap[type];
+  const handler = handlerMap[type];
 
   if (!handler) {
 

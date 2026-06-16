@@ -2,24 +2,15 @@ const WebSocket = require("ws");
 const { createClient } = require("@supabase/supabase-js");
 require("dotenv").config();
 
-// detect env
-const isProduction = process.env.NODE_ENV === "production";
-
-// pick config ikut env
-const supabaseUrl = isProduction
-  ? process.env.SUPABASE_URL
-  : process.env.SUPABASE_URL_DEV;
-
-const supabaseKey = isProduction
-  ? process.env.SUPABASE_SERVICE_ROLE_KEY
-  : process.env.SUPABASE_SERVICE_ROLE_KEY_DEV;
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 if (!supabaseUrl || !supabaseKey) {
-  console.error("❌ ENV MISSING");
+  console.error("❌ Missing Supabase ENV");
   process.exit(1);
 }
 
-console.log("🔥 USING DB:", isProduction ? "PROD" : "DEV");
+console.log("🔥 DATABASE CONNECTED");
 
 const supabase = createClient(supabaseUrl, supabaseKey, {
   realtime: {

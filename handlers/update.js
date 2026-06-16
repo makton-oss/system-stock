@@ -1,11 +1,12 @@
 const { withRole } = require("../core/withRole");
-const supabase = require("../services/db");
+const { getManagersByTenant } = require("../db/users/getManagersByTenant");
 const { sendWhatsApp } = require("../services/notification/whatsappService");
 const { sendBatchMessages } = require("../utils/broadcast");
 
 module.exports = withRole(["admin"], async (ctx) => {
 
-  const { chatId, parts, reply, body, res } = ctx;
+  const { chatId, user, reply, res } = ctx;
+  const tenantId = user.tenant_id || null;
 
   const message = ctx.body.replace(/^update\s*/i, "").trim();
 
@@ -14,16 +15,9 @@ module.exports = withRole(["admin"], async (ctx) => {
     return res.end();
   }
 
-  // ======================
-  // GET MANAGERS
-  // ======================
-  const { data: managers, error } = await supabase
-    .from("users")
-    .select("chat_id, nickname")
-    .eq("role", "manager");
+  const { data: managers, error } = await getManagersByTenant(tenantId);
 
   if (error) {
-    console.log("UPDATE ERROR:", error);
     await reply(chatId, "❌ ERROR FETCH USER");
     return res.end();
   }
@@ -32,25 +26,15 @@ module.exports = withRole(["admin"], async (ctx) => {
     await reply(chatId, "❌ TIADA MANAGER");
     return res.end();
   }
-  
-  // ======================
-  // SEND (BATCH)
-  // ======================
+
   const { success, failed } = await sendBatchMessages(
     managers,
     `📢 SYSTEM UPDATE\n\n${message}`,
     sendWhatsApp,
-    5,       // batch size
-    1000     // delay ms
+    5,
+    1000
   );
 
-  // ======================
-  // RESULT
-  // ======================
-  await reply(
-    chatId,
-    `📢 UPDATE SENT\n\n✅ ${success} berjaya\n❌ ${failed} gagal`
-  );
-
+  await reply(chatId, `📢 UPDATE SENT\n\n✅ ${success} berjaya\n❌ ${failed} gagal`);
   return res.end();
 });

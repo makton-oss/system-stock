@@ -1,0 +1,55 @@
+/* =============================================
+   RESPONSIVE — mobile first adjustments
+   ============================================= */
+
+@media (max-width: 768px) {
+  .section { padding: 3rem 5%; }
+
+  .hero { padding: 3rem 5% 2.5rem; }
+  .hero h1 { font-size: 1.85rem; }
+
+  .trust-bar { gap: 1.5rem; }
+  .trust-bar__num { font-size: 1.5rem; }
+
+  .pricing-grid { grid-template-columns: 1fr; }
+
+  .hero__mockups { gap: 1rem; }
+  .mockup { max-width: 100%; }
+
+  .cta-section { padding: 3.5rem 5%; }
+}
+
+/* ----- SCROLL REVEAL ----- */
+.reveal {
+  opacity: 0;
+  transform: translateY(18px);
+  transition: opacity 0.45s ease, transform 0.45s ease;
+}
+
+.reveal.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal { opacity: 1; transform: none; }
+}
+
+@media (max-width: 480px) {
+  .nav { padding: 1rem 4%; }
+
+  .hero__btns { flex-direction: column; align-items: center; }
+  .btn { width: 100%; justify-content: center; max-width: 320px; }
+
+  .trust-bar { gap: 1rem; padding: 2rem 5%; }
+
+  .features-grid,
+  .steps-list,
+  .roles-grid,
+  .cmd-grid,
+  .testimonials-grid { grid-template-columns: 1fr; }
+
+  .section__sub { margin-bottom: 2rem; }
+
+  .faq-list { padding: 0; }
+}

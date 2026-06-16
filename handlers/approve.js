@@ -40,7 +40,8 @@ module.exports = withRole(["supervisor", "manager"], async (ctx) => {
     rows: processed
   } = await approveRequest(
     rows,
-    chatId
+    chatId,
+    user.tenant_id || null  // ← FIX: pass tenantId
   );
 
   // ======================

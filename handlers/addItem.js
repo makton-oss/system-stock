@@ -1,9 +1,11 @@
 const { withRole } = require("../core/withRole");
-const supabase = require("../services/db");
 const { normalizeItem } = require("../utils/helpers");
+const { getOutletByCode } = require("../db/outlets/getOutletByCode");
+const { getStockItemByName, createStockItem, checkStockExistsByItemId, insertStock } = require("../db/stock/manageStockItem");
 
 module.exports = withRole(["admin"], async (ctx) => {
-  const { chatId, parts, reply, res } = ctx;
+  const { chatId, parts, user, reply, res } = ctx;
+  const tenantId = user.tenant_id || null;
 
   // ======================
   // MIN ARG CHECK
@@ -16,23 +18,13 @@ module.exports = withRole(["admin"], async (ctx) => {
   // ======================
   // PARSE INPUT
   // ======================
-  const outletName = parts.at(-1);
-  const uom = parts.at(-2);
-  const cost = parseFloat(parts.at(-3));
-  const minQty = parseInt(parts.at(-4));
-  const category = parts.at(-5);
-
+  const outletName  = parts.at(-1);
+  const uom         = parts.at(-2);
+  const cost        = parseFloat(parts.at(-3));
+  const minQty      = parseInt(parts.at(-4));
+  const category    = parts.at(-5);
   const itemNameRaw = parts.slice(1, -5).join(" ");
-  const item = normalizeItem(itemNameRaw);
-
-  console.log("PARSED:", {
-    item,
-    category,
-    minQty,
-    cost,
-    uom,
-    outletName
-  });
+  const item        = normalizeItem(itemNameRaw);
 
   if (!item || !category || isNaN(minQty) || isNaN(cost) || !uom || !outletName) {
     await reply(chatId, "❌ FORMAT: ADDITEM ayam dara basah kering 10 3.4 ketul muiz");
@@ -40,61 +32,35 @@ module.exports = withRole(["admin"], async (ctx) => {
   }
 
   // ======================
-  // GET OUTLET
+  // GET OUTLET (scoped to tenant)
   // ======================
-  const { data: outlet } = await supabase
-    .from("outlets")
-    .select("id, name")
-    .ilike("name", outletName)
-    .maybeSingle();
-
+  const outlet = await getOutletByCode(outletName, tenantId);
   if (!outlet) {
     await reply(chatId, `❌ OUTLET TAK WUJUD: ${outletName}`);
     return res.end();
   }
 
   // ======================
-  // CHECK / CREATE ITEM (MASTER)
+  // CHECK / CREATE STOCK ITEM (MASTER)
   // ======================
   let itemId;
-
-  const { data: existingItem } = await supabase
-    .from("stock_items")
-    .select("id")
-    .eq("name", item)
-    .maybeSingle();
+  const existingItem = await getStockItemByName(item, tenantId);
 
   if (existingItem) {
     itemId = existingItem.id;
   } else {
-    const { data: newItem, error: itemError } = await supabase
-      .from("stock_items")
-      .insert({
-        name: item,
-        category
-      })
-      .select()
-      .single();
-
+    const { data: newItem, error: itemError } = await createStockItem(item, category, tenantId);
     if (itemError) {
-      console.log("ITEM INSERT ERROR:", itemError);
       await reply(chatId, "❌ DB ERROR (ITEM)");
       return res.end();
     }
-
     itemId = newItem.id;
   }
 
   // ======================
   // CHECK STOCK (PER OUTLET)
   // ======================
-  const { data: existingStock } = await supabase
-    .from("stock")
-    .select("id")
-    .eq("item_id", itemId)
-    .eq("outlet_id", outlet.id)
-    .maybeSingle();
-
+  const existingStock = await checkStockExistsByItemId(itemId, outlet.id);
   if (existingStock) {
     await reply(chatId, `⚠️ ITEM DAH ADA DI OUTLET`);
     return res.end();
@@ -103,38 +69,21 @@ module.exports = withRole(["admin"], async (ctx) => {
   // ======================
   // INSERT STOCK
   // ======================
-  const { error: stockError } = await supabase
-    .from("stock")
-    .insert({
-      item,
-      item_id: itemId,
-      outlet_id: outlet.id,
-      qty: 0,
-      min_qty: minQty,
-	  cost_price: cost,
-	  uom
-    });
+  const { error: stockError } = await insertStock({
+    item,
+    itemId,
+    outletId: outlet.id,
+    minQty,
+    cost,
+    uom,
+    tenantId
+  });
 
   if (stockError) {
-    console.log("STOCK INSERT ERROR:", stockError);
     await reply(chatId, "❌ DB ERROR (STOCK)");
     return res.end();
   }
 
-  // ======================
-  // SUCCESS
-  // ======================
-  await reply(
-    chatId,
-    `✅ ITEM ADDED
-
-${item}
-Outlet: ${outlet.name}
-Category: ${category}
-Min: ${minQty}
-Cost: RM${cost}
-UOM: ${uom}`
-  );
-
+  await reply(chatId, `✅ ITEM ADDED\n\n${item}\nOutlet: ${outlet.name}\nCategory: ${category}\nMin: ${minQty}\nCost: RM${cost}\nUOM: ${uom}`);
   return res.end();
 });

@@ -78,7 +78,7 @@ module.exports = withRole(["staff"], async (ctx) => {
     // ======================
     // RESPONSE
     // ======================
-    await queueStockNotification(user.outlet_id);
+    await queueStockNotification(user.outlet_id, user.tenant_id || null);
 
     await reply(chatId, "✅ WASTAGE SENT");
     return res.end();
@@ -113,7 +113,7 @@ module.exports = withRole(["staff"], async (ctx) => {
     return res.end();
   }
 
-  await queueStockNotification(user.outlet_id);
+  await queueStockNotification(user.outlet_id, user.tenant_id || null);
 
   await reply(chatId, "✅ WASTAGE SENT");
   return res.end();

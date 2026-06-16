@@ -1,86 +1,28 @@
 const { withRole } = require("../core/withRole");
-const supabase = require("../services/db");
+const { getStockNameList, getStockConfig } = require("../db/stock/getStockItems");
 const { formatItemListAdmin, formatItemList, formatItemNameList } = require("../utils/formatter");
-const { getAccessibleOutletIds } = require("../utils/getAccessibleOutlets");
+const { getAccessibleOutletIds } = require("../db/outlets/getAccessibleOutletIds");
+const { applyTenant } = require("../utils/applyTenant");
 
-module.exports = withRole(["staff", "supervisor" ,"manager","admin"], async (ctx) => {
+module.exports = withRole(["staff", "supervisor", "manager", "admin"], async (ctx) => {
 
   const { chatId, user, reply, res } = ctx;
+  const tenantId = user.tenant_id || null;
 
   // ======================
-  // STAFF → SIMPLE NAME LIST (ALPHABET)
+  // STAFF / SUPERVISOR → SIMPLE NAME LIST
   // ======================
   if (["staff", "supervisor"].includes(user.role)) {
-
-    const { data, error } = await supabase
-	  .from("stock")
-	  .select("item, uom")
-	  .eq("outlet_id", user.outlet_id)
-	  .order("item", { ascending: true });
-
-    if (error) {
-      console.log("ITEM ERROR:", error);
-      await reply(chatId, "❌ ERROR");
-      return res.end();
-    }
-
-    await reply(chatId, formatItemNameList(data));
+    const staffData = await getStockNameList(user.outlet_id, tenantId);
+    await reply(chatId, formatItemNameList(staffData));
     return res.end();
   }
 
   // ======================
-  // ADMIN → ALL OUTLETS
-  // ======================
-  if (user.role === "admin") {
-
-    const { data, error } = await supabase
-      .from("stock")
-      .select(`
-        item,
-        outlet_id,
-        min_qty,
-		cost_price,
-		uom,
-        stock_items(name),
-        outlets(name)
-      `)
-      .order("outlet_id", { ascending: true })
-	  .order("item", { ascending: true });
-
-    if (error) {
-      console.log("ITEM ERROR:", error);
-      await reply(chatId, "❌ ERROR");
-      return res.end();
-    }
-
-    await reply(chatId, formatItemListAdmin(data));
-    return res.end();
-  }
-
-  // ======================
-  // MANAGER → MULTI OUTLET
+  // ADMIN / MANAGER → MULTI OUTLET
   // ======================
   const outletIds = await getAccessibleOutletIds(user);
-
-  const { data, error } = await supabase
-    .from("stock")
-    .select(`
-      item,
-      min_qty,
-      outlet_id,
-	  cost_price,
-	  uom,
-      stock_items(name),
-      outlets(name)
-    `)
-    .in("outlet_id", outletIds)
-	.order("item", { ascending: true });
-
-  if (error) {
-    console.log("ITEM ERROR:", error);
-    await reply(chatId, "❌ ERROR");
-    return res.end();
-  }
+  const data = await getStockConfig(outletIds, tenantId);
 
   const uniqueOutlet = [...new Set(data.map(r => r.outlet_id))];
 
@@ -89,6 +31,5 @@ module.exports = withRole(["staff", "supervisor" ,"manager","admin"], async (ctx
   } else {
     await reply(chatId, formatItemList(data));
   }
-
   return res.end();
 });

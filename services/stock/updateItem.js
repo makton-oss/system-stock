@@ -1,35 +1,24 @@
 const supabase = require("../db");
-const { getOutletByCode } = require("../../utils/getOutletByCode");
+const { applyTenant } = require("../../utils/applyTenant");
+const { getOutletByCode } = require("../../db/outlets/getOutletByCode");
 
-async function updateStockItem({
-  item,
-  outletName,
-  updates
-}) {
+async function updateStockItem({ item, outletName, updates, tenantId = null }) {
 
-  // ======================
-  // GET OUTLET
-  // ======================
-  const outlet =
-    await getOutletByCode(outletName);
+  const outlet = await getOutletByCode(outletName, tenantId);
 
   if (!outlet) {
-    return {
-      error: "OUTLET_NOT_FOUND",
-      outlet: outletName
-    };
+    return { error: "OUTLET_NOT_FOUND", outlet: outletName };
   }
 
-  // ======================
-  // UPDATE STOCK
-  // ======================
-  const { data, error } =
-    await supabase
-      .from("stock")
-      .update(updates)
-      .eq("item", item)
-      .eq("outlet_id", outlet.id)
-      .select("cost_price, min_qty");
+  let q = supabase
+    .from("stock")
+    .update(updates)
+    .eq("item", item)
+    .eq("outlet_id", outlet.id);
+
+  q = applyTenant(q, tenantId);
+
+  const { data, error } = await q.select("cost_price, min_qty");
 
   if (error) {
     console.log("UPDATEITEM ERROR:", error);
@@ -37,19 +26,10 @@ async function updateStockItem({
   }
 
   if (!data?.length) {
-    return {
-      error: "ITEM_NOT_FOUND",
-      item,
-      outlet: outlet.name
-    };
+    return { error: "ITEM_NOT_FOUND", item, outlet: outlet.name };
   }
 
-  return {
-    ok: true,
-    item,
-    outlet: outlet.name,
-    updated: data[0]
-  };
+  return { ok: true, item, outlet: outlet.name, updated: data[0] };
 }
 
 module.exports = { updateStockItem };

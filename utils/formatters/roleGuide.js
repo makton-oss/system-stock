@@ -174,10 +174,10 @@ Akses penuh semua outlet & sistem.
 ────────────────────
 
 👤 Urus user:
-SETROLE 60123456789 ali manager muiz
+SETROLE 60123456789 manager ali muiz
 
 ✅ Format:
-[phone] [nickname] [role] [outlet]
+[phone] [role] [nickname] [outlet]
 
 ────────────────────
 
@@ -234,14 +234,17 @@ ADDITEM minyak bijan kering 2 9 botol bta
 ────────────────────
 
 ➖ Buang item:
-REMOVEITEM minyak bijan
+REMOVEITEM minyak bijan muiz
+
+✅ Format:
+[nama item] [outlet]
 
 ────────────────────
 
 💡 TIPS:
 - Nama item mesti konsisten (elak duplicate)
 - Pastikan cost, uom & min qty betul
-- Format SETROLE: phone nickname role outlet
+- Format SETROLE: phone role nickname outlet
 
 ❓ Bantuan:
 HELP

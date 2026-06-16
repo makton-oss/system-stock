@@ -10,7 +10,8 @@ UPITEM ayam rempah cost 3.5 min 5 muiz`;
 
 module.exports = withRole(["admin"], async (ctx) => {
 
-  const { chatId, parts, reply, res } = ctx;
+  const { chatId, parts, user, reply, res } = ctx;
+  const tenantId = user.tenant_id || null;
 
   // ======================
   // PARSE
@@ -27,19 +28,14 @@ module.exports = withRole(["admin"], async (ctx) => {
       INVALID_MIN : "❌ Min qty tak valid"
     };
 
-    await reply(
-      chatId,
-      msgs[parsed.error] || FORMAT_MSG
-    );
-
+    await reply(chatId, msgs[parsed.error] || FORMAT_MSG);
     return res.end();
   }
 
   // ======================
   // SERVICE
   // ======================
-  const result =
-    await updateStockItem(parsed);
+  const result = await updateStockItem({ ...parsed, tenantId });
 
   if (result.error) {
 
@@ -49,11 +45,7 @@ module.exports = withRole(["admin"], async (ctx) => {
       DB_ERROR        : "❌ DB ERROR"
     };
 
-    await reply(
-      chatId,
-      msgs[result.error] || "❌ ERROR"
-    );
-
+    await reply(chatId, msgs[result.error] || "❌ ERROR");
     return res.end();
   }
 
@@ -61,20 +53,13 @@ module.exports = withRole(["admin"], async (ctx) => {
   // RESPONSE
   // ======================
   const lines = [
-    result.updated.cost_price !== undefined
-      ? `Cost   : RM${result.updated.cost_price}`
-      : null,
-    result.updated.min_qty !== undefined
-      ? `Min Qty: ${result.updated.min_qty}`
-      : null
+    result.updated.cost_price !== undefined ? `Cost   : RM${result.updated.cost_price}` : null,
+    result.updated.min_qty    !== undefined ? `Min Qty: ${result.updated.min_qty}`      : null
   ]
   .filter(Boolean)
   .join("\n");
 
-  await reply(
-    chatId,
-    `✅ UPDATED\nItem  : ${result.item}\nOutlet: ${result.outlet}\n${lines}`
-  );
+  await reply(chatId, `✅ UPDATED\nItem  : ${result.item}\nOutlet: ${result.outlet}\n${lines}`);
 
   return res.end();
 });

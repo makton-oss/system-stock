@@ -1,5 +1,5 @@
 const { withRole } = require("../core/withRole");
-const { getAccessibleOutletIds } = require("../utils/getAccessibleOutlets");
+const { getAccessibleOutletIds } = require("../db/outlets/getAccessibleOutletIds");
 const { getPendingRequests } = require("../services/pending/getPendingRequests");
 const { sendPendingList } = require("../services/pending/sendPendingList");
 
@@ -7,34 +7,19 @@ module.exports =
 withRole(["supervisor", "manager", "admin"],
 async (ctx) => {
 
-  const {
-    chatId,
-    user,
-    reply,
-    res
-  } = ctx;
+  const { chatId, user, reply, res } = ctx;
 
   // ======================
   // ACCESS
   // ======================
 
-  const outletIds =
-    await getAccessibleOutletIds(
-      user
-    );
+  const outletIds = await getAccessibleOutletIds(user);
 
   // ======================
   // GET DATA
   // ======================
 
-  const {
-    data,
-    error
-  } =
-    await getPendingRequests({
-      user,
-      outletIds
-    });
+  const { data, error } = await getPendingRequests({ user, outletIds });
 
   if (error) {
 

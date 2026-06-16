@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Demo Interaktif • StokBot</title>
+  <meta name="description" content="Cuba StokBot secara interaktif. Tiga peranan, satu sistem.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Sora:wght@700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/sections.css">
+  <link rel="stylesheet" href="css/responsive.css">
+  <link rel="stylesheet" href="css/demo.css">
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <a href="/" class="nav-logo">
+    <span class="nav-logo__icon">S</span>
+    StokBot
+  </a>
+  <a href="/" class="nav-back">← Kembali ke laman utama</a>
+</nav>
+
+<!-- HEADER -->
+<div class="page-header">
+  <div class="demo-badge">⚡ Demo Interaktif • Sistem Sebenar</div>
+  <h1>Cuba StokBot Sendiri</h1>
+  <p>Tiga peranan, satu sistem. Taip arahan seperti dalam WhatsApp sebenar dan lihat bagaimana setiap peranan berhubung antara satu sama lain.</p>
+</div>
+
+<!-- HINT -->
+<div style="padding:0 5%;max-width:1100px;margin:0 auto">
+  <div class="hint-bar">
+    <span style="font-size:1.2rem;flex-shrink:0">💡</span>
+    <div>
+      <strong>Cara guna:</strong> Mulakan dengan panel <strong>Staff</strong>. Taip
+      <code style="background:#f3f4f6;padding:1px 5px;border-radius:4px;font-size:0.82rem">STOCK</code>
+      untuk lihat stok semasa. Kemudian cuba rekod barang masuk atau keluar dengan arahan seperti
+      <code style="background:#f3f4f6;padding:1px 5px;border-radius:4px;font-size:0.82rem">IN ayam 5</code>,
+      <code style="background:#f3f4f6;padding:1px 5px;border-radius:4px;font-size:0.82rem">OUT tepung 2</code> atau
+      <code style="background:#f3f4f6;padding:1px 5px;border-radius:4px;font-size:0.82rem">WASTAGE gula 1</code>.
+      Notifikasi akan masuk ke panel <strong>Manager</strong>. Guna butang APPROVE/REJECT atau taip terus.
+      Cuba juga
+      <code style="background:#f3f4f6;padding:1px 5px;border-radius:4px;font-size:0.82rem">PENDING</code>,
+      <code style="background:#f3f4f6;padding:1px 5px;border-radius:4px;font-size:0.82rem">REPORT</code> atau
+      <code style="background:#f3f4f6;padding:1px 5px;border-radius:4px;font-size:0.82rem">HELP</code>.
+    </div>
+  </div>
+</div>
+
+<!-- PANELS -->
+<div class="panels">
+
+  <!-- STAFF -->
+  <div>
+    <div class="panel-label">
+      <span class="panel-label__role panel-label__role--staff">Staff</span>
+      <div class="panel-label__name">Hassan · Outlet Demo</div>
+    </div>
+    <div class="panel" id="panel-staff">
+      <div class="panel__header panel__header--staff">
+        <div class="panel__avatar panel__avatar--staff">SB</div>
+        <div class="panel__info">
+          <div class="panel__name">StokBot</div>
+          <div class="panel__role">Outlet Demo · Staff</div>
+        </div>
+        <div class="panel__indicator"></div>
+      </div>
+      <div class="chat" id="chat-staff"></div>
+      <div class="panel__input-wrap">
+        <textarea class="panel__input" id="input-staff" placeholder="Cuba: IN ayam 5" rows="1"></textarea>
+        <button class="panel__send" id="send-staff" onclick="sendMessage('staff')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MANAGER -->
+  <div>
+    <div class="panel-label">
+      <span class="panel-label__role panel-label__role--manager">Manager</span>
+      <div class="panel-label__name">Kamil · Outlet Demo</div>
+    </div>
+    <div class="panel" id="panel-manager">
+      <div class="panel__header panel__header--manager">
+        <div class="panel__avatar panel__avatar--manager">SB</div>
+        <div class="panel__info">
+          <div class="panel__name">StokBot</div>
+          <div class="panel__role">Outlet Demo · Manager</div>
+        </div>
+        <div class="notif-dot" id="notif-manager">!</div>
+      </div>
+      <div class="chat" id="chat-manager"></div>
+      <div class="panel__input-wrap">
+        <textarea class="panel__input" id="input-manager" placeholder="Cuba: PENDING atau APPROVE 100" rows="1"></textarea>
+        <button class="panel__send" id="send-manager" onclick="sendMessage('manager')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- OWNER -->
+  <div>
+    <div class="panel-label">
+      <span class="panel-label__role panel-label__role--owner">Owner</span>
+      <div class="panel-label__name">Farid · Semua Outlet</div>
+    </div>
+    <div class="panel" id="panel-owner">
+      <div class="panel__header panel__header--owner">
+        <div class="panel__avatar panel__avatar--owner">SB</div>
+        <div class="panel__info">
+          <div class="panel__name">StokBot</div>
+          <div class="panel__role">Semua Outlet · Owner</div>
+        </div>
+        <div class="panel__indicator"></div>
+      </div>
+      <div class="chat" id="chat-owner"></div>
+      <div class="panel__input-wrap">
+        <textarea class="panel__input" id="input-owner" placeholder="Cuba: REPORT atau STOCK" rows="1"></textarea>
+        <button class="panel__send" id="send-owner" onclick="sendMessage('owner')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- RESET -->
+<div class="reset-wrap">
+  <button class="reset-btn" onclick="resetDemo()">↺ Reset Demo</button>
+</div>
+
+<!-- AFTER DEMO CTA -->
+<section class="after-demo">
+  <h2>Nak guna StokBot untuk bisnes anda?</h2>
+  <p>Urus stok melalui WhatsApp tanpa app tambahan.<br>Staff rekod, manager approve, owner pantau report.</p>
+  <div class="after-demo__actions">
+    <a href="https://wa.me/601167609636?text=Saya%20berminat%20dengan%20StokBot" class="btn btn--white">
+      💬 WhatsApp Kami Sekarang
+    </a>
+    <a href="/#pricing" class="btn btn--tertiary btn--sm">Lihat Harga</a>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <p>© 2025 <span class="footer__brand">StokBot</span>. Sistem pengurusan stok berasaskan WhatsApp.</p>
+  <nav class="footer__links">
+    <a href="/terms.html">Terms of Services</a>
+    <a href="/privacy.html">Privacy Policy</a>
+    <a href="/">Home</a>
+  </nav>
+</footer>
+
+<script src="js/demo.js"></script>
+</body>
+</html>

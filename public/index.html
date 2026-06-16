@@ -1,594 +1,127 @@
 <!DOCTYPE html>
 <html lang="ms">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>StokBot — Sistem Pengurusan Stok via WhatsApp</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Sora:wght@700;800&display=swap" rel="stylesheet">
-<style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StokBot • Sistem Stok WhatsApp untuk Outlet F&B</title>
+  <meta name="description" content="Rekod stok, hantar request, dan approve terus dari WhatsApp. Tiada app tambahan. Setup dalam 3 hari.">
 
-  :root {
-    --green: #1D9E75;
-    --green-light: #E1F5EE;
-    --green-dark: #0F6E56;
-    --amber: #EF9F27;
-    --amber-light: #FAEEDA;
-    --text: #1a1a1a;
-    --text-muted: #6b7280;
-    --border: #e5e7eb;
-    --card-bg: #ffffff;
-    --section-bg: #f9fafb;
-  }
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Sora:wght@700;800&display=swap" rel="stylesheet">
 
-  body {
-    font-family: 'Plus Jakarta Sans', sans-serif;
-    color: var(--text);
-    background: #fff;
-    line-height: 1.6;
-    overflow-x: hidden;
-  }
-
-  /* NAV */
-  nav {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 1.2rem 5%;
-    border-bottom: 1px solid var(--border);
-    position: sticky;
-    top: 0;
-    background: rgba(255,255,255,0.97);
-    backdrop-filter: blur(8px);
-    z-index: 100;
-  }
-  .nav-logo {
-    font-family: 'Sora', sans-serif;
-    font-size: 1.25rem;
-    font-weight: 800;
-    color: var(--green-dark);
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    text-decoration: none;
-  }
-  .nav-logo span {
-    background: var(--green);
-    color: #fff;
-    width: 28px;
-    height: 28px;
-    border-radius: 7px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.9rem;
-  }
-  .nav-cta {
-    background: var(--green);
-    color: #fff;
-    border: none;
-    padding: 0.5rem 1.2rem;
-    border-radius: 8px;
-    font-family: inherit;
-    font-size: 0.9rem;
-    font-weight: 600;
-    cursor: pointer;
-    text-decoration: none;
-    transition: background 0.2s;
-  }
-  .nav-cta:hover { background: var(--green-dark); }
-
-  /* HERO */
-  .hero {
-    text-align: center;
-    padding: 5rem 5% 4rem;
-    background: linear-gradient(180deg, #f0fdf8 0%, #fff 100%);
-  }
-  .hero-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    background: var(--green-light);
-    color: var(--green-dark);
-    padding: 0.35rem 1rem;
-    border-radius: 100px;
-    font-size: 0.8rem;
-    font-weight: 600;
-    margin-bottom: 1.5rem;
-    border: 1px solid #9FE1CB;
-  }
-  .hero-badge::before {
-    content: '';
-    width: 7px; height: 7px;
-    background: var(--green);
-    border-radius: 50%;
-    animation: pulse 2s infinite;
-  }
-  @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.4; }
-  }
-  .hero h1 {
-    font-family: 'Sora', sans-serif;
-    font-size: clamp(2rem, 5vw, 3.2rem);
-    font-weight: 800;
-    line-height: 1.15;
-    max-width: 700px;
-    margin: 0 auto 1.25rem;
-    color: #0a0a0a;
-  }
-  .hero h1 em {
-    font-style: normal;
-    color: var(--green);
-  }
-  .hero p {
-    font-size: 1.1rem;
-    color: var(--text-muted);
-    max-width: 520px;
-    margin: 0 auto 1.5rem;
-  }
-  .hero-btns {
-    display: flex;
-    gap: 12px;
-    justify-content: center;
-    flex-wrap: wrap;
-  }
-  .btn-primary {
-    background: var(--green);
-    color: #fff;
-    padding: 0.75rem 1.75rem;
-    border-radius: 10px;
-    font-weight: 600;
-    font-size: 1rem;
-    text-decoration: none;
-    border: none;
-    cursor: pointer;
-    font-family: inherit;
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    transition: background 0.2s;
-  }
-  .btn-primary:hover { background: var(--green-dark); }
-  .btn-secondary {
-    background: #fff;
-    color: var(--text);
-    padding: 0.75rem 1.75rem;
-    border-radius: 10px;
-    font-weight: 500;
-    font-size: 1rem;
-    text-decoration: none;
-    border: 1px solid var(--border);
-    cursor: pointer;
-    font-family: inherit;
-    transition: border-color 0.2s, color 0.2s;
-  }
-  .btn-secondary:hover { border-color: var(--green); color: var(--green-dark); }
-
-  /* WHATSAPP MOCKUP */
-  .hero-mockup {
-    margin: 0;
-    max-width: 360px;
-    background: #ece5dd;
-    border-radius: 16px;
-    padding: 1.25rem;
-    border: 1px solid #d5cdc5;
-    text-align: left;
-  }
-  .mockup-header {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    background: #075e54;
-    margin: -1.25rem -1.25rem 1rem;
-    padding: 0.85rem 1.25rem;
-    border-radius: 16px 16px 0 0;
-  }
-  .mockup-avatar {
-    width: 34px; height: 34px;
-    border-radius: 50%;
-    background: var(--green-light);
-    display: flex; align-items: center; justify-content: center;
-    font-weight: 700; font-size: 0.85rem; color: var(--green-dark);
-  }
-  .mockup-name { color: #fff; font-size: 0.9rem; font-weight: 600; }
-  .mockup-status { color: #b5d8d4; font-size: 0.72rem; }
-  .msg { margin-bottom: 8px; }
-  .msg-in {
-    background: #fff;
-    border-radius: 0 10px 10px 10px;
-    padding: 0.55rem 0.75rem;
-    font-size: 0.82rem;
-    max-width: 85%;
-    display: inline-block;
-    color: #111;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.08);
-  }
-  .msg-out-wrap { text-align: right; }
-  .msg-out {
-    background: #d9fdd3;
-    border-radius: 10px 0 10px 10px;
-    padding: 0.55rem 0.75rem;
-    font-size: 0.82rem;
-    max-width: 85%;
-    display: inline-block;
-    color: #111;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.08);
-    text-align: left;
-  }
-  .msg-time { font-size: 0.65rem; color: #8696a0; margin-top: 2px; text-align: right; }
-  .msg-badge {
-    font-size: 0.7rem;
-    background: #25d366;
-    color: #fff;
-    border-radius: 4px;
-    padding: 1px 5px;
-    margin-bottom: 4px;
-    display: inline-block;
-  }
-
-  /* STATS */
-  .stats-row {
-    display: flex;
-    justify-content: center;
-    gap: 2rem;
-    padding: 2.5rem 5%;
-    background: var(--green-dark);
-    flex-wrap: wrap;
-  }
-  .stat-item { text-align: center; }
-  .stat-num {
-    font-family: 'Sora', sans-serif;
-    font-size: 2rem;
-    font-weight: 800;
-    color: #fff;
-  }
-  .stat-label { font-size: 0.82rem; color: #9FE1CB; margin-top: 2px; }
-
-  /* SECTIONS */
-  .section { padding: 4.5rem 5%; }
-  .section-label {
-    font-size: 0.78rem;
-    font-weight: 700;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--green);
-    margin-bottom: 0.75rem;
-  }
-  .section-title {
-    font-family: 'Sora', sans-serif;
-    font-size: clamp(1.6rem, 3vw, 2.2rem);
-    font-weight: 800;
-    line-height: 1.2;
-    margin-bottom: 0.75rem;
-    color: #0a0a0a;
-  }
-  .section-sub {
-    color: var(--text-muted);
-    font-size: 1rem;
-    max-width: 480px;
-    margin-bottom: 3rem;
-  }
-
-  /* FEATURES */
-  .features-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 1.25rem;
-  }
-  .feat-card {
-    background: var(--card-bg);
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    padding: 1.5rem;
-    transition: box-shadow 0.2s, transform 0.2s;
-  }
-  .feat-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.08); transform: translateY(-2px); }
-  .feat-icon {
-    width: 44px; height: 44px;
-    border-radius: 10px;
-    background: var(--green-light);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 1.25rem;
-    margin-bottom: 1rem;
-  }
-  .feat-card h3 { font-size: 1rem; font-weight: 700; margin-bottom: 0.4rem; color: #111; }
-  .feat-card p { font-size: 0.875rem; color: var(--text-muted); line-height: 1.55; }
-
-  /* HOW IT WORKS */
-  .how-section { background: var(--section-bg); }
-  .steps-list {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1.5rem;
-    counter-reset: steps;
-  }
-  .step {
-    counter-increment: steps;
-    padding: 1.5rem;
-    background: #fff;
-    border: 1px solid var(--border);
-    border-radius: 14px;
-  }
-  .step::before {
-    content: counter(steps);
-    font-family: 'Sora', sans-serif;
-    font-size: 1.75rem;
-    font-weight: 800;
-    color: var(--green-light);
-    display: block;
-    margin-bottom: 0.75rem;
-    line-height: 1;
-  }
-  .step h3 { font-size: 0.975rem; font-weight: 700; margin-bottom: 0.4rem; }
-  .step p { font-size: 0.85rem; color: var(--text-muted); }
-
-  /* ROLES */
-  .roles-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 1rem;
-  }
-  .role-card {
-    border-radius: 12px;
-    padding: 1.25rem;
-    border: 1px solid transparent;
-  }
-  .role-card.staff { background: #EAF3DE; border-color: #C0DD97; }
-  .role-card.supervisor { background: var(--amber-light); border-color: #FAC775; }
-  .role-card.manager { background: var(--green-light); border-color: #9FE1CB; }
-  .role-card.admin { background: #E6F1FB; border-color: #B5D4F4; }
-  .role-card.owner { background: #F5F3FF; border-color: #C4B5FD; }
-  .role-card h4 { font-size: 0.875rem; font-weight: 700; margin-bottom: 0.5rem; }
-  .role-card.staff h4 { color: #3B6D11; }
-  .role-card.supervisor h4 { color: #854F0B; }
-  .role-card.manager h4 { color: var(--green-dark); }
-  .role-card.admin h4 { color: #185FA5; }
-  .role-card.owner h4 { color: #5B21B6; }
-  .role-tag {
-    font-size: 0.7rem;
-    font-weight: 700;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    background: rgba(255,255,255,0.7);
-    padding: 2px 8px;
-    border-radius: 100px;
-    margin-bottom: 0.75rem;
-    display: inline-block;
-  }
-  .role-card ul { list-style: none; padding: 0; }
-  .role-card li { font-size: 0.8rem; color: #374151; padding: 3px 0; }
-  .role-card li::before { content: '✓ '; font-weight: 700; opacity: 0.6; }
-
-  /* COMMANDS */
-  .cmd-section { background: #0a2018; }
-  .cmd-section .section-label { color: #5DCAA5; }
-  .cmd-section .section-title { color: #fff; }
-  .cmd-section .section-sub { color: #9ca3af; }
-  .cmd-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1rem;
-  }
-  .cmd-item {
-    background: #0F2E1E;
-    border: 1px solid #1D4D35;
-    border-radius: 10px;
-    padding: 1rem 1.25rem;
-  }
-  .cmd-label { font-size: 0.72rem; color: #5DCAA5; font-weight: 600; margin-bottom: 6px; letter-spacing: 0.05em; text-transform: uppercase; }
-  .cmd-code { font-family: 'Courier New', monospace; font-size: 0.88rem; color: #d1fae5; font-weight: 600; margin-bottom: 6px; }
-  .cmd-desc { font-size: 0.78rem; color: #6b7280; }
-
-  /* CTA */
-  .cta-section {
-    background: var(--green);
-    padding: 5rem 5%;
-    text-align: center;
-  }
-  .cta-section h2 {
-    font-family: 'Sora', sans-serif;
-    font-size: clamp(1.6rem, 3vw, 2.4rem);
-    font-weight: 800;
-    color: #fff;
-    margin-bottom: 1rem;
-    line-height: 1.2;
-  }
-  .cta-section p { color: rgba(255,255,255,0.85); margin-bottom: 2rem; font-size: 1rem; }
-  .btn-white {
-    background: #fff;
-    color: var(--green-dark);
-    padding: 0.8rem 2rem;
-    border-radius: 10px;
-    font-weight: 700;
-    font-size: 1rem;
-    text-decoration: none;
-    border: none;
-    cursor: pointer;
-    font-family: inherit;
-    display: inline-block;
-    transition: opacity 0.2s;
-  }
-  .btn-white:hover { opacity: 0.92; }
-
-  /* FAQ */
-  .faq-section {
-  background: #f8fafc;
-  }
-
-  .faq-list {
-  max-width: 800px;
-  margin: 2rem auto 0;
-  }
-
-  .faq-item {
-  background: #fff;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  margin-bottom: 12px;
-  overflow: hidden;
-  }
-
-  .faq-item summary {
-  padding: 1rem 1.25rem;
-  cursor: pointer;
-  font-weight: 600;
-  list-style: none;
-  }
-
-  .faq-item summary::-webkit-details-marker {
-  display: none;
-  }
-
-  .faq-item summary::after {
-  content: "+";
-  float: right;
-  font-size: 1.2rem;
-  color: var(--green);
-  }
-
-  .faq-item[open] summary::after {
-  content: "−";
-  }
-
-  .faq-item p {
-  padding: 0 1.25rem 1rem;
-  color: var(--text-muted);
-  line-height: 1.6;
-  }
-
-  /* FOOTER */
-  footer {
-    background: #0a0a0a;
-    color: #6b7280;
-    text-align: center;
-    padding: 2rem;
-    font-size: 0.82rem;
-  }
-  footer span { color: var(--green); }
-
-  /* RESPONSIVE */
-  @media (max-width: 600px) {
-    .stats-row { gap: 1.25rem; }
-    .hero { padding: 3rem 5% 2.5rem; }
-    .section { padding: 3rem 5%; }
-  }
-</style>
+  <!-- CSS -->
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/sections.css">
+  <link rel="stylesheet" href="css/responsive.css">
 </head>
 <body>
 
-<!-- NAV -->
-<nav>
+<!-- ======================================================
+     NAV
+====================================================== -->
+<nav class="nav">
   <a href="#" class="nav-logo">
-    <span>S</span> StokBot
+    <span class="nav-logo__icon">S</span>
+    StokBot
   </a>
-  <a href="#cta" class="nav-cta">Hubungi Kami</a>
+  <a href="/demo.html" class="btn btn--primary btn--sm">📱 Cuba Demo </a>
 </nav>
 
-<!-- HERO -->
+
+<!-- ======================================================
+     HERO
+====================================================== -->
 <section class="hero">
-  <div class="hero-badge">WhatsApp Stock Management</div>
-  <h1>Urus Stok Outlet<br>Terus dari <em>WhatsApp</em></h1>
-  <p>Sistem pengurusan stok yang mudah. Staff rekod, manager approve, laporan auto. Tanpa app tambahan, tanpa training panjang.</p>
-  <div class="hero-btns">
-    <a href="#cta" class="btn-primary">📱 Minta Demo</a>
-    <a href="#features" class="btn-secondary">Lihat Features →</a>
+  <div class="hero-badge">
+    <span class="hero-badge__dot"></span>
+    Sistem Stok via WhatsApp
   </div>
 
-  <!-- MOCKUP WRAPPER -->
-  <div style="display:flex; gap:1.5rem; justify-content:center; flex-wrap:wrap; margin-top:1rem; align-items:flex-start;">
+  <h1>Stok Outlet Anda<br><em>Tak Perlu Pening Lagi.</em></h1>
 
-    <!-- MOCKUP 1: STAFF -->
-    <div class="hero-mockup" style="max-width:280px;">
-      <div class="mockup-header">
-        <div class="mockup-avatar">SB</div>
+  <p class="hero__pain">
+    Ramai owner outlet F&B yang kami jumpa ada masalah yang sama, stok habis tanpa notis, staff rekod tak konsisten, dan laporan hujung bulan jadi pening kepala.
+  </p>
+  <p class="hero__sub">
+    StokBot uruskan semua tu terus dalam WhatsApp. Tak perlu ajar staff guna app baru.
+  </p>
+
+  <div class="hero__btns">
+    <a href="/demo.html" class="btn btn--primary">📱 Cuba Demo </a>
+    <a href="#features" class="btn btn--secondary">Macam mana ia berfungsi →</a>
+  </div>
+  <p class="hero__risk">Setup dalam 1–3 hari. Boleh guna nombor WhatsApp perniagaan sendiri.</p>
+
+  <!-- MOCKUPS -->
+  <div class="hero__mockups">
+
+    <!-- Staff view -->
+    <div class="mockup">
+      <div class="mockup__header mockup__header--green">
+        <div class="mockup__avatar mockup__avatar--green">SB</div>
         <div>
-          <div class="mockup-name">StokBot</div>
-          <div class="mockup-status">online</div>
+          <div class="mockup__name">StokBot</div>
+          <div class="mockup__status">online</div>
         </div>
       </div>
-      <div style="font-size:0.7rem;color:#888;margin-bottom:8px;text-align:center;">👤 Staff 1 View</div>
-
+      <div class="mockup__label">👤 Staff — Rekod Stok</div>
       <div class="msg">
-        <div class="msg-out-wrap">
-          <div class="msg-out">IN ayam rempah 3<div class="msg-time">9:14 AM ✓✓</div></div>
+        <div class="msg__out-wrap">
+          <div class="msg__out">IN ayam rempah 3<div class="msg__time">9:14 AM ✓✓</div></div>
         </div>
       </div>
       <div class="msg">
-        <div class="msg-in">
-          <div class="msg-badge">StokBot</div>
+        <div class="msg__in">
+          <div class="msg__badge msg__badge--green">StokBot</div><br>
           ✅ REQUEST SENT
-          <div class="msg-time">9:14 AM</div>
+          <div class="msg__time">9:14 AM</div>
         </div>
       </div>
     </div>
 
-    <!-- MOCKUP 2: STAFF -->
-    <div class="hero-mockup" style="max-width:280px;">
-      <div class="mockup-header">
-        <div class="mockup-avatar">SB</div>
+    <!-- Manager view -->
+    <div class="mockup">
+      <div class="mockup__header mockup__header--blue">
+        <div class="mockup__avatar mockup__avatar--blue">MG</div>
         <div>
-          <div class="mockup-name">StokBot</div>
-          <div class="mockup-status">online</div>
+          <div class="mockup__name">StokBot</div>
+          <div class="mockup__status">online</div>
         </div>
       </div>
-      <div style="font-size:0.7rem;color:#888;margin-bottom:8px;text-align:center;">👤 Staff 2 View</div>
+      <div class="mockup__label">👔 Manager — Approve Request</div>
       <div class="msg">
-        <div class="msg-out-wrap">
-          <div class="msg-out">OUT tepung gandum 2<div class="msg-time">9:15 AM ✓✓</div></div>
-        </div>
-      </div>
-      <div class="msg">
-        <div class="msg-in">
-          <div class="msg-badge">StokBot</div>
-          ✅ REQUEST SENT
-          <div class="msg-time">9:15 AM</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- MOCKUP 3: MANAGER -->
-    <div class="hero-mockup" style="max-width:280px;">
-      <div class="mockup-header" style="background:#1a3c5e;">
-        <div class="mockup-avatar" style="background:#E6F1FB;color:#185FA5;">MG</div>
-        <div>
-          <div class="mockup-name">StokBot</div>
-          <div class="mockup-status">online</div>
-        </div>
-      </div>
-      <div style="font-size:0.7rem;color:#888;margin-bottom:8px;text-align:center;">👔 Manager View</div>
-
-      <div class="msg">
-        <div class="msg-in">
-          <div class="msg-badge" style="background:#185FA5;">StokBot</div>
-          <b>📤 STOCK REQUEST — Outlet Muiz</b><br><br>
+        <div class="msg__in">
+          <div class="msg__badge msg__badge--blue">StokBot</div><br>
+          <strong>📦 STOCK REQUEST — Outlet A</strong><br><br>
           📥 IN<br>
-          BY: Ali (60123456789)<br>
+          BY: Ali (601234...)<br>
           ID 42 | Ayam Rempah x3<br><br>
           📤 OUT<br>
-          BY: Abu (60123456789)<br>
-          ID 43 | Tepung Gandum x2<br>
-          
-          <div style="display:flex;gap:8px;margin-top:10px;">
-            <span style="background:#e6f7f1;color:#0F6E56;border-radius:6px;padding:4px 10px;font-size:0.75rem;font-weight:700;">APPROVE ALL</span>
-            <span style="background:#fef2f2;color:#A32D2D;border-radius:6px;padding:4px 10px;font-size:0.75rem;font-weight:700;">REJECT ALL</span>
+          BY: Abu (601234...)<br>
+          ID 43 | Tepung Gandum x2
+          <div class="msg__actions">
+            <span class="msg__action-btn msg__action-btn--approve">APPROVE ALL</span>
+            <span class="msg__action-btn msg__action-btn--reject">REJECT ALL</span>
           </div>
-          <div class="msg-time">9:16 AM</div>
+          <div class="msg__time">9:16 AM</div>
         </div>
       </div>
       <div class="msg">
-        <div class="msg-out-wrap">
-          <div class="msg-out">APPROVE ALL<div class="msg-time">9:17 AM ✓✓</div></div>
+        <div class="msg__out-wrap">
+          <div class="msg__out">APPROVE ALL<div class="msg__time">9:17 AM ✓✓</div></div>
         </div>
       </div>
       <div class="msg">
-        <div class="msg-in">
-          <div class="msg-badge" style="background:#185FA5;">StokBot</div>
+        <div class="msg__in">
+          <div class="msg__badge msg__badge--blue">StokBot</div><br>
           ✅ APPROVED<br>
           Ayam Rempah +3 ➡️ Baki: 12<br>
           Tepung Gandum −2 ➡️ Baki: 8
-          <div class="msg-time">9:17 AM</div>
+          <div class="msg__time">9:17 AM</div>
         </div>
       </div>
     </div>
@@ -596,98 +129,201 @@
   </div>
 </section>
 
-<!-- STATS -->
-<div class="stats-row">
-  <div class="stat-item">
-    <div class="stat-num">100%</div>
-    <div class="stat-label">WhatsApp native</div>
+
+<!-- ======================================================
+     TRUST BAR
+====================================================== -->
+<div class="trust-bar">
+  <div class="trust-bar__item">
+    <span class="trust-bar__num">100%</span>
+    <div class="trust-bar__label">dalam WhatsApp, tiada app lain</div>
   </div>
-  <div class="stat-item">
-    <div class="stat-num">5</div>
-    <div class="stat-label">Level akses (admin, manager, supervisor, staff, owner)</div>
+  <div class="trust-bar__item">
+    <span class="trust-bar__num">1–3 hari</span>
+    <div class="trust-bar__label">dari hubungi kami sampai boleh guna</div>
   </div>
-  <div class="stat-item">
-    <div class="stat-num">Real-time</div>
-    <div class="stat-label">Notifikasi & low stock alert</div>
+  <div class="trust-bar__item">
+    <span class="trust-bar__num">5 peringkat</span>
+    <div class="trust-bar__label">akses berbeza untuk setiap peranan</div>
   </div>
-  <div class="stat-item">
-    <div class="stat-num">Auto-calculate</div>
-    <div class="stat-label">Laporan bulanan & snapshot inventori</div>
+  <div class="trust-bar__item">
+    <span class="trust-bar__num">Automatik</span>
+    <div class="trust-bar__label">laporan & notifikasi stok rendah</div>
   </div>
 </div>
 
-<!-- FEATURES -->
+
+<!-- ======================================================
+     PAIN SECTION — masalah yang owner kenal
+====================================================== -->
+<section class="section section--alt">
+  <div class="section__label">Situasi yang biasa berlaku</div>
+  <div class="section__title">Kalau anda pernah alami salah satu daripada ini...</div>
+  <div class="section__sub">Bukan salah staff. Sistem yang tak sesuai memang akan hasilkan masalah yang sama berulang-ulang.</div>
+
+  <div class="pain-grid">
+    <div class="pain-card">
+      <span class="pain-card__emoji">😤</span>
+      <h4>Stok habis, tiada siapa tahu</h4>
+      <p>Customer dah order, baru nak cari stok. Malu depan customer, rugi jualan.</p>
+    </div>
+    <div class="pain-card">
+      <span class="pain-card__emoji">📋</span>
+      <h4>Rekod dalam buku atau Excel</h4>
+      <p>Senang hilang, senang tertinggal, senang silap masuk. Lepas seminggu dah tak boleh percaya.</p>
+    </div>
+    <div class="pain-card">
+      <span class="pain-card__emoji">🤦</span>
+      <h4>Laporan hujung bulan memakan masa</h4>
+      <p>Kena compile data dari pelbagai sumber. Ambil masa berjam, dan hasilnya pun tidak selalunya tepat.</p>
+    </div>
+    <div class="pain-card">
+      <span class="pain-card__emoji">📱</span>
+      <h4>Setiap staff rekod cara lain-lain</h4>
+      <p>Ada yang WhatsApp, ada yang tulis tangan, ada yang tak rekod langsung. Tiada satu sistem yang semua orang ikut.</p>
+    </div>
+  </div>
+</section>
+
+
+<!-- ======================================================
+     FEATURES
+====================================================== -->
 <section class="section" id="features">
-  <div class="section-label">Features</div>
-  <div class="section-title">Semua yang anda perlukan</div>
-  <div class="section-sub">Direka khas untuk outlet F&B, kedai runcit, dan gudang yang nak sistem simple tapi reliable.</div>
+  <div class="section__label">Apa yang StokBot buat</div>
+  <div class="section__title">Satu sistem, semua orang guna cara yang sama</div>
+  <div class="section__sub">Dibina untuk outlet F&B tempatan. Staff yang tak biasa teknologi pun boleh guna dalam masa singkat.</div>
+
   <div class="features-grid">
     <div class="feat-card">
-      <div class="feat-icon">📥</div>
-      <h3>Stock In / Out / Wastage</h3>
-      <p>Staff hantar request terus via WhatsApp. Support multi-item dalam satu mesej.</p>
+      <div class="feat-card__icon">📥</div>
+      <h3>Rekod Stok Masuk, Keluar & Buangan</h3>
+      <p>Staff taip terus dalam WhatsApp. Boleh rekod beberapa item sekaligus dalam satu mesej.</p>
     </div>
     <div class="feat-card">
-      <div class="feat-icon">✅</div>
-      <h3>Approval Flow</h3>
-      <p>Manager atau supervisor approve / reject tekan butang. Anti double-approval built-in.</p>
+      <div class="feat-card__icon">✅</div>
+      <h3>Kelulusan Terus dari WhatsApp</h3>
+      <p>Manager terima notifikasi dan tekan butang Approve atau Reject. Sistem pastikan satu request tidak boleh diluluskan dua kali.</p>
     </div>
     <div class="feat-card">
-      <div class="feat-icon">⚠️</div>
-      <h3>Low Stock Alert</h3>
-      <p>Manager auto notified bila stok bawah minimum. Takde lagi stok habis tiba-tiba.</p>
+      <div class="feat-card__icon">⚠️</div>
+      <h3>Notifikasi Bila Stok Hampir Habis</h3>
+      <p>Manager dapat mesej WhatsApp automatik sebaik stok turun bawah paras minimum yang ditetapkan.</p>
     </div>
     <div class="feat-card">
-      <div class="feat-icon">📊</div>
-      <h3>Laporan Lengkap</h3>
-      <p>Summary, flow, detail, dead stock dan wastage, semua dalam WhatsApp. Pilih bulan, tekan butang.</p>
+      <div class="feat-card__icon">📊</div>
+      <h3>Laporan Bulanan Tanpa Kerja Manual</h3>
+      <p>Taip REPORT, pilih bulan. Laporan ringkasan, aliran stok, pembaziran dan dead stock semua tersedia.</p>
     </div>
     <div class="feat-card">
-      <div class="feat-icon">🏪</div>
-      <h3>Multi Outlet</h3>
-      <p>Satu manager boleh handle banyak outlet. Data diasingkan ikut outlet.</p>
+      <div class="feat-card__icon">🏪</div>
+      <h3>Pantau Banyak Outlet Serentak</h3>
+      <p>Seorang manager boleh kendalikan beberapa outlet dari satu nombor WhatsApp. Data setiap outlet diasingkan.</p>
     </div>
     <div class="feat-card">
-      <div class="feat-icon">📸</div>
-      <h3>Daily Snapshot</h3>
-      <p>Inventori auto-snapshot setiap tengah malam. Track nilai stok mengikut masa.</p>
+      <div class="feat-card__icon">📸</div>
+      <h3>Rekod Harian Automatik</h3>
+      <p>Sistem simpan nilai inventori setiap malam secara automatik. Mudah bandingkan stok dari bulan ke bulan.</p>
     </div>
   </div>
 </section>
 
-<!-- HOW IT WORKS -->
-<section class="section how-section">
-  <div class="section-label">Cara kerja</div>
-  <div class="section-title">Simple je prosesnya</div>
-  <div class="section-sub">Dari staff rekod sampai manager approve, semua dalam WhatsApp.</div>
+
+<!-- ======================================================
+     HOW IT WORKS
+====================================================== -->
+<section class="section section--alt">
+  <div class="section__label">Cara ia berfungsi</div>
+  <div class="section__title">Proses yang sama setiap hari, tanpa kekeliruan</div>
+  <div class="section__sub">Staff tak perlu ingat banyak perkara. Sistem yang buat kerja berat.</div>
+
   <div class="steps-list">
     <div class="step">
-      <h3>Staff taip command</h3>
-      <p>"OUT ayam 5" atau "IN tepung 10" terus dalam WhatsApp.</p>
+      <span class="step__num">01</span>
+      <h3>Staff taip terus dalam WhatsApp</h3>
+      <p>"OUT ayam 5" atau "IN tepung 10" - pendek dan mudah. Tak perlu buka app lain.</p>
     </div>
     <div class="step">
-      <h3>Sistem proses & notify</h3>
-      <p>Request masuk pending, manager dapat notifikasi automatik dengan butang approve/reject.</p>
+      <span class="step__num">02</span>
+      <h3>Manager terima notifikasi</h3>
+      <p>Sistem hantar mesej kepada manager secara automatik, lengkap dengan butang untuk tindakan segera.</p>
     </div>
     <div class="step">
-      <h3>Manager approve</h3>
-      <p>Tekan APPROVE, stok terus update, movement direkod, log tersimpan.</p>
+      <span class="step__num">03</span>
+      <h3>Tekan Approve, stok dikemas kini</h3>
+      <p>Sebaik manager luluskan, stok terus dikemas kini dan rekod disimpan. Tiada langkah tambahan diperlukan.</p>
     </div>
     <div class="step">
-      <h3>Laporan auto</h3>
-      <p>Taip "REPORT" untuk tengok summary. Pilih bulan, data siap dalam saat.</p>
+      <span class="step__num">04</span>
+      <h3>Laporan sedia apabila diperlukan</h3>
+      <p>Taip "REPORT may-26" bila-bila masa. Data keluar dalam beberapa saat, tanpa perlu buka Excel.</p>
     </div>
   </div>
 </section>
 
-<!-- ROLES -->
+
+<!-- ======================================================
+     TESTIMONIALS
+====================================================== 
 <section class="section">
-  <div class="section-label">Sistem Roles</div>
-  <div class="section-title">Setiap orang ada akses yang betul</div>
-  <div class="section-sub" style="margin-bottom:2rem;">Role-based access dimana staff nampak apa yang patut dan manager nampak semua outlet dia.</div>
+  <div class="section__label">Pengalaman pengguna</div>
+  <div class="section__title">Apa yang mereka katakan selepas guna</div>
+  <div class="section__sub">Kami minta mereka cerita masalah sebenar mereka, bukan bagi pujian.</div>
+
+  <div class="testimonials-grid">
+    <div class="testimonial-card">
+      <p class="testimonial-card__quote">
+        Dulu saya kena Whatsapp staff satu-satu bila nak tahu stok. Sekarang saya bukak StokBot, semua ada. Yang paling saya suka, approve request pun dari WhatsApp yang sama.
+      </p>
+      <div class="testimonial-card__author">
+        <div class="testimonial-card__avatar">AR</div>
+        <div>
+          <div class="testimonial-card__name">Ahmad Razif</div>
+          <div class="testimonial-card__role">Pemilik, 2 Outlet F&B, Perak</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="testimonial-card">
+      <p class="testimonial-card__quote">
+        Laporan hujung bulan dulu ambil masa lebih 2 jam sebab kena compile dari beberapa tempat. Sekarang saya taip satu command, siap. Staff pun lebih rajin rekod sebab prosesnya mudah.
+      </p>
+      <div class="testimonial-card__author">
+        <div class="testimonial-card__avatar">SN</div>
+        <div>
+          <div class="testimonial-card__name">Siti Norzahra</div>
+          <div class="testimonial-card__role">Pengurus Operasi, Restoran, Selangor</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="testimonial-card">
+      <p class="testimonial-card__quote">
+        Kami ada 3 outlet di lokasi berbeza. Sebelum ni memang tak terpantau semuanya. Sekarang saya tengok stok ketiga-tiga outlet dari satu WhatsApp, tanpa perlu pergi ke sana.
+      </p>
+      <div class="testimonial-card__author">
+        <div class="testimonial-card__avatar">FH</div>
+        <div>
+          <div class="testimonial-card__name">Farid Hakim</div>
+          <div class="testimonial-card__role">Pemilik, 3 Outlet Katering, Kuala Lumpur</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section> -->
+
+
+<!-- ======================================================
+     ROLES
+====================================================== -->
+<section class="section section--alt">
+  <div class="section__label">Pengurusan Akses</div>
+  <div class="section__title">Lima peringkat akses, setiap satu ada had yang jelas</div>
+  <div class="section__sub">Staff hanya nampak outlet mereka sendiri. Manager nampak semua outlet di bawah jagaannya. Tiada campur aduk data.</div>
+
   <div class="roles-grid">
-    <div class="role-card staff">
-      <div class="role-tag" style="color:#3B6D11;">Staff</div>
+    <div class="role-card role-card--staff">
+      <div class="role-tag" style="color:var(--role-staff-text)">Staff</div>
       <h4>Staff</h4>
       <ul>
         <li>Rekod IN / OUT / Wastage</li>
@@ -695,8 +331,8 @@
         <li>Lihat pending list</li>
       </ul>
     </div>
-    <div class="role-card supervisor">
-      <div class="role-tag" style="color:#854F0B;">Supervisor</div>
+    <div class="role-card role-card--sv">
+      <div class="role-tag" style="color:var(--role-sv-text)">Supervisor</div>
       <h4>Supervisor</h4>
       <ul>
         <li>Approve / Reject request</li>
@@ -704,8 +340,8 @@
         <li>Terima low stock alert</li>
       </ul>
     </div>
-    <div class="role-card manager">
-      <div class="role-tag" style="color:#0F6E56;">Manager</div>
+    <div class="role-card role-card--manager">
+      <div class="role-tag" style="color:var(--role-mgr-text)">Manager</div>
       <h4>Manager</h4>
       <ul>
         <li>Multi-outlet access</li>
@@ -714,8 +350,8 @@
         <li>Semak senarai staff</li>
       </ul>
     </div>
-    <div class="role-card admin">
-      <div class="role-tag" style="color:#185FA5;">Admin</div>
+    <div class="role-card role-card--admin">
+      <div class="role-tag" style="color:var(--role-admin-text)">Admin</div>
       <h4>Admin</h4>
       <ul>
         <li>Urus user & outlet</li>
@@ -724,218 +360,225 @@
         <li>System log & audit</li>
       </ul>
     </div>
-    <div class="role-card owner" style="background:#F5F3FF;border-color:#C4B5FD;">
-      <div class="role-tag" style="color:#5B21B6;">Owner</div>
-      <h4 style="color:#5B21B6;">Owner</h4>
+    <div class="role-card role-card--owner">
+      <div class="role-tag" style="color:var(--role-owner-text)">Owner</div>
+      <h4>Owner</h4>
       <ul>
         <li>Akses penuh laporan</li>
-        <li>Multi-outlet access</li>
+        <li>Pantau semua outlet</li>
       </ul>
     </div>
   </div>
 </section>
 
-<!-- COMMANDS -->
-<section class="section cmd-section">
-  <div class="section-label">Commands</div>
-  <div class="section-title">Mudah nak ingat, mudah nak taip</div>
-  <div class="section-sub">Semua function accessible melalui command pendek dalam WhatsApp.</div>
+
+<!-- ======================================================
+     COMMANDS
+====================================================== -->
+<section class="section section--dark">
+  <div class="section__label">Senarai Arahan</div>
+  <div class="section__title">Arahan yang staff perlu tahu boleh dikira dengan jari</div>
+  <div class="section__sub">Semua fungsi utama boleh dicapai dengan arahan pendek. Kalau boleh taip mesej WhatsApp, boleh guna StokBot.</div>
+
   <div class="cmd-grid">
     <div class="cmd-item">
-      <div class="cmd-label">Rekod Masuk</div>
-      <div class="cmd-code">IN ayam 10</div>
-      <div class="cmd-desc">Hantar request stock masuk</div>
+      <div class="cmd-item__label">Stok Masuk</div>
+      <div class="cmd-item__code">IN ayam 10</div>
+      <div class="cmd-item__desc">Hantar request stok masuk</div>
     </div>
     <div class="cmd-item">
-      <div class="cmd-label">Rekod Keluar</div>
-      <div class="cmd-code">OUT tepung 5</div>
-      <div class="cmd-desc">Hantar request stock guna</div>
+      <div class="cmd-item__label">Stok Keluar</div>
+      <div class="cmd-item__code">OUT tepung 5</div>
+      <div class="cmd-item__desc">Hantar request stok guna</div>
     </div>
     <div class="cmd-item">
-      <div class="cmd-label">Wastage</div>
-      <div class="cmd-code">WASTAGE minyak 2</div>
-      <div class="cmd-desc">Rekod pembaziran stok</div>
+      <div class="cmd-item__label">Wastage</div>
+      <div class="cmd-item__code">WASTAGE minyak 2</div>
+      <div class="cmd-item__desc">Rekod pembaziran stok</div>
     </div>
     <div class="cmd-item">
-      <div class="cmd-label">Approval</div>
-      <div class="cmd-code">APPROVE 42</div>
-      <div class="cmd-desc">Lulus request by ID</div>
+      <div class="cmd-item__label">Approval</div>
+      <div class="cmd-item__code">APPROVE (BUTTON)</div>
+      <div class="cmd-item__desc">Lulus request by ID atau button</div>
     </div>
     <div class="cmd-item">
-      <div class="cmd-label">Semak Stok</div>
-      <div class="cmd-code">STOCK</div>
-      <div class="cmd-desc">Tengok current stock level</div>
+      <div class="cmd-item__label">Semak Stok</div>
+      <div class="cmd-item__code">STOCK</div>
+      <div class="cmd-item__desc">Tengok current stock level</div>
     </div>
     <div class="cmd-item">
-      <div class="cmd-label">Laporan</div>
-      <div class="cmd-code">REPORT may-26</div>
-      <div class="cmd-desc">Generate monthly report</div>
+      <div class="cmd-item__label">Laporan</div>
+      <div class="cmd-item__code">REPORT may-26</div>
+      <div class="cmd-item__desc">Generate laporan bulanan</div>
     </div>
   </div>
 </section>
 
-<!-- PRICING -->
-<section class="section" id="pricing" style="background:#f9fafb;">
-  <div class="section-label">Harga</div>
-  <div class="section-title">Pakej yang berbaloi</div>
-  <div class="section-sub">Harga tetap, tiada kos tersembunyi. Setup sekali, guna selamanya.</div>
 
-  <!-- ONE-TIME PACKAGES -->
-  <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:1.25rem; margin-bottom:2.5rem;">
+<!-- ======================================================
+     PRICING
+====================================================== -->
+<section class="section section--alt" id="pricing">
+  <div class="section__label">Harga</div>
+  <div class="section__title">Satu bayaran, sistem terus jadi milik anda</div>
+  <div class="section__sub">Tiada yuran bulanan yang wajib. Penyelenggaraan adalah pilihan, bukan syarat.</div>
 
-    <!-- STARTER -->
-    <div style="background:#fff; border:1px solid #e5e7eb; border-radius:16px; padding:1.75rem; position:relative;">
-      <div style="font-size:0.72rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#6b7280;margin-bottom:0.75rem;">Pakej Starter</div>
-      <div style="font-size:0.8rem;color:#9ca3af;text-decoration:line-through;margin-bottom:2px;">Harga asal RM4,000</div>
-      <div style="font-family:'Sora',sans-serif;font-size:2.25rem;font-weight:800;color:#0a0a0a;line-height:1;">RM3,000</div>
-      <div style="font-size:0.8rem;color:#6b7280;margin-bottom:1.5rem;">bayaran sekali sahaja</div>
-      <div style="background:#E1F5EE;color:#0F6E56;font-size:0.75rem;font-weight:700;padding:4px 10px;border-radius:100px;display:inline-block;margin-bottom:1.25rem;">1 Outlet</div>
-      <ul style="list-style:none;padding:0;margin-bottom:1.5rem;">
-        <li style="font-size:0.875rem;padding:5px 0;color:#374151;">✓ Setup sistem & WhatsApp</li>
-        <li style="font-size:0.875rem;padding:5px 0;color:#374151;">✓ Sehingga 5 pengguna</li>
-        <li style="font-size:0.875rem;padding:5px 0;color:#374151;">✓ Latihan & panduan penggunaan</li>
-        <li style="font-size:0.875rem;padding:5px 0;color:#374151;">✓ WhatsApp Business disediakan.</li>
-        <li style="font-size:0.875rem;padding:5px 0;color:#9ca3af;">Atau gunakan nombor WhatsApp perniagaan sendiri (+RM800 setup).</li>
+  <div class="pricing-grid">
+
+    <!-- Starter -->
+    <div class="pricing-card">
+      <div class="pricing-card__tier">Pakej Starter</div>
+      <div class="pricing-card__original">Harga biasa RM4,000</div>
+      <div class="pricing-card__price">RM3,000</div>
+      <div class="pricing-card__period">bayaran sekali sahaja</div>
+      <div class="pricing-card__tag">1 Outlet</div>
+      <ul>
+        <li>✓ Setup sistem & WhatsApp</li>
+        <li>✓ Sehingga 5 pengguna</li>
+        <li>✓ Latihan & panduan guna</li>
+        <li>✓ Nombor WhatsApp disediakan</li>
+        <li class="muted">+ RM800 jika guna nombor sendiri</li>
       </ul>
-      <a href="https://wa.me/601167609636?text=Saya%20nak%20tahu%20lebih%20tentang%20Pakej%20Starter" style="display:block;text-align:center;background:#1D9E75;color:#fff;padding:0.7rem;border-radius:10px;font-weight:600;font-size:0.9rem;text-decoration:none;">Dapatkan Maklumat</a>
+      <a href="https://wa.me/601167609636?text=Saya%20nak%20tahu%20lebih%20tentang%20Pakej%20Starter" class="btn btn--primary" style="width:100%;justify-content:center;">Tanya Lebih Lanjut</a>
     </div>
 
-    <!-- BUSINESS -->
-    <div style="background:#fff;border:2px solid #1D9E75;border-radius:16px;padding:1.75rem;position:relative;">
-      <div style="position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:#1D9E75;color:#fff;font-size:0.72rem;font-weight:700;padding:4px 14px;border-radius:100px;white-space:nowrap;">PALING POPULAR</div>
-      <div style="font-size:0.72rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#6b7280;margin-bottom:0.75rem;">Pakej Business</div>
-      <div style="font-size:0.8rem;color:#9ca3af;text-decoration:line-through;margin-bottom:2px;">Harga asal RM8,000</div>
-      <div style="font-family:'Sora',sans-serif;font-size:2.25rem;font-weight:800;color:#0a0a0a;line-height:1;">RM5,000</div>
-      <div style="font-size:0.8rem;color:#6b7280;margin-bottom:1.5rem;">bayaran sekali sahaja</div>
-      <div style="background:#E1F5EE;color:#0F6E56;font-size:0.75rem;font-weight:700;padding:4px 10px;border-radius:100px;display:inline-block;margin-bottom:1.25rem;">Sehingga 3 Outlet</div>
-      <ul style="list-style:none;padding:0;margin-bottom:1.5rem;">
-        <li style="font-size:0.875rem;padding:5px 0;color:#374151;">✓ Setup sistem & WhatsApp</li>
-        <li style="font-size:0.875rem;padding:5px 0;color:#374151;">✓ Sehingga 20 pengguna</li>
-        <li style="font-size:0.875rem;padding:5px 0;color:#374151;">✓ Latihan & panduan penggunaan</li>
-        <li style="font-size:0.875rem;padding:5px 0;color:#374151;">✓ WhatsApp Business disediakan.</li>
-        <li style="font-size:0.875rem;padding:5px 0;color:#9ca3af;">Atau gunakan nombor WhatsApp perniagaan sendiri (+RM800 setup).</li>
+    <!-- Business (featured) -->
+    <div class="pricing-card pricing-card--featured">
+      <div class="pricing-card__badge">PALING POPULAR</div>
+      <div class="pricing-card__tier">Pakej Business</div>
+      <div class="pricing-card__original">Harga biasa RM8,000</div>
+      <div class="pricing-card__price">RM5,000</div>
+      <div class="pricing-card__period">bayaran sekali sahaja</div>
+      <div class="pricing-card__tag">Sehingga 3 Outlet</div>
+      <ul>
+        <li>✓ Setup sistem & WhatsApp</li>
+        <li>✓ Sehingga 20 pengguna</li>
+        <li>✓ Latihan & panduan guna</li>
+        <li>✓ Nombor WhatsApp disediakan</li>
+        <li class="muted">+ RM800 jika guna nombor sendiri</li>
       </ul>
-      <a href="https://wa.me/601167609636?text=Saya%20nak%20tahu%20lebih%20tentang%20Pakej%20Business" style="display:block;text-align:center;background:#1D9E75;color:#fff;padding:0.7rem;border-radius:10px;font-weight:600;font-size:0.9rem;text-decoration:none;">Dapatkan Maklumat</a>
+      <a href="https://wa.me/601167609636?text=Saya%20nak%20tahu%20lebih%20tentang%20Pakej%20Business" class="btn btn--primary" style="width:100%;justify-content:center;">Tanya Lebih Lanjut</a>
     </div>
 
   </div>
 
-  <!-- MAINTENANCE -->
-  <div style="margin-top:0.5rem;">
-    <div style="font-size:0.9rem;font-weight:700;color:#374151;margin-bottom:0.25rem;">🔧 Sokongan & Penyelenggaraan <span style="font-weight:400;color:#9ca3af;font-size:0.82rem;">(Optional — tiada kontrak wajib)</span></div>
-    <div style="font-size:0.82rem;color:#6b7280;margin-bottom:1rem;">Pilih untuk langgan atau urus sistem sendiri.</div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;">
-
-      <!-- BASIC CARE -->
-      <div style="background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:1.25rem;">
-        <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:#6b7280;margin-bottom:0.5rem;">Basic Care</div>
-        <div style="font-family:'Sora',sans-serif;font-size:1.6rem;font-weight:800;color:#0a0a0a;">RM100 <span style="font-size:0.9rem;font-weight:400;color:#9ca3af;">/ bulan</span></div>
-        <ul style="list-style:none;padding:0;margin-top:0.85rem;">
-          <li style="font-size:0.82rem;padding:3px 0;color:#374151;">✓ Hosting</li>
-          <li style="font-size:0.82rem;padding:3px 0;color:#374151;">✓ Backup berkala</li>
-          <li style="font-size:0.82rem;padding:3px 0;color:#374151;">✓ Monitoring sistem</li>
+  <!-- Maintenance -->
+  <div>
+    <div class="maint-header">
+      <div class="maint-header__title">🔧 Sokongan & Penyelenggaraan <span style="font-weight:400;color:var(--text-xmuted);font-size:0.82rem;">(Pilihan — tiada kontrak wajib)</span></div>
+      <div class="maint-header__sub">Pilih untuk langgan atau urus sistem sendiri.</div>
+    </div>
+    <div class="maint-grid">
+      <div class="maint-card">
+        <div class="maint-card__tier">Basic Care</div>
+        <div class="maint-card__price">RM100 <span class="maint-card__period">/ bulan</span></div>
+        <ul>
+          <li>✓ Hosting</li>
+          <li>✓ Backup berkala</li>
+          <li>✓ Monitoring sistem</li>
         </ul>
       </div>
-
-      <!-- BUSINESS CARE -->
-      <div style="background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:1.25rem;">
-        <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:#6b7280;margin-bottom:0.5rem;">Business Care</div>
-        <div style="font-family:'Sora',sans-serif;font-size:1.6rem;font-weight:800;color:#0a0a0a;">RM200 <span style="font-size:0.9rem;font-weight:400;color:#9ca3af;">/ bulan</span></div>
-        <ul style="list-style:none;padding:0;margin-top:0.85rem;">
-          <li style="font-size:0.82rem;padding:3px 0;color:#374151;">✓ Hosting</li>
-          <li style="font-size:0.82rem;padding:3px 0;color:#374151;">✓ Backup berkala</li>
-          <li style="font-size:0.82rem;padding:3px 0;color:#374151;">✓ Monitoring sistem</li>
-          <li style="font-size:0.82rem;padding:3px 0;color:#374151;">✓ Bantuan teknikal</li>
-          <li style="font-size:0.82rem;padding:3px 0;color:#374151;">✓ Minor enhancement</li>
+      <div class="maint-card">
+        <div class="maint-card__tier">Business Care</div>
+        <div class="maint-card__price">RM200 <span class="maint-card__period">/ bulan</span></div>
+        <ul>
+          <li>✓ Hosting</li>
+          <li>✓ Backup berkala</li>
+          <li>✓ Monitoring sistem</li>
+          <li>✓ Bantuan teknikal</li>
+          <li>✓ Minor enhancement</li>
         </ul>
       </div>
-
     </div>
   </div>
-
 </section>
 
-<!-- FAQ -->
-<section class="section faq-section" id="faq">
-  <div class="section-label">FAQ</div>
-  <div class="section-title">Perkara yang anda perlu tahu</div>
-  <div class="section-sub">
-    Segala maklumat penting sebelum anda mula menggunakan Sistem Stok WhatsApp.
-  </div>
+
+<!-- ======================================================
+     FAQ
+====================================================== -->
+<section class="section" id="faq">
+  <div class="section__label">FAQ</div>
+  <div class="section__title">Soalan yang selalu ditanya</div>
 
   <div class="faq-list">
 
-```
-  <details class="faq-item">
-    <summary>Perlu install aplikasi?</summary>
-    <p>Tidak. Semua operasi dilakukan terus melalui WhatsApp menggunakan telefon yang sedia ada.</p>
-  </details>
+    <details class="faq-item">
+      <summary>Perlu install aplikasi baru?</summary>
+      <div class="faq-item__body">Tidak perlu. Semua dilakukan terus dalam WhatsApp yang staff dan manager dah guna sehari-hari.</div>
+    </details>
 
-  <details class="faq-item">
-    <summary>Perlu bayar bulanan?</summary>
-    <p>Tidak. Sistem dibeli secara sekali bayar. Pelan penyelenggaraan adalah pilihan.</p>
-  </details>
+    <details class="faq-item">
+      <summary>Perlu bayar setiap bulan?</summary>
+      <div class="faq-item__body">Tidak. Ini bayaran sekali sahaja untuk dapatkan sistem. Pelan penyelenggaraan ada disediakan, tapi ia pilihan — bukan syarat untuk terus guna sistem.</div>
+    </details>
 
-  <details class="faq-item">
-    <summary>Boleh guna nombor WhatsApp sendiri?</summary>
-    <p>Ya. Kami menyediakan nombor WhatsApp sistem. Jika ingin menggunakan nombor sendiri, caj setup tambahan RM800 dikenakan.</p>
-  </details>
+    <details class="faq-item">
+      <summary>Boleh guna nombor WhatsApp perniagaan sendiri?</summary>
+      <div class="faq-item__body">Boleh. Kami sediakan nombor WhatsApp untuk sistem. Kalau anda nak guna nombor perniagaan sendiri, ada caj setup tambahan RM800.</div>
+    </details>
 
-  <details class="faq-item">
-    <summary>Berapa lama proses setup?</summary>
-    <p>Kebiasaannya antara 1 hingga 3 hari bekerja selepas maklumat lengkap diterima.</p>
-  </details>
+    <details class="faq-item">
+      <summary>Berapa lama proses setup?</summary>
+      <div class="faq-item__body">Biasanya antara 1 hingga 3 hari bekerja, bergantung kepada bilangan item dan outlet yang perlu dikonfigurasi. Kami akan maklumkan jangkaan masa yang lebih tepat selepas berbincang.</div>
+    </details>
 
-  <details class="faq-item">
-    <summary>Apa yang dimaksudkan dengan had transaksi?</summary>
-    <p>Transaksi merujuk kepada aktiviti seperti IN, OUT, WASTAGE, APPROVE dan REJECT.</p>
-  </details>
+    <details class="faq-item">
+      <summary>Sesuai untuk berapa outlet?</summary>
+      <div class="faq-item__body">Pakej Starter untuk satu outlet, Pakej Business untuk sehingga tiga outlet. Kalau ada lebih daripada tiga outlet, boleh hubungi kami untuk perbincangan pakej yang lebih sesuai.</div>
+    </details>
 
-  <details class="faq-item">
-    <summary>Apa berlaku jika penggunaan melebihi had transaksi?</summary>
-    <p>Penggunaan yang melebihi had mungkin memerlukan naik taraf pakej atau caj tambahan berdasarkan penggunaan sebenar.</p>
-  </details>
+    <details class="faq-item">
+      <summary>Bagaimana kalau staff tidak biasa dengan teknologi?</summary>
+      <div class="faq-item__body">Arahan StokBot sangat ringkas — "IN ayam 5", "OUT tepung 2". Selagi staff tahu hantar mesej WhatsApp, mereka boleh guna sistem ini. Kami juga sediakan panduan ringkas untuk diberi kepada staff.</div>
+    </details>
 
-  <details class="faq-item">
-    <summary>Sesuai untuk lebih daripada satu outlet?</summary>
-    <p>Ya. Pakej Business menyokong sehingga 3 outlet dan boleh diperluaskan mengikut keperluan.</p>
-  </details>
+    <details class="faq-item">
+      <summary>Data kami selamat?</summary>
+      <div class="faq-item__body">Data disimpan dalam pangkalan data cloud dengan enkripsi. Setiap pelanggan mempunyai data yang diasingkan sepenuhnya daripada pelanggan lain. Pelanggan pelan penyelenggaraan mendapat backup automatik.</div>
+    </details>
 
-  <details class="faq-item">
-    <summary>Bagaimana keselamatan data diuruskan?</summary>
-    <p>Data disimpan secara cloud dan backup berkala disediakan bagi pelanggan yang melanggan pelan penyelenggaraan.</p>
-  </details>
+    <details class="faq-item">
+      <summary>Boleh tambah fungsi khas?</summary>
+      <div class="faq-item__body">Boleh. Kami boleh bangunkan fungsi tambahan atau integrasi mengikut keperluan operasi anda. Hubungi kami untuk bincang skop dan anggaran kos.</div>
+    </details>
 
-  <details class="faq-item">
-    <summary>Boleh tambah fungsi khas?</summary>
-    <p>Ya. Fungsi tambahan atau integrasi khas boleh dibangunkan mengikut keperluan dan skop projek.</p>
-  </details>
-
-  <details class="faq-item">
-    <summary>Berapa lama sistem boleh digunakan?</summary>
-    <p>Sistem boleh digunakan selagi perkhidmatan dan infrastruktur berkaitan masih beroperasi. Sekiranya terdapat perubahan atau penamatan perkhidmatan pada masa hadapan, pelanggan akan dimaklumkan terlebih dahulu dan diberikan pilihan untuk mengeksport data mereka.</p>
-  </details>
-```
+    <details class="faq-item">
+      <summary>Apa jadi kalau ada masalah selepas guna?</summary>
+      <div class="faq-item__body">Hubungi kami terus melalui WhatsApp. Kami utamakan penyelesaian masalah teknikal dengan segera, terutama untuk isu yang menjejaskan operasi harian anda.</div>
+    </details>
 
   </div>
 </section>
 
-<!-- CTA -->
+
+<!-- ======================================================
+     CTA
+====================================================== -->
 <section class="cta-section" id="cta">
-  <h2>Nak tengok macam mana<br>ia berfungsi untuk outlet anda?</h2>
-  <p>Hubungi kami untuk demo percuma. Setup boleh siap dalam masa 1-3 hari.</p>
-  <a href="https://wa.me/601167609636?text=Saya%20nak%20tahu%20lebih%20tentang%20StokBot" class="btn-white" target="_blank">💬 WhatsApp Kami Sekarang</a>
+  <h2>Nak tengok sendiri macam mana<br>ia berfungsi untuk outlet anda?</h2>
+  <p class="cta-section__sub">Kami boleh tunjukkan demo menggunakan situasi sebenar outlet anda. Hubungi kami dan kami akan susun masa yang sesuai.</p>
+  <div class="cta-section__actions">
+    <a href="https://wa.me/601167609636?text=Saya%20nak%20demo%20StokBot%20untuk%20outlet%20saya" class="btn btn--white" target="_blank" rel="noopener">
+      💬 WhatsApp Kami Sekarang
+    </a>
+    <a href="/demo.html" class="btn btn--tertiary btn--sm">📱 Cuba Demo </a>
+  </div>
+  <p class="cta-section__risk">Demo percuma. Tiada komitmen diperlukan. Setup boleh siap dalam 3 hari bekerja.</p>
 </section>
 
-<!-- FOOTER -->
-<footer>
-  <p>© 2025 <span>StokBot</span>. Sistem pengurusan stok berasaskan WhatsApp.</p>
-  <p style="margin-top:8px;">
-    <a href="/terms" style="color:#6b7280;text-decoration:none;margin:0 8px;">Terms of Service</a>
-    ·
-    <a href="/privacy" style="color:#6b7280;text-decoration:none;margin:0 8px;">Privacy Policy</a>
-  </p>
+
+<!-- ======================================================
+     FOOTER
+====================================================== -->
+<footer class="footer">
+  <p>© 2025 <span class="footer__brand">StokBot</span>. Sistem pengurusan stok berasaskan WhatsApp.</p>
+  <nav class="footer__links">
+    <a href="/terms.html">Terms of Service</a>
+    <a href="/privacy.html">Privacy Policy</a>
+  </nav>
 </footer>
 
+<script src="js/main.js"></script>
 </body>
 </html>

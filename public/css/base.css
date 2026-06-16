@@ -1,0 +1,82 @@
+/* =============================================
+   BASE — reset, variables, typography
+   ============================================= */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  /* Brand */
+  --green:       #1D9E75;
+  --green-light: #E1F5EE;
+  --green-dark:  #0F6E56;
+  --amber:       #EF9F27;
+  --amber-light: #FAEEDA;
+
+  /* Text */
+  --text:        #1a1a1a;
+  --text-muted:  #6b7280;
+  --text-xmuted: #9ca3af;
+
+  /* Surface */
+  --border:      #e5e7eb;
+  --card-bg:     #ffffff;
+  --section-bg:  #f9fafb;
+
+  /* Role colours */
+  --role-staff-bg:      #EAF3DE;
+  --role-staff-border:  #C0DD97;
+  --role-staff-text:    #3B6D11;
+  --role-sv-bg:         var(--amber-light);
+  --role-sv-border:     #FAC775;
+  --role-sv-text:       #854F0B;
+  --role-mgr-bg:        var(--green-light);
+  --role-mgr-border:    #9FE1CB;
+  --role-mgr-text:      var(--green-dark);
+  --role-admin-bg:      #E6F1FB;
+  --role-admin-border:  #B5D4F4;
+  --role-admin-text:    #185FA5;
+  --role-owner-bg:      #F5F3FF;
+  --role-owner-border:  #C4B5FD;
+  --role-owner-text:    #5B21B6;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  color: var(--text);
+  background: #fff;
+  line-height: 1.6;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4 {
+  font-family: 'Sora', sans-serif;
+  line-height: 1.2;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+/* Reduce motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+  html { scroll-behavior: auto; }
+}

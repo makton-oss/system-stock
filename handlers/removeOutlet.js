@@ -1,44 +1,35 @@
 const { withRole } = require("../core/withRole");
-const supabase = require("../services/db");
+const { getOutletByCode } = require("../db/outlets/getOutletByCode");
+const { verifyUserInTenant } = require("../db/users/verifyUserInTenant");
+const { removeUserOutletLink } = require("../db/users/removeUserOutletLink");
 
 module.exports = withRole(["admin"], async (ctx) => {
 
-  const { chatId, parts, reply, res } = ctx;
+  const { chatId, parts, user, reply, res } = ctx;
+  const tenantId = user.tenant_id || null;
 
-  // FORMAT: REMOVEOUTLET 60123456789 outletname
   if (parts.length < 3) {
     await reply(chatId, "❌ FORMAT: REMOVEOUTLET 60123456789 outletname");
     return res.end();
   }
 
-  const phone = parts[1];
+  const phone      = parts[1];
   const outletName = parts.slice(2).join(" ");
 
-  // ======================
-  // GET OUTLET
-  // ======================
-  const { data: outlet } = await supabase
-    .from("outlets")
-    .select("id, name")
-    .ilike("name", outletName)
-    .maybeSingle();
-
+  const outlet = await getOutletByCode(outletName, tenantId);
   if (!outlet) {
     await reply(chatId, `❌ OUTLET TAK WUJUD: ${outletName}`);
     return res.end();
   }
 
-  // ======================
-  // REMOVE LINK
-  // ======================
-  const { error } = await supabase
-    .from("user_outlets")
-    .delete()
-    .eq("user_chat_id", phone)
-    .eq("outlet_id", outlet.id);
+  const targetUser = await verifyUserInTenant(phone, tenantId);
+  if (!targetUser) {
+    await reply(chatId, "❌ USER TAK WUJUD DALAM TENANT");
+    return res.end();
+  }
 
+  const { error } = await removeUserOutletLink(phone, outlet.id);
   if (error) {
-    console.log("REMOVEOUTLET ERROR:", error);
     await reply(chatId, "❌ ERROR REMOVE OUTLET");
     return res.end();
   }

@@ -1,4 +1,5 @@
-const { getPendingRequestById, getPendingRequestsByOutlet } = require("./requestQuery");
+const { getPendingById }     = require("../../db/requests/getPendingById");
+const { getPendingByOutlet } = require("../../db/requests/getPendingByOutlet");
 
 async function getTargetRequests({ actionData, outletIds }) {
 
@@ -8,10 +9,7 @@ async function getTargetRequests({ actionData, outletIds }) {
 
   if (!actionData.isAll) {
 
-    const row =
-      await getPendingRequestById(
-        actionData.requestId
-      );
+    const row   = await getPendingById(actionData.requestId);
 
     if (!row) {
       return [];
@@ -39,9 +37,7 @@ async function getTargetRequests({ actionData, outletIds }) {
     throw new Error("NO_ACCESS");
   }
 
-  return await getPendingRequestsByOutlet(
-    outletId
-  );
+  return await getPendingByOutlet(outletId);
 }
 
 module.exports = {

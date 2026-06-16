@@ -1,27 +1,28 @@
 const { withRole } = require("../core/withRole");
-const supabase = require("../services/db");
 const { getRoleGuide } = require("../utils/formatter");
+const { getAllOutlets } = require("../db/outlets/getAllOutlets");
+const { upsertUser } = require("../db/users/upsertUser");
+const { getUserOutletIds, insertUserOutlets, clearUserOutlets } = require("../db/users/manageUserOutlets");
 
 module.exports = withRole(["admin"], async (ctx) => {
 
-  const { chatId, parts, reply, res } = ctx;
+  const { chatId, parts, user, reply, res } = ctx;
+  const tenantId = user.tenant_id || null;
 
   if (parts.length < 5) {
     await reply(chatId, "❌ FORMAT: SETROLE phone role nickname outlet1,outlet2");
     return res.end();
   }
 
-  const phone = parts[1].replace(/[^\d]/g, "");
-  const role = parts[2].toLowerCase();
-  const nickname = parts[3];
+  const phone       = parts[1].replace(/[^\d]/g, "");
+  const role        = parts[2].toLowerCase();
+  const nickname    = parts[3];
   const outletNames = parts.slice(4).join(" ").split(",");
 
   // ======================
   // GET OUTLETS
   // ======================
-  const { data: outlets, error } = await supabase
-    .from("outlets")
-    .select("id, name");
+  const { data: outlets, error } = await getAllOutlets(tenantId);
 
   if (error) {
     await reply(chatId, "❌ ERROR OUTLET");
@@ -29,9 +30,7 @@ module.exports = withRole(["admin"], async (ctx) => {
   }
 
   const matched = outletNames.map(name =>
-    outlets.find(o =>
-      o.name.toLowerCase() === name.trim().toLowerCase()
-    )
+    outlets.find(o => o.name.toLowerCase() === name.trim().toLowerCase())
   );
 
   if (matched.some(m => !m)) {
@@ -52,59 +51,31 @@ module.exports = withRole(["admin"], async (ctx) => {
   // ======================
   // UPSERT USER
   // ======================
-  const upsertResult = await supabase
-  .from("users")
-  .upsert(
-    {
-      chat_id: phone,
-      role,
-      nickname,
-      outlet_id: (role === "staff" || role === "supervisor") ? outletIds[0] : null,
-      is_active: true
-    },
-    { onConflict: "chat_id" }
-  );
-
-  const upsertError = upsertResult.error;
-
+  const { error: upsertError } = await upsertUser({
+    phone,
+    role,
+    nickname,
+    outletId: outletIds[0],
+    tenantId
+  });
 
   if (upsertError) {
-    console.log("UPSERT ERROR:", upsertError);
     await reply(chatId, "❌ ERROR SET ROLE");
     return res.end();
   }
 
   // ======================
-  // UPDATE PIVOT (manager sahaja)
+  // MANAGE OUTLET LINKS
   // ======================
   if (role === "manager") {
-
-    // get existing outlets
-    const { data: existing } = await supabase
-      .from("user_outlets")
-      .select("outlet_id")
-      .eq("user_chat_id", phone);
-
-    const existingIds = existing?.map(r => r.outlet_id) || [];
-
-    // insert only new outlets (skip duplicates)
+    const existingIds = await getUserOutletIds(phone);
     const newIds = outletIds.filter(id => !existingIds.includes(id));
 
     if (newIds.length) {
-      const rows = newIds.map(id => ({
-        user_chat_id: phone,
-        outlet_id: id
-      }));
-
-      await supabase.from("user_outlets").insert(rows);
+      await insertUserOutlets(phone, newIds);
     }
-
   } else {
-    // staff / supervisor — wipe pivot (single outlet je)
-    await supabase
-      .from("user_outlets")
-      .delete()
-      .eq("user_chat_id", phone);
+    await clearUserOutlets(phone);
   }
 
   // ======================
@@ -113,10 +84,7 @@ module.exports = withRole(["admin"], async (ctx) => {
   await reply(chatId, `✅ ${nickname} set sebagai ${role}`);
 
   const guide = getRoleGuide(role);
-
-  if (guide) {
-    await reply(phone, guide);
-  }
+  if (guide) await reply(phone, guide);
 
   return res.end();
 });

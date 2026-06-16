@@ -1,69 +1,36 @@
 const { withRole } = require("../core/withRole");
-const supabase = require("../services/db");
+const { getPendingList } = require("../db/requests/getPendingList");
 const { formatPending, formatPendingAdmin } = require("../utils/formatter");
-const { getAccessibleOutletIds } = require("../utils/getAccessibleOutlets");
+const { getAccessibleOutletIds } = require("../db/outlets/getAccessibleOutletIds");
 
-module.exports = withRole(["staff", "supervisor" ,"manager","admin"], async (ctx) => {
+module.exports = withRole(["staff"], async (ctx) => {
 
   const { chatId, user, reply, res } = ctx;
-
-  if (user.role === "admin") {
-
-    const { data, error } = await supabase
-      .from("requests")
-      .select(`
-        id,
-        type,
-        item,
-        qty,
-        created_at,
-        outlet_id,
-        outlets(name),
-        users(nickname, chat_id)
-      `)
-      .eq("status", "pending")
-      .order("created_at", { ascending: true });
-
-    if (error) {
-      console.log("LIST ERROR:", error);
-      await reply(chatId, "❌ ERROR");
-      return res.end();
-    }
-
-    await reply(chatId, formatPendingAdmin(data));
-    return res.end();
-  }
+  const tenantId = user.tenant_id || null;
 
   const outletIds = await getAccessibleOutletIds(user);
 
-  const { data, error } = await supabase
-    .from("requests")
-    .select(`
-      id,
-      type,
-      item,
-      qty,
-      created_at,
-      outlet_id,
-      outlets(name),
-      users(nickname, chat_id)
-    `)
-    .in("outlet_id", outletIds)
-    .eq("status", "pending")
-    .order("created_at", { ascending: true });
-
-  if (error) {
-    console.log("LIST ERROR:", error);
+  let data;
+  try {
+    data = await getPendingList(outletIds, tenantId);
+  } catch (err) {
+    console.log("LIST ERROR:", err);
     await reply(chatId, "❌ ERROR");
+    return res.end();
+  }
+
+  if (!data?.length) {
+    await reply(chatId, "📭 TIADA REQUEST");
     return res.end();
   }
 
   const uniqueOutlet = [...new Set(data.map(r => r.outlet_id))];
 
-	if (uniqueOutlet.length > 1) {
-	  await reply(chatId, formatPendingAdmin(data));
-	} else {
-	  await reply(chatId, formatPending(data));
-	}
+  if (uniqueOutlet.length > 1) {
+    await reply(chatId, formatPendingAdmin(data));
+  } else {
+    await reply(chatId, formatPending(data));
+  }
+
   return res.end();
 });

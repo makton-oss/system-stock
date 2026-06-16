@@ -2,9 +2,6 @@ const supabase = require("../../services/db");
 const { DateTime } = require("luxon");
 const { toProperCase } = require("../helpers");
 
-// ======================
-// GET USER DISPLAY NAME
-// ======================
 async function getUserDisplay(chatId) {
   const { data, error } = await supabase
     .from("users")
@@ -23,9 +20,6 @@ async function getUserDisplay(chatId) {
   };
 }
 
-// ======================
-// CHECK ROLE
-// ======================
 async function checkRole(chat_id, allowed) {
   const { data } = await supabase
     .from("users")
@@ -41,21 +35,21 @@ async function checkRole(chat_id, allowed) {
   };
 }
 
-// ======================
-// WRITE LOG
-// ======================
-async function writeLog(chatId, role, command, details = "") {
+async function writeLog(chatId, role, command, details = "", tenantId = null) {
   try {
-    await supabase.from("logs").insert({ chat_id: chatId, role, command, details });
+    await supabase.from("audit_logs").insert({  // ✅ fix: logs → audit_logs
+      chat_id:   chatId,
+      role,
+      command,
+      details,
+      tenant_id: tenantId
+    });
     await supabase.rpc("trim_logs");
   } catch (err) {
     console.log("LOG ERROR:", err);
   }
 }
 
-// ======================
-// FORMAT LOGS
-// ======================
 async function formatLogs(rows) {
   if (!rows?.length) return "📜 LOG KOSONG";
 
@@ -79,9 +73,4 @@ async function formatLogs(rows) {
   return text;
 }
 
-module.exports = {
-  getUserDisplay,
-  checkRole,
-  writeLog,
-  formatLogs
-};
+module.exports = { getUserDisplay, checkRole, writeLog, formatLogs };

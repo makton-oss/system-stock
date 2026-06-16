@@ -1,6 +1,6 @@
 const supabase = require("../db");
 
-async function rejectRequest(rows, chatId) {
+async function rejectRequest(rows, chatId, tenantId) {
 
   let logDetails = [];
 
@@ -17,15 +17,11 @@ async function rejectRequest(rows, chatId) {
         processed_at: new Date().toISOString()
       })
       .eq("id", row.id)
-      .eq("status", "pending") // 🔥 critical lock
+      .eq("status", "pending")
       .select();
 
-    // kalau dah process → skip
     if (!updated?.length) continue;
 
-    // ======================
-    // LOG
-    // ======================
     logDetails.push(`ID${row.id} ${row.item}`);
   }
 

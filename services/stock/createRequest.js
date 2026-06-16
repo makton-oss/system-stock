@@ -1,13 +1,11 @@
 const supabase = require("../db");
+const { getStockByItem } = require("../../db/stock/getStockByItem");
 
 async function createRequest({ item, qty, type, user, chatId, validateOnly = false }) {
 
-  const { data: stock } = await supabase
-    .from("stock")
-    .select("*")
-    .eq("outlet_id", user.outlet_id)
-    .eq("item", item)
-    .maybeSingle();
+  const tenantId = user.tenant_id || null;
+
+  const stock = await getStockByItem(item, user.outlet_id, tenantId);
 
   // ======================
   // ❌ ITEM NOT FOUND
@@ -33,7 +31,8 @@ async function createRequest({ item, qty, type, user, chatId, validateOnly = fal
       status: "pending",
       type,
       outlet_id: user.outlet_id,
-      requested_by: chatId
+      requested_by: chatId,
+      tenant_id: tenantId
     })
     .select()
     .single();

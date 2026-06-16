@@ -1,6 +1,7 @@
 const supabase = require("../db");
+const { applyTenant } = require("../../utils/applyTenant");
 
-async function approveRequest(rows, chatId) {
+async function approveRequest(rows, chatId, tenantId) {
 
   let summary = {};
   let logDetails = [];
@@ -26,8 +27,9 @@ async function approveRequest(rows, chatId) {
     // ======================
     // GET STOCK BEFORE
     // ======================
+    // ⚠️ item_stock tiada tenant_id — filter by outlet_id sahaja
     const { data: before } = await supabase
-      .from("stock")
+      .from("item_stock")     // ✅ fix: stock → item_stock
       .select("qty, min_qty, cost_price")
       .eq("item_id", row.item_id)
       .eq("outlet_id", row.outlet_id)
@@ -65,39 +67,37 @@ async function approveRequest(rows, chatId) {
     // ======================
     // INSERT MOVEMENT
     // ======================
-    await supabase.from("stock_movements").insert({
-      outlet_id: row.outlet_id,
-      item_id: row.item_id,
+    await supabase.from("movements").insert({   // ✅ fix: stock_movements → movements
+      outlet_id:  row.outlet_id,
+      item_id:    row.item_id,
       request_id: row.id,
-      item: row.item,
-      qty: row.qty,
-      type: row.type,
+      item:       row.item,
+      qty:        row.qty,
+      type:       row.type,
       cost_price: before.cost_price || 0,
-      created_by: chatId
+      created_by: chatId,
+      tenant_id:  tenantId
     });
 
     // ======================
     // GET STOCK AFTER
     // ======================
+    // ⚠️ item_stock tiada tenant_id
     const { data: after } = await supabase
-      .from("stock")
+      .from("item_stock")     // ✅ fix: stock → item_stock
       .select("qty, min_qty, cost_price")
       .eq("item_id", row.item_id)
       .eq("outlet_id", row.outlet_id)
       .maybeSingle();
 
-    // 🔥 GUARD: after stock mesti ada
     if (!after) {
       console.log("AFTER STOCK NOT FOUND:", row.item_id, row.outlet_id);
-
-      // Still record summary without balance info
       summary[row.item] = {
         qty: (summary[row.item]?.qty || 0) +
           (row.type === "out" || row.type === "wastage" ? -row.qty : row.qty),
         balance: null,
         min: 0
       };
-
       logDetails.push(`ID${row.id} ${row.item}`);
       continue;
     }
@@ -124,9 +124,9 @@ async function approveRequest(rows, chatId) {
 
     if (isLow) {
       row._lowStock = {
-        item: row.item,
-        qty: after.qty,
-        min: after.min_qty,
+        item:      row.item,
+        qty:       after.qty,
+        min:       after.min_qty,
         outlet_id: row.outlet_id
       };
     }

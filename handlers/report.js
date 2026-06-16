@@ -1,23 +1,22 @@
 const { withRole } = require("../core/withRole");
-const { getAccessibleOutletIds } = require("../utils/getAccessibleOutlets");
+const { getAccessibleOutletIds } = require("../db/outlets/getAccessibleOutletIds");
 const { getInventoryReport, getFlowReport, getDeadReport, getDetailReport } = require("../services/reportService");
 const { getSummaryReport } = require("../services/reports/summaryReport");
 const { formatSummaryReport, formatInventoryReport, formatDetailReport, formatDeadReport, formatFlowReport, parseMonthInput, formatMonthLabel } = require("../utils/formatter");
 
-// end of month inclusive (23:59:59.999)
 function toEndOfMonth(rangeEnd) {
   const d = new Date(rangeEnd);
   d.setMilliseconds(-1);
   return d.toISOString();
 }
 
-module.exports = withRole(["manager", "admin"], async (ctx) => {
+module.exports = withRole(["manager", "owner", "admin"], async (ctx) => {
 
   const { chatId, parts, user, reply, res } = ctx;
 
-  const isAdmin = user.role === "admin";
-
-  const outletIds = isAdmin
+  const isAdmin     = user.role === "admin" || user.role === "superadmin";
+  const tenantId    = user.tenant_id || null;
+  const outletIds   = isAdmin
     ? null
     : await getAccessibleOutletIds(user);
 
@@ -35,15 +34,12 @@ module.exports = withRole(["manager", "admin"], async (ctx) => {
   if (!first) {
     mode       = null;
     monthInput = "current";
-
   } else if (first === "SUMMARY") {
     mode       = null;
     monthInput = parts[2]?.toLowerCase() || "current";
-
   } else if (REPORT_MODES.includes(first)) {
     mode       = first;
     monthInput = parts[2] || "current";
-
   } else {
     mode       = null;
     monthInput = first.toLowerCase();
@@ -65,11 +61,10 @@ module.exports = withRole(["manager", "admin"], async (ctx) => {
     const endDate = new Date(range.end);
     endDate.setDate(endDate.getDate() - 1);
     const snapshotDate = endDate.toISOString().split("T")[0];
-
-    const monthLabel = formatMonthLabel(invMonthInput, range.start.toISOString());
+    const monthLabel   = formatMonthLabel(invMonthInput, range.start.toISOString());
 
     try {
-      const result = await getInventoryReport({ outletIds, snapshotDate });
+      const result = await getInventoryReport({ outletIds, snapshotDate, tenantId });
       if (result.error) throw result.error;
 
       if (!Object.keys(result).length) {
@@ -111,15 +106,14 @@ module.exports = withRole(["manager", "admin"], async (ctx) => {
     switch (mode) {
 
       case "FLOW":
-        result = await getFlowReport({ start, end, outletIds });
+        result = await getFlowReport({ start, end, outletIds, tenantId });
         if (result.error) throw result.error;
         await reply(chatId, formatFlowReport(result, monthLabel));
         break;
 
       case "DEAD":
-        result = await getDeadReport({ start, end, outletIds });
+        result = await getDeadReport({ start, end, outletIds, tenantId });
         if (result.error) throw result.error;
-
         const hasDead = Object.values(result).some(arr => arr.length);
         if (!hasDead) {
           await reply(chatId, `✅ TIADA DEAD STOCK\n${monthLabel}`);
@@ -129,9 +123,8 @@ module.exports = withRole(["manager", "admin"], async (ctx) => {
         break;
 
       case "DETAIL":
-        result = await getDetailReport({ start, end, outletIds });
+        result = await getDetailReport({ start, end, outletIds, tenantId });
         if (result.error) throw result.error;
-
         const hasData = Object.values(result).some(arr => arr.length);
         if (!hasData) {
           await reply(chatId, "📭 TIADA DATA");
@@ -141,7 +134,7 @@ module.exports = withRole(["manager", "admin"], async (ctx) => {
         break;
 
       default:
-        result = await getSummaryReport({ start, end, outletIds });
+        result = await getSummaryReport({ start, end, outletIds, tenantId });
         if (result.error) throw result.error;
         await reply(chatId, formatSummaryReport(result, monthLabel));
         break;

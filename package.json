@@ -18,6 +18,8 @@
     "@supabase/supabase-js": "^2.105.4",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
+    "express-rate-limit": "^8.5.2",
+    "json2csv": "^6.0.0-alpha.2",
     "luxon": "^3.7.2",
     "node-cron": "^4.2.1",
     "pg": "^8.20.0",

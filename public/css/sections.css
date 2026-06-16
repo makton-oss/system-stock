@@ -1,0 +1,258 @@
+/* =============================================
+   SECTIONS — hero, stats, grids, cta, trust bar
+   ============================================= */
+
+/* ----- HERO ----- */
+.hero {
+  text-align: center;
+  padding: 5rem 5% 4rem;
+  background: linear-gradient(180deg, #f0fdf8 0%, #fff 100%);
+}
+
+.hero h1 {
+  font-size: clamp(2rem, 5vw, 3.2rem);
+  font-weight: 800;
+  line-height: 1.15;
+  max-width: 680px;
+  margin: 0 auto 0.5rem;
+  color: #0a0a0a;
+}
+
+.hero h1 em {
+  font-style: normal;
+  color: var(--green);
+}
+
+.hero__pain {
+  font-size: 1.05rem;
+  color: var(--text-muted);
+  max-width: 520px;
+  margin: 0 auto 0.5rem;
+}
+
+.hero__sub {
+  font-size: 0.92rem;
+  color: var(--text-xmuted);
+  max-width: 480px;
+  margin: 0 auto 1.75rem;
+}
+
+.hero__btns {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: 0.5rem;
+}
+
+.hero__risk {
+  font-size: 0.78rem;
+  color: var(--text-xmuted);
+  margin-top: 0.5rem;
+}
+
+.hero__mockups {
+  display: flex;
+  gap: 1.5rem;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 2.5rem;
+  align-items: flex-start;
+}
+
+/* ----- TRUST BAR ----- */
+.trust-bar {
+  background: var(--green-dark);
+  padding: 2.5rem 5%;
+  display: flex;
+  justify-content: center;
+  gap: 3rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.trust-bar__item {
+  text-align: center;
+}
+
+.trust-bar__num {
+  font-family: 'Sora', sans-serif;
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: #fff;
+  display: block;
+}
+
+.trust-bar__label {
+  font-size: 0.8rem;
+  color: #9FE1CB;
+  margin-top: 2px;
+}
+
+/* ----- PAIN SECTION ----- */
+.pain-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.pain-card {
+  background: #fff8f8;
+  border: 1px solid #fee2e2;
+  border-radius: 12px;
+  padding: 1.25rem;
+}
+
+.pain-card__emoji {
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+  display: block;
+}
+
+.pain-card h4 {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #991b1b;
+  margin-bottom: 0.35rem;
+}
+
+.pain-card p {
+  font-size: 0.82rem;
+  color: #6b7280;
+  line-height: 1.5;
+}
+
+/* ----- FEATURES GRID ----- */
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1.25rem;
+}
+
+/* ----- HOW IT WORKS ----- */
+.steps-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
+}
+
+/* ----- ROLES ----- */
+.roles-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+}
+
+/* ----- COMMANDS ----- */
+.cmd-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+/* ----- TESTIMONIALS ----- */
+.testimonials-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1.25rem;
+}
+
+/* ----- PRICING ----- */
+.pricing-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.25rem;
+  margin-bottom: 2.5rem;
+}
+
+.maint-header {
+  margin-bottom: 1rem;
+}
+
+.maint-header__title {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #374151;
+  margin-bottom: 0.25rem;
+}
+
+.maint-header__sub {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+.maint-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+/* ----- FAQ ----- */
+.faq-list {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+/* ----- CTA ----- */
+.cta-section {
+  background: var(--green);
+  padding: 5rem 5%;
+  text-align: center;
+}
+
+.cta-section h2 {
+  font-size: clamp(1.6rem, 3vw, 2.4rem);
+  font-weight: 800;
+  color: #fff;
+  margin-bottom: 1rem;
+}
+
+.cta-section__sub {
+  color: rgba(255, 255, 255, 0.85);
+  margin-bottom: 0.75rem;
+  font-size: 1rem;
+}
+
+.cta-section__risk {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.82rem;
+  margin-top: 0.75rem;
+}
+
+.cta-section__actions{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:12px;
+  margin-top:1.5rem;
+}
+
+.cta-section__actions .btn{
+  min-width:260px;
+  justify-content:center;
+}
+
+/* ----- STATS (legacy compat) ----- */
+.stats-row {
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  padding: 2.5rem 5%;
+  background: var(--green-dark);
+  flex-wrap: wrap;
+}
+
+.stat-item { text-align: center; }
+
+.stat-num {
+  font-family: 'Sora', sans-serif;
+  font-size: 2rem;
+  font-weight: 800;
+  color: #fff;
+}
+
+.stat-label {
+  font-size: 0.82rem;
+  color: #9FE1CB;
+  margin-top: 2px;
+}
