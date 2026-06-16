@@ -16,6 +16,8 @@ const PORT = process.env.PORT || 3000;
 app.use(express.json({ strict: false }));
 app.use(express.urlencoded({ extended: true }));
 
+app.set("trust proxy", 1);
+
 // ======================
 // GLOBAL RATE LIMIT
 // ======================
