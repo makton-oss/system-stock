@@ -10,10 +10,10 @@ const RETENTION_DAYS = 60;
 // TABLES TO BACKUP
 // ======================
 const TABLES = [
-  "item_stock",
-  "movements", 
+  "stock",
+  "stock_movements",
   "requests",
-  "snapshots",
+  "stock_snapshots",
   "users"
 ];
 
