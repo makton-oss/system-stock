@@ -5,43 +5,79 @@ const supabase = require("../../services/db");
 
 const BACKUP_ROOT = path.join(__dirname, "../../backups");
 const RETENTION_DAYS = 60;
+const PAGE_SIZE = 1000;
 
 // ======================
 // TABLES TO BACKUP
 // ======================
 const TABLES = [
-  "item_stock",   // ✅
-  "movements",    // ✅
-  "requests",     // ✅
-  "snapshots",    // ✅
-  "users"         // ✅
+  "users",
+  "item_stock",
+  "movements",
+  "requests",
+  "snapshots"
 ];
 
 // ======================
-// EXPORT TABLE TO CSV
+// EXPORT TABLE
 // ======================
 async function exportTable(tableName, tenantId) {
 
-  const { data, error } = await supabase
-    .from(tableName)
-    .select("*")
-    .eq("tenant_id", tenantId);
+  let allData = [];
+  let from = 0;
 
-  if (error) {
-    console.log(`❌ BACKUP ERROR [${tableName}]:`, error);
-    return false;
+  while (true) {
+
+    const { data, error } = await supabase
+      .from(tableName)
+      .select("*")
+      .eq("tenant_id", tenantId)
+      .range(from, from + PAGE_SIZE - 1);
+
+    if (error) {
+      console.log(`❌ BACKUP ERROR [${tableName}]`, error);
+      return null;
+    }
+
+    if (!data?.length) break;
+
+    allData.push(...data);
+    from += PAGE_SIZE;
   }
 
-  if (!data?.length) {
+  if (!allData.length) {
     console.log(`⚠️ SKIP [${tableName}] — tiada data`);
-    return true;
+    return [];
   }
 
-  return data;
+  return allData;
 }
 
 // ======================
-// DELETE OLD BACKUPS
+// STORAGE UPLOAD
+// ======================
+async function uploadToStorage(filePath, storagePath) {
+
+  const fileBuffer = fs.readFileSync(filePath);
+
+  const { error } = await supabase.storage
+    .from("backups")
+    .upload(storagePath, fileBuffer, {
+      contentType: "text/csv",
+      upsert: true
+    });
+
+  if (error) {
+    console.log(`❌ STORAGE ERROR: ${storagePath}`, error);
+    return false;
+  }
+
+  console.log(`☁️ UPLOADED: ${storagePath}`);
+  return true;
+}
+
+// ======================
+// CLEAN OLD LOCAL BACKUPS
 // ======================
 function cleanOldBackups(tenantSlug) {
 
@@ -50,58 +86,139 @@ function cleanOldBackups(tenantSlug) {
   if (!fs.existsSync(tenantDir)) return;
 
   const folders = fs.readdirSync(tenantDir);
-  const cutoff  = new Date();
+
+  const cutoff = new Date();
   cutoff.setDate(cutoff.getDate() - RETENTION_DAYS);
 
-  folders.forEach(folder => {
+  for (const folder of folders) {
 
     const folderDate = new Date(folder);
 
-    if (isNaN(folderDate)) return;
+    if (isNaN(folderDate)) continue;
 
     if (folderDate < cutoff) {
-      fs.rmSync(path.join(tenantDir, folder), { recursive: true });
-      console.log(`🗑️ DELETED OLD BACKUP: ${tenantSlug}/${folder}`);
+
+      fs.rmSync(
+        path.join(tenantDir, folder),
+        {
+          recursive: true,
+          force: true
+        }
+      );
+
+      console.log(
+        `🗑️ DELETED OLD BACKUP: ${tenantSlug}/${folder}`
+      );
     }
-  });
+  }
 }
 
 // ======================
-// BACKUP SINGLE TENANT
+// BACKUP TENANT
 // ======================
 async function backupTenant(tenant) {
 
-  const today    = new Date().toISOString().split("T")[0];
-  const dir      = path.join(BACKUP_ROOT, tenant.slug, today);
+  const today = new Date()
+    .toISOString()
+    .split("T")[0];
 
-  // create folder
-  fs.mkdirSync(dir, { recursive: true });
+  const dir = path.join(
+    BACKUP_ROOT,
+    tenant.slug,
+    today
+  );
+
+  fs.mkdirSync(dir, {
+    recursive: true
+  });
+
+  const backupInfo = {
+    tenant_id: tenant.id,
+    tenant_name: tenant.name,
+    tenant_slug: tenant.slug,
+    backup_date: today,
+    tables: []
+  };
 
   for (const table of TABLES) {
 
-    // users — filter by tenant_id (nullable)
-    const data = await exportTable(table, tenant.id);
+    const data = await exportTable(
+      table,
+      tenant.id
+    );
 
-    if (!data) continue; // error
-    if (data === true) continue; // empty, skip
+    if (data === null) continue;
+
+    if (!data.length) {
+
+      backupInfo.tables.push({
+        table,
+        rows: 0
+      });
+
+      continue;
+    }
 
     try {
-      const parser = new Parser();
-      const csv    = parser.parse(data);
-      const file   = path.join(dir, `${table}.csv`);
 
-      fs.writeFileSync(file, csv);
-      console.log(`✅ BACKUP [${table}] — ${data.length} rows`);
+      const parser = new Parser();
+      const csv = parser.parse(data);
+
+      const filePath = path.join(
+        dir,
+        `${table}.csv`
+      );
+
+      fs.writeFileSync(filePath, csv);
+
+      console.log(
+        `✅ BACKUP [${table}] — ${data.length} rows`
+      );
+
+      await uploadToStorage(
+        filePath,
+        `${tenant.slug}/${today}/${table}.csv`
+      );
+
+      backupInfo.tables.push({
+        table,
+        rows: data.length
+      });
 
     } catch (err) {
-      console.log(`❌ CSV ERROR [${table}]:`, err);
+
+      console.log(
+        `❌ CSV ERROR [${table}]`,
+        err
+      );
     }
   }
 
-  // clean old backups
+  // upload metadata
+  await supabase.storage
+    .from("backups")
+    .upload(
+      `${tenant.slug}/${today}/backup_info.json`,
+      fs.readFileSync(infoPath),
+      {
+        contentType: "application/json",
+        upsert: true
+      }
+    );
+
+  // update last backup
+  await supabase
+    .from("tenants")
+    .update({
+      last_backup_at: new Date().toISOString()
+    })
+    .eq("id", tenant.id);
+
   cleanOldBackups(tenant.slug);
 
-  console.log(`📦 BACKUP DONE: ${tenant.slug} (${today})`);
+  console.log(
+    `📦 BACKUP DONE: ${tenant.slug}`
+  );
 }
 
 // ======================
@@ -111,27 +228,50 @@ async function runBackup() {
 
   console.log("🔄 BACKUP STARTED");
 
-  const { data: tenants, error } = await supabase
-    .from("tenants")
-    .select("id, name, slug")
-    .eq("has_backup", true)
-    .eq("is_active", true);
+  const { data: tenants, error } =
+    await supabase
+      .from("tenants")
+      .select("id, name, slug")
+      .eq("has_backup", true)
+      .eq("is_active", true);
 
   if (error) {
-    console.log("❌ FETCH TENANTS ERROR:", error);
+
+    console.log(
+      "❌ FETCH TENANTS ERROR:",
+      error
+    );
+
     return;
   }
 
   if (!tenants?.length) {
-    console.log("⚠️ TIADA TENANT WITH BACKUP");
+
+    console.log(
+      "⚠️ TIADA TENANT UNTUK BACKUP"
+    );
+
     return;
   }
 
   for (const tenant of tenants) {
-    await backupTenant(tenant);
+
+    try {
+
+      await backupTenant(tenant);
+
+    } catch (err) {
+
+      console.log(
+        `❌ BACKUP FAILED [${tenant.slug}]`,
+        err
+      );
+    }
   }
 
   console.log("✅ ALL BACKUP DONE");
 }
 
-module.exports = { runBackup };
+module.exports = {
+  runBackup
+};
