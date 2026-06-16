@@ -3,10 +3,10 @@ const supabase = require("../services/db");
 async function getManagersByOutlet(outletId) {
 
   // ======================
-  // MANAGERS (dari user_outlets)
+  // MANAGERS (dari outlet_access)
   // ======================
   const { data: managerLinks, error: managerError } = await supabase
-    .from("user_outlets")
+    .from("outlet_access")
     .select(`
       user_chat_id,
       users!inner(chat_id, role, is_active)

@@ -9,7 +9,7 @@ async function getAccessibleOutletIds(user) {
   if (user.role === "manager") {
 
     const { data: links, error } = await supabase
-      .from("user_outlets")
+      .from("outlet_access")
       .select("outlet_id")
       .eq("user_chat_id", user.chat_id);
 
