@@ -1,18 +1,32 @@
 const { withRole } = require("../core/withRole");
 const { verifyUserInTenant } = require("../db/users/verifyUserInTenant");
 const { setUserActive } = require("../db/users/setUserActive");
+const { parseSuperadminTarget } = require("../utils/parseSuperadminTarget");
 
 module.exports = withRole(["admin"], async (ctx) => {
 
   const { chatId, parts, user, reply, res } = ctx;
-  const tenantId = user.tenant_id || null;
+  const isSuperadmin = user.role === "superadmin";
 
   if (parts.length < 2) {
-    await reply(chatId, "❌ FORMAT: REMOVEROLE 60123456789");
+    await reply(chatId, isSuperadmin
+      ? "❌ FORMAT: REMOVEROLE 60123456789@slug"
+      : "❌ FORMAT: REMOVEROLE 60123456789"
+    );
     return res.end();
   }
 
-  const phone = parts[1];
+  // Parse phone + @slug (superadmin sahaja)
+  const { cleanValue: phone, tenantId, error } = await parseSuperadminTarget(
+    parts[1],
+    isSuperadmin,
+    user.tenant_id || null
+  );
+
+  if (error) {
+    await reply(chatId, error);
+    return res.end();
+  }
 
   const targetUser = await verifyUserInTenant(phone, tenantId);
   if (!targetUser) {
@@ -20,8 +34,8 @@ module.exports = withRole(["admin"], async (ctx) => {
     return res.end();
   }
 
-  const { error } = await setUserActive(phone, false);
-  if (error) {
+  const { error: updateError } = await setUserActive(phone, false);
+  if (updateError) {
     await reply(chatId, "❌ ERROR REMOVE ROLE");
     return res.end();
   }

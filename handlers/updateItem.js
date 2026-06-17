@@ -1,25 +1,23 @@
 const { withRole } = require("../core/withRole");
 const { parseUpItem } = require("../utils/parseUpdateItems");
 const { updateStockItem } = require("../services/stock/updateItem");
-
-const FORMAT_MSG =
-`❌ FORMAT:
-UPITEM ayam rempah cost 3.5 muiz
-UPITEM ayam rempah min 5 muiz
-UPITEM ayam rempah cost 3.5 min 5 muiz`;
+const { parseSuperadminTarget } = require("../utils/parseSuperadminTarget");
 
 module.exports = withRole(["admin"], async (ctx) => {
 
   const { chatId, parts, user, reply, res } = ctx;
-  const tenantId = user.tenant_id || null;
+  const isSuperadmin = user.role === "superadmin";
+
+  const FORMAT_MSG = isSuperadmin
+    ? `❌ FORMAT:\nUPITEM ayam rempah cost 3.5 outlet_a@slug\nUPITEM ayam rempah min 5 outlet_a@slug\nUPITEM ayam rempah cost 3.5 min 5 outlet_a@slug`
+    : `❌ FORMAT:\nUPITEM ayam rempah cost 3.5 muiz\nUPITEM ayam rempah min 5 muiz\nUPITEM ayam rempah cost 3.5 min 5 muiz`;
 
   // ======================
-  // PARSE
+  // PARSE (outletName masih raw e.g. "outlet_a@slug")
   // ======================
   const parsed = parseUpItem(parts);
 
   if (parsed.error) {
-
     const msgs = {
       NO_UPDATES  : FORMAT_MSG,
       NO_ITEM     : "❌ Nama item tak jumpa",
@@ -27,24 +25,40 @@ module.exports = withRole(["admin"], async (ctx) => {
       INVALID_COST: "❌ Cost tak valid",
       INVALID_MIN : "❌ Min qty tak valid"
     };
-
     await reply(chatId, msgs[parsed.error] || FORMAT_MSG);
+    return res.end();
+  }
+
+  // ======================
+  // RESOLVE @slug dari outletName
+  // ======================
+  const { cleanValue: outletName, tenantId, error: slugError } = await parseSuperadminTarget(
+    parsed.outletName,
+    isSuperadmin,
+    user.tenant_id || null
+  );
+
+  if (slugError) {
+    await reply(chatId, slugError);
     return res.end();
   }
 
   // ======================
   // SERVICE
   // ======================
-  const result = await updateStockItem({ ...parsed, tenantId });
+  const result = await updateStockItem({
+    item: parsed.item,
+    outletName,
+    updates: parsed.updates,
+    tenantId
+  });
 
   if (result.error) {
-
     const msgs = {
       OUTLET_NOT_FOUND: `❌ Outlet tak jumpa: ${result.outlet}`,
       ITEM_NOT_FOUND  : `❌ Item tak jumpa: ${result.item} di ${result.outlet}`,
       DB_ERROR        : "❌ DB ERROR"
     };
-
     await reply(chatId, msgs[result.error] || "❌ ERROR");
     return res.end();
   }
@@ -60,6 +74,5 @@ module.exports = withRole(["admin"], async (ctx) => {
   .join("\n");
 
   await reply(chatId, `✅ UPDATED\nItem  : ${result.item}\nOutlet: ${result.outlet}\n${lines}`);
-
   return res.end();
 });

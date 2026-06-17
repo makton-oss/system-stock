@@ -7,9 +7,6 @@ const BACKUP_ROOT = path.join(__dirname, "../../backups");
 const RETENTION_DAYS = 60;
 const PAGE_SIZE = 1000;
 
-// ======================
-// TABLES TO BACKUP
-// ======================
 const TABLES = [
   "users",
   "item_stock",
@@ -18,9 +15,6 @@ const TABLES = [
   "snapshots"
 ];
 
-// ======================
-// EXPORT TABLE
-// ======================
 async function exportTable(tableName, tenantId) {
 
   let allData = [];
@@ -53,9 +47,6 @@ async function exportTable(tableName, tenantId) {
   return allData;
 }
 
-// ======================
-// STORAGE UPLOAD
-// ======================
 async function uploadToStorage(filePath, storagePath) {
 
   const fileBuffer = fs.readFileSync(filePath);
@@ -76,9 +67,6 @@ async function uploadToStorage(filePath, storagePath) {
   return true;
 }
 
-// ======================
-// CLEAN OLD LOCAL BACKUPS
-// ======================
 function cleanOldBackups(tenantSlug) {
 
   const tenantDir = path.join(BACKUP_ROOT, tenantSlug);
@@ -97,181 +85,121 @@ function cleanOldBackups(tenantSlug) {
     if (isNaN(folderDate)) continue;
 
     if (folderDate < cutoff) {
-
       fs.rmSync(
         path.join(tenantDir, folder),
-        {
-          recursive: true,
-          force: true
-        }
+        { recursive: true, force: true }
       );
-
-      console.log(
-        `🗑️ DELETED OLD BACKUP: ${tenantSlug}/${folder}`
-      );
+      console.log(`🗑️ DELETED OLD BACKUP: ${tenantSlug}/${folder}`);
     }
   }
 }
 
-// ======================
-// BACKUP TENANT
-// ======================
 async function backupTenant(tenant) {
 
   const today = new Date()
     .toISOString()
     .split("T")[0];
 
-  const dir = path.join(
-    BACKUP_ROOT,
-    tenant.slug,
-    today
-  );
+  const dir = path.join(BACKUP_ROOT, tenant.slug, today);
 
-  fs.mkdirSync(dir, {
-    recursive: true
-  });
+  fs.mkdirSync(dir, { recursive: true });
 
   const backupInfo = {
-    tenant_id: tenant.id,
+    tenant_id:   tenant.id,
     tenant_name: tenant.name,
     tenant_slug: tenant.slug,
     backup_date: today,
-    tables: []
+    tables:      []
   };
 
   for (const table of TABLES) {
 
-    const data = await exportTable(
-      table,
-      tenant.id
-    );
+    const data = await exportTable(table, tenant.id);
 
     if (data === null) continue;
 
     if (!data.length) {
-
-      backupInfo.tables.push({
-        table,
-        rows: 0
-      });
-
+      backupInfo.tables.push({ table, rows: 0 });
       continue;
     }
 
     try {
 
-      const parser = new Parser();
-      const csv = parser.parse(data);
-
-      const filePath = path.join(
-        dir,
-        `${table}.csv`
-      );
+      const parser  = new Parser();
+      const csv     = parser.parse(data);
+      const filePath = path.join(dir, `${table}.csv`);
 
       fs.writeFileSync(filePath, csv);
-
-      console.log(
-        `✅ BACKUP [${table}] — ${data.length} rows`
-      );
+      console.log(`✅ BACKUP [${table}] — ${data.length} rows`);
 
       await uploadToStorage(
         filePath,
         `${tenant.slug}/${today}/${table}.csv`
       );
 
-      backupInfo.tables.push({
-        table,
-        rows: data.length
-      });
+      backupInfo.tables.push({ table, rows: data.length });
 
     } catch (err) {
-
-      console.log(
-        `❌ CSV ERROR [${table}]`,
-        err
-      );
+      console.log(`❌ CSV ERROR [${table}]`, err);
     }
   }
 
-  // upload metadata
+  // ======================
+  // SAVE + UPLOAD METADATA
+  // ======================
+  const infoPath = path.join(dir, "backup_info.json");
+  fs.writeFileSync(infoPath, JSON.stringify(backupInfo, null, 2));
+
   await supabase.storage
     .from("backups")
     .upload(
       `${tenant.slug}/${today}/backup_info.json`,
       fs.readFileSync(infoPath),
-      {
-        contentType: "application/json",
-        upsert: true
-      }
+      { contentType: "application/json", upsert: true }
     );
 
-  // update last backup
+  // ======================
+  // UPDATE LAST BACKUP
+  // ======================
   await supabase
     .from("tenants")
-    .update({
-      last_backup_at: new Date().toISOString()
-    })
+    .update({ last_backup_at: new Date().toISOString() })
     .eq("id", tenant.id);
 
   cleanOldBackups(tenant.slug);
 
-  console.log(
-    `📦 BACKUP DONE: ${tenant.slug}`
-  );
+  console.log(`📦 BACKUP DONE: ${tenant.slug}`);
 }
 
-// ======================
-// MAIN
-// ======================
 async function runBackup() {
 
   console.log("🔄 BACKUP STARTED");
 
-  const { data: tenants, error } =
-    await supabase
-      .from("tenants")
-      .select("id, name, slug")
-      .eq("has_backup", true)
-      .eq("is_active", true);
+  const { data: tenants, error } = await supabase
+    .from("tenants")
+    .select("id, name, slug")
+    .eq("has_backup", true)
+    .eq("is_active", true);
 
   if (error) {
-
-    console.log(
-      "❌ FETCH TENANTS ERROR:",
-      error
-    );
-
+    console.log("❌ FETCH TENANTS ERROR:", error);
     return;
   }
 
   if (!tenants?.length) {
-
-    console.log(
-      "⚠️ TIADA TENANT UNTUK BACKUP"
-    );
-
+    console.log("⚠️ TIADA TENANT UNTUK BACKUP");
     return;
   }
 
   for (const tenant of tenants) {
-
     try {
-
       await backupTenant(tenant);
-
     } catch (err) {
-
-      console.log(
-        `❌ BACKUP FAILED [${tenant.slug}]`,
-        err
-      );
+      console.log(`❌ BACKUP FAILED [${tenant.slug}]`, err);
     }
   }
 
   console.log("✅ ALL BACKUP DONE");
 }
 
-module.exports = {
-  runBackup
-};
+module.exports = { runBackup };
