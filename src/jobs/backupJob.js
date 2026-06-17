@@ -47,6 +47,24 @@ async function exportTable(tableName, tenantId) {
   return allData;
 }
 
+// src/jobs/backupJob.js — tambah function ni
+async function ensureBackupBucket() {
+  const { data: buckets } = await supabase.storage.listBuckets();
+  const exists = buckets?.some(b => b.name === "backups");
+
+  if (!exists) {
+    const { error } = await supabase.storage.createBucket("backups", {
+      public: false
+    });
+    if (error) {
+      console.log("❌ FAILED TO CREATE BUCKET:", error.message);
+      return false;
+    }
+    console.log("✅ BUCKET 'backups' CREATED");
+  }
+  return true;
+}
+
 async function uploadToStorage(filePath, storagePath) {
 
   const fileBuffer = fs.readFileSync(filePath);
@@ -174,6 +192,12 @@ async function backupTenant(tenant) {
 async function runBackup() {
 
   console.log("🔄 BACKUP STARTED");
+
+  const bucketReady = await ensureBackupBucket(); // ← tambah ni
+  if (!bucketReady) {
+    console.log("❌ BACKUP ABORTED — bucket unavailable");
+    return;
+  }
 
   const { data: tenants, error } = await supabase
     .from("tenants")
