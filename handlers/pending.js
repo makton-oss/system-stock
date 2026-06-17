@@ -4,7 +4,7 @@ const { getPendingRequests } = require("../services/pending/getPendingRequests")
 const { sendPendingList } = require("../services/pending/sendPendingList");
 
 module.exports =
-withRole(["supervisor", "manager", "admin"],
+withRole(["supervisor", "manager"],
 async (ctx) => {
 
   const { chatId, user, reply, res } = ctx;
