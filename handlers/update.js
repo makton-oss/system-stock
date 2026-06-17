@@ -9,7 +9,7 @@ module.exports = withRole(["admin"], async (ctx) => {
   const { chatId, user, reply, res } = ctx;
   const isSuperadmin = user.role === "superadmin";
 
-  let rawMessage = ctx.body.replace(/^update\s*/i, "").trim();
+  let rawMessage = ctx.message.replace(/^update\s*/i, "").trim();
   let tenantId   = user.tenant_id || null;
   let tenantLabel = "";
 

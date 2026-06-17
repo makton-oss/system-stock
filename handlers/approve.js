@@ -18,12 +18,18 @@ async function handleApproval(rows, ctx) {
   const {
     summary,
     logDetails,
-    rows: processed
+    rows: processed,
+    skipped
   } = await approveRequest(
     rows,
     chatId,
     user.tenant_id || null
   );
+
+  if (!logDetails.length) {
+  await reply(chatId, "Request sudah diproses atau tiada request untuk diluluskan.");
+  return res.end();
+}
 
   // ======================
   // LOW STOCK ALERT
@@ -40,7 +46,8 @@ async function handleApproval(rows, ctx) {
 
     await notifyManagers(
       alertText,
-      r._lowStock.outlet_id
+      r._lowStock.outlet_id,
+      chatId
     );
   }
 

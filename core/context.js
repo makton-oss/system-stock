@@ -4,7 +4,7 @@ function createContext({ chatId, user, parts, body, res, reply }) {
     user,
     tenant_id: user?.tenant_id || null,
     parts,
-	  body,
+	  message,
     res,
     reply
   };

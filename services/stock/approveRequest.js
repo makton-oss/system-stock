@@ -27,7 +27,6 @@ async function approveRequest(rows, chatId, tenantId) {
     // ======================
     // GET STOCK BEFORE
     // ======================
-    // ⚠️ item_stock tiada tenant_id — filter by outlet_id sahaja
     const { data: before } = await supabase
       .from("item_stock")     // ✅ fix: stock → item_stock
       .select("qty, min_qty, cost_price")
@@ -132,7 +131,7 @@ async function approveRequest(rows, chatId, tenantId) {
     }
   }
 
-  return { summary, logDetails, rows };
+  return { summary, logDetails, rows, skipped: rows.length - logDetails.length };
 }
 
 module.exports = { approveRequest };

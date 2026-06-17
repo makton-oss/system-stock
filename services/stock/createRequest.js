@@ -5,6 +5,13 @@ async function createRequest({ item, qty, type, user, chatId, validateOnly = fal
 
   const tenantId = user.tenant_id || null;
 
+  // ======================
+  // ❌ QTY GUARD
+  // ======================
+  if (!qty || qty <= 0) {
+    return { error: "INVALID_QTY" };
+  }
+
   const stock = await getStockByItem(item, user.outlet_id, tenantId);
 
   // ======================

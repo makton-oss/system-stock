@@ -119,19 +119,8 @@ app.post("/webhook", async (req, res) => {
   // ======================
   // MESSAGE PARSE
   // ======================
-  let message =
-    body.user_message ||
-    body.message ||
-    body.text ||
-    "";
-
-  // ======================
-  // BUTTON PARSE
-  // ======================
-  const raw = body.user_message || "";
-
-  message = await parseButtonMessage({
-    raw,
+  const message = await parseButtonMessage({
+    raw: body.user_message || "",
     chatId,
     body,
     user
@@ -191,7 +180,7 @@ app.post("/webhook", async (req, res) => {
     chatId,
     user,
     parts,
-    body: message,
+    message,
     res,
     reply
   });
