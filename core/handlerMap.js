@@ -20,7 +20,7 @@ module.exports = {
   REPORTMENU: require("../handlers/reportMenu"),
   REPORT_MONTH: require("../handlers/reportMonth"),
   PENDING: require("../handlers/pending"),
-  UPITEM: require("../handlers/updateItem"),
+  UPDATEITEM: require("../handlers/updateItem"),
   WASTAGE: require("../handlers/wastage"),
   TRY: require("../handlers/try")
 };

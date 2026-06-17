@@ -9,8 +9,8 @@ module.exports = withRole(["admin"], async (ctx) => {
   const isSuperadmin = user.role === "superadmin";
 
   const FORMAT_MSG = isSuperadmin
-    ? `❌ FORMAT:\nUPITEM ayam rempah cost 3.5 outlet_a@slug\nUPITEM ayam rempah min 5 outlet_a@slug\nUPITEM ayam rempah cost 3.5 min 5 outlet_a@slug`
-    : `❌ FORMAT:\nUPITEM ayam rempah cost 3.5 muiz\nUPITEM ayam rempah min 5 muiz\nUPITEM ayam rempah cost 3.5 min 5 muiz`;
+    ? `❌ FORMAT:\nUPDATEITEM ayam rempah cost 3.5 outlet_a@slug\nUPDATEITEM ayam rempah min 5 outlet_a@slug\nUPDATEITEM ayam rempah cost 3.5 min 5 outlet_a@slug`
+    : `❌ FORMAT:\nUPDATEITEM ayam rempah cost 3.5 muiz\nUPDATEITEM ayam rempah min 5 muiz\nUPDATEITEM ayam rempah cost 3.5 min 5 muiz`;
 
   // ======================
   // PARSE (outletName masih raw e.g. "outlet_a@slug")
