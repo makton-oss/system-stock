@@ -80,7 +80,8 @@ module.exports = withRole(["staff"], async (ctx) => {
     // ======================
     await queueStockNotification(user.outlet_id, user.tenant_id || null);
 
-    await reply(chatId, "✅ REQUEST SENT");
+    const lines = successList.map(p => `📤 ${p.item} x${p.qty}`).join("\n");
+    await reply(chatId, `✅ OUT REQUEST SENT\n\n${lines}`);
     return res.end();
   }
 
