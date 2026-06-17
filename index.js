@@ -9,6 +9,9 @@ const { sendWhatsApp } = require("./services/notification/whatsappService");
 const { parseButtonMessage } = require("./utils/parseButtonMessage");
 const { getUserByChatId } = require("./db/users/getUserByChatId");
 const { checkUserRateLimit } = require("./utils/userRateLimit");
+const { Sentry, initSentry } = require("./services/sentry");
+
+initSentry();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -191,16 +194,20 @@ app.post("/webhook", async (req, res) => {
 
   } catch (err) {
 
-    console.error(
-      "HANDLER ERROR:",
-      err
-    );
+    // ======================
+    // CAPTURE TO SENTRY
+    // ======================
+    Sentry.captureException(err, {
+      extra: {
+        chatId,
+        type,
+        role: user?.role,
+        tenant_id: user?.tenant_id
+      }
+    });
 
-    await reply(
-      chatId,
-      "❌ SYSTEM ERROR"
-    );
-
+    console.error("HANDLER ERROR:", err);
+    await reply(chatId, "❌ SYSTEM ERROR");
     return res.end();
   }
 });
