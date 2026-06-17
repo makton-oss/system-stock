@@ -9,6 +9,8 @@ const { sendWhatsApp } = require("./services/notification/whatsappService");
 const { parseButtonMessage } = require("./utils/parseButtonMessage");
 const { getUserByChatId } = require("./db/users/getUserByChatId");
 const { checkUserRateLimit } = require("./utils/userRateLimit");
+const { checkTenantRateLimit } = require("./utils/tenantRateLimit");
+const { gracefulShutdown, isShutdown } = require("./src/shutdown");
 const { Sentry, initSentry } = require("./services/sentry");
 
 initSentry();
@@ -18,8 +20,15 @@ const PORT = process.env.PORT || 3000;
 
 app.use(express.json({ strict: false }));
 app.use(express.urlencoded({ extended: true }));
-
 app.set("trust proxy", 1);
+
+// ======================
+// REJECT REQUESTS DURING SHUTDOWN — selepas app init
+// ======================
+app.use((req, res, next) => {
+  if (isShutdown()) return res.status(503).end();
+  next();
+})
 
 // ======================
 // GLOBAL RATE LIMIT
@@ -113,6 +122,17 @@ app.post("/webhook", async (req, res) => {
   if (!allowed) {
     console.log("USER RATE LIMIT HIT:", chatId);
     await reply(chatId, "⏳ Terlalu banyak request. Cuba lagi sebentar.");
+    return res.end();
+  }
+
+  // ======================
+  // PER-TENANT RATE LIMIT
+  // ======================
+  const { allowed: tenantAllowed } = checkTenantRateLimit(user.tenant_id);
+
+  if (!tenantAllowed) {
+    console.log("TENANT RATE LIMIT HIT:", user.tenant_id);
+    await reply(chatId, "⏳ Sistem sibuk. Cuba lagi sebentar.");
     return res.end();
   }
 
@@ -212,9 +232,15 @@ app.post("/webhook", async (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
-
-  console.log(
-    `🚀 Server running on port ${PORT}`
-  );
+// ======================
+// SERVER START
+// ======================
+const server = app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
 });
+
+// ======================
+// GRACEFUL SHUTDOWN — paling bawah sekali
+// ======================
+process.on("SIGTERM", () => gracefulShutdown(server));
+process.on("SIGINT",  () => gracefulShutdown(server));
