@@ -13,6 +13,12 @@ function initSentry() {
     tracesSampleRate: 0.2  // 20% transaction sampling — cukup untuk monitor
   });
 
+  try {
+    foo();
+  } catch (e) {
+    Sentry.captureException(e);
+  }
+
   console.log("✅ SENTRY INITIALIZED");
 }
 
