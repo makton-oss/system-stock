@@ -9,6 +9,7 @@ module.exports = {
   // helpers
   toProperCase:      helpers.toProperCase,
   formatCurrency:    helpers.formatCurrency,
+  formatAmount:      helpers.formatAmount,
   nowMY:             helpers.nowMY,
   formatLogDateTime: helpers.formatLogDateTime,
   parseMonthInput:   helpers.parseMonthInput,

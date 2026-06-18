@@ -1,4 +1,4 @@
-const { toProperCase, formatCurrency } = require("../helpers");
+const { toProperCase, formatCurrency, formatAmount } = require("../helpers");
 
 // ======================
 // SUMMARY REPORT
@@ -10,15 +10,15 @@ function formatSummaryReport(data, monthLabel) {
     text += `🏪 ${o.outletName.toUpperCase()}\n━━━━━━━━━━\n\n`;
 
     if (o.openingValue !== null) {
-      text += `📂 OPENING STOCK\n${formatCurrency(o.openingValue)}\n\n`;
+      text += `📂 OPENING STOCK\nRM ${formatAmount(o.openingValue)}\n\n`;
     }
 
-    text += `📥 STOCK IN\n${formatCurrency(o.stockIn)}\n\n`;
-    text += `💸 STOCK USED\n${formatCurrency(o.stockOut)}\n\n`;
-    text += `⚠️ WASTAGE\n${formatCurrency(o.wastage)}\n\n`;
+    text += `📥 STOCK IN\nRM ${formatAmount(o.stockIn)}\n\n`;
+    text += `💸 STOCK USED\nRM ${formatAmount(o.stockOut)}\n\n`;
+    text += `⚠️ WASTAGE\nRM ${formatAmount(o.wastage)}\n\n`;
 
     if (o.closingValue !== null) {
-      text += `📁 CLOSING STOCK\n${formatCurrency(o.closingValue)}\n\n`;
+      text += `📁 CLOSING STOCK\nRM ${formatAmount(o.closingValue)}\n\n`;
     } else {
       text += `📁 CLOSING STOCK\n(snapshot tiada)\n\n`;
     }
@@ -27,12 +27,12 @@ function formatSummaryReport(data, monthLabel) {
 
     text += `🔥 TOP USAGE\n`;
     o.topUsage.forEach(([item, val]) => {
-      text += `${toProperCase(item)} ${formatCurrency(val)}\n`;
+      text += `${toProperCase(item)} RM ${formatAmount(val)}\n`;
     });
 
     text += `\n🧨 TOP WASTAGE\n`;
     o.topWastage.forEach(([item, val]) => {
-      text += `${toProperCase(item)} ${formatCurrency(val)}\n`;
+      text += `${toProperCase(item)} RM ${formatAmount(val)}\n`;
     });
 
     text += `\n━━━━━━━━━━\n\n`;
@@ -49,7 +49,7 @@ function formatInventoryReport(data, monthLabel) {
 
   Object.entries(data).forEach(([outlet, r]) => {
     text += `🏪 ${outlet.toUpperCase()}\n\n`;
-    text += `💰 Inventory Value:\nRM${Number(r.totalValue || 0).toFixed(2)}\n\n`;
+    text += `💰 Inventory Value:\nRM ${formatAmount(r.totalValue || 0)}\n\n`;
     text += `📦 Total Unit:\n${r.totalItems}\n\n`;
     text += `📋 Top Holding Stock\n`;
 
@@ -59,7 +59,7 @@ function formatInventoryReport(data, monthLabel) {
     }
 
     r.items.forEach(i => {
-      text += `• ${toProperCase(i.item)}\n  ${i.qty} unit\n  RM${Number(i.value || 0).toFixed(2)}\n`;
+      text += `• ${toProperCase(i.item)}\n  ${i.qty} unit\n  RM ${formatAmount(i.value || 0)}\n`;
     });
 
     text += "\n";
@@ -76,25 +76,25 @@ function formatFlowReport(data, month) {
 
   Object.entries(data).forEach(([outlet, r]) => {
     text += `🏪 ${outlet.toUpperCase()}\n\n`;
-    text += `IN      : RM ${Number(r.inVal      || 0).toFixed(2)}\n`;
-    text += `OUT     : RM ${Number(r.outVal     || 0).toFixed(2)}\n`;
-    text += `WASTAGE : RM ${Number(r.wastageVal || 0).toFixed(2)}\n`;
-    text += `NET     : RM ${Number(r.net        || 0).toFixed(2)}\n\n`;
+    text += `IN      : RM ${formatAmount(r.inVal)}\n`;
+    text += `OUT     : RM ${formatAmount(r.outVal)}\n`;
+    text += `WASTAGE : RM ${formatAmount(r.wastageVal)}\n`;
+    text += `NET     : RM ${formatAmount(r.net)}\n\n`;
 
     text += "🔝 Top 5 IN\n";
     r.topIn.forEach((t, i) => {
-      text += `${i + 1}. ${toProperCase(t[0])} RM${Number(t[1] || 0).toFixed(2)}\n`;
+      text += `${i + 1}. ${toProperCase(t[0])} RM ${formatAmount(t[1])}\n`;
     });
 
     text += "\n🔝 Top 5 OUT\n";
     r.topOut.forEach((t, i) => {
-      text += `${i + 1}. ${toProperCase(t[0])} RM${Number(t[1] || 0).toFixed(2)}\n`;
+      text += `${i + 1}. ${toProperCase(t[0])} RM ${formatAmount(t[1])}\n`;
     });
 
     if (r.topWastage?.length) {
       text += "\n🔝 Top 5 WASTAGE\n";
       r.topWastage.forEach((t, i) => {
-        text += `${i + 1}. ${toProperCase(t[0])} RM${Number(t[1] || 0).toFixed(2)}\n`;
+        text += `${i + 1}. ${toProperCase(t[0])} RM ${formatAmount(t[1])}\n`;
       });
     }
 
@@ -151,9 +151,9 @@ function formatUsageReport(data, monthLabel) {
   data.forEach(o => {
     text += `🏪 ${o.outletName.toUpperCase()}\n\n`;
     o.items.forEach(([item, val], i) => {
-      text += `${i + 1}. ${toProperCase(item)}\nRM${Number(val).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}\n\n`;
+      text += `${i + 1}. ${toProperCase(item)}\nRM ${formatAmount(val)}\n\n`;
     });
-    text += `TOTAL:\nRM${Number(o.total).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}\n\n━━━━━━━━━━\n\n`;
+    text += `TOTAL:\nRM ${formatAmount(o.total)}\n\n━━━━━━━━━━\n\n`;
   });
 
   return text;
@@ -166,9 +166,9 @@ function formatWastageReport(data, monthLabel) {
   let text = `⚠️ WASTAGE REPORT\n${monthLabel}\n\n`;
 
   data.forEach(o => {
-    text += `🏪 ${o.outletName.toUpperCase()}\n\nTOTAL LOSS:\nRM${Number(o.total).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}\n\n`;
+    text += `🏪 ${o.outletName.toUpperCase()}\n\nTOTAL LOSS:\nRM ${formatAmount(o.total)}\n\n`;
     o.items.forEach(([item, val], i) => {
-      text += `${i + 1}. ${toProperCase(item)}\nRM${Number(val).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}\n\n`;
+      text += `${i + 1}. ${toProperCase(item)}\nRM ${formatAmount(val)}\n\n`;
     });
     text += `━━━━━━━━━━\n\n`;
   });
@@ -184,15 +184,15 @@ function formatMainReport(data, monthLabel) {
 
   Object.entries(data).forEach(([outlet, o]) => {
     text += `🏪 ${outlet.toUpperCase()}\n\n`;
-    text += `💰 TOTAL USAGE COST RM ${o.totalCost.toFixed(2)}\n\n`;
+    text += `💰 TOTAL USAGE COST RM ${formatAmount(o.totalCost)}\n\n`;
     text += "📦 CATEGORY COST\n";
     Object.entries(o.categoryMap).forEach(([c, v]) => {
-      text += `${c}: RM${v.toFixed(2)}\n`;
+      text += `${c}: RM ${formatAmount(v)}\n`;
     });
     text += `\n💸 FLOW (VALUE)\n`;
-    text += `IN   : RM ${o.flowIn.toFixed(2)}\n`;
-    text += `OUT  : RM ${o.flowOut.toFixed(2)}\n`;
-    text += `NET  : RM ${(o.flowIn - o.flowOut).toFixed(2)}\n\n`;
+    text += `IN   : RM ${formatAmount(o.flowIn)}\n`;
+    text += `OUT  : RM ${formatAmount(o.flowOut)}\n`;
+    text += `NET  : RM ${formatAmount(o.flowIn - o.flowOut)}\n\n`;
   });
 
   return text;

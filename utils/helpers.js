@@ -42,6 +42,15 @@ function formatCurrency(n = 0) {
 }
 
 // ======================
+// FORMAT AMOUNT (2 DECIMAL, THOUSANDS SEPARATOR)
+// ======================
+function formatAmount(n = 0) {
+  return Number(n)
+    .toFixed(2)
+    .replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+}
+
+// ======================
 // DATE & TIME
 // ======================
 function nowMY() {
@@ -94,17 +103,20 @@ function parseMonthInput(input) {
 }
 
 function formatMonthLabel(monthInput, startDate) {
-  const d = monthInput && monthInput.toLowerCase() !== "current"
-    ? (() => {
-        const months = { jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11 };
-        const [m, y] = monthInput.toLowerCase().split("-");
-        return new Date(2000 + parseInt(y), months[m], 1);
-      })()
-    : new Date(startDate);
+  let d;
 
-  const monthName = d.toLocaleString("en-MY", { month: "long" }); // "May"
-  const year      = d.getFullYear();                               // 2026
-  const lastDay   = new Date(year, d.getMonth() + 1, 0).getDate(); // 31
+  if (monthInput && monthInput.toLowerCase() !== "current") {
+    const months = { jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11 };
+    const [m, y] = monthInput.toLowerCase().split("-");
+    d = new Date(2000 + parseInt(y), months[m], 1);
+  } else {
+    // FIX: guna MYT sekarang, bukan parse dari startDate UTC
+    d = DateTime.now().setZone("Asia/Kuala_Lumpur").toJSDate();
+  }
+
+  const monthName = d.toLocaleString("en-MY", { month: "long" });
+  const year      = d.getFullYear();
+  const lastDay   = new Date(year, d.getMonth() + 1, 0).getDate();
 
   return `${monthName} ${year} (1-${lastDay})`;
 }
@@ -114,6 +126,7 @@ module.exports = {
   safeQty,
   toProperCase,
   formatCurrency,
+  formatAmount,
   nowMY,
   formatLogDateTime,
   parseMonthInput,

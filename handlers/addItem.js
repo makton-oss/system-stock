@@ -1,7 +1,7 @@
 const { withRole } = require("../core/withRole");
 const { normalizeItem } = require("../utils/helpers");
 const { getOutletByCode } = require("../db/outlets/getOutletByCode");
-const { getStockItemByName, createStockItem, checkStockExistsByItemId, insertStock } = require("../db/stock/manageStockItem");
+const { addStockItem } = require("../services/stock/addStockItem");
 const { parseSuperadminTarget } = require("../utils/parseSuperadminTarget");
 
 module.exports = withRole(["admin"], async (ctx) => {
@@ -58,46 +58,17 @@ module.exports = withRole(["admin"], async (ctx) => {
   }
 
   // ======================
-  // CHECK / CREATE STOCK ITEM (MASTER)
+  // ADD ITEM (shared service — sama logic dgn scripts/bulkImportItems.js)
   // ======================
-  let itemId;
-  const existingItem = await getStockItemByName(item, tenantId);
+  const result = await addStockItem({ item, category, minQty, cost, uom, outlet, tenantId });
 
-  if (existingItem) {
-    itemId = existingItem.id;
-  } else {
-    const { data: newItem, error: itemError } = await createStockItem(item, category, tenantId);
-    if (itemError) {
-      await reply(chatId, "❌ DB ERROR (ITEM)");
-      return res.end();
-    }
-    itemId = newItem.id;
-  }
-
-  // ======================
-  // CHECK STOCK (PER OUTLET)
-  // ======================
-  const existingStock = await checkStockExistsByItemId(itemId, outlet.id);
-  if (existingStock) {
+  if (result.error === "STOCK_EXISTS") {
     await reply(chatId, `⚠️ ITEM DAH ADA DI OUTLET`);
     return res.end();
   }
 
-  // ======================
-  // INSERT STOCK
-  // ======================
-  const { error: stockError } = await insertStock({
-    item,
-    itemId,
-    outletId: outlet.id,
-    minQty,
-    cost,
-    uom,
-    tenantId
-  });
-
-  if (stockError) {
-    await reply(chatId, "❌ DB ERROR (STOCK)");
+  if (result.error) {
+    await reply(chatId, `❌ DB ERROR (${result.error})`);
     return res.end();
   }
 
