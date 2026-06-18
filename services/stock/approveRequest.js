@@ -32,10 +32,12 @@ async function approveRequest(rows, chatId, tenantId) {
       .select("qty, min_qty, cost_price")
       .eq("item_id", row.item_id)
       .eq("outlet_id", row.outlet_id)
+      .eq("is_active", true)
       .maybeSingle();
 
     if (!before) {
-      console.log("BEFORE STOCK NOT FOUND:", row.item_id, row.outlet_id);
+      console.log("STOCK INACTIVE OR NOT FOUND — SKIP:", row.item_id, row.outlet_id);
+      logDetails.push(`ID${row.id} ${row.item} ⚠️ ITEM INACTIVE`);
       continue;
     }
 
@@ -87,6 +89,7 @@ async function approveRequest(rows, chatId, tenantId) {
       .select("qty, min_qty, cost_price")
       .eq("item_id", row.item_id)
       .eq("outlet_id", row.outlet_id)
+      .eq("is_active", true)
       .maybeSingle();
 
     if (!after) {

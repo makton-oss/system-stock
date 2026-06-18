@@ -4,14 +4,9 @@ const { writeLog } = require("../utils/formatter");
 
 const VALID_PLANS = Object.keys(PLAN_CONFIG);
 
-module.exports = withRole(["admin"], async (ctx) => {
+module.exports = withRole(["superadmin"], async (ctx) => {
 
   const { chatId, user, parts, reply, res } = ctx;
-
-  if (user.role !== "superadmin") {
-    await reply(chatId, "❌ NO ACCESS");
-    return res.end();
-  }
 
   // FORMAT: ADDTENANT slug plan maintenance(y/n) brand Nama Syarikat Sdn Bhd
   if (parts.length < 6) {
@@ -25,30 +20,49 @@ module.exports = withRole(["admin"], async (ctx) => {
     return res.end();
   }
 
-  const slug        = parts[1].toLowerCase();
-  const plan        = parts[2].toLowerCase();
-  const maintenance = parts[3].toLowerCase();
-  const brand       = parts[4];
-  const name        = parts.slice(5).join(" ");
+  const slug        = parts[1].toLowerCase().trim();
+  const plan        = parts[2].toLowerCase().trim();
+  const maintenance = parts[3].toLowerCase().trim();
+  const brand       = parts[4].trim();
+  const name        = parts.slice(5).join(" ").trim().replace(/\s+/g, " ");
 
-  // Validate slug
+  // ======================
+  // VALIDATE SLUG
+  // ======================
   if (!/^[a-z0-9-]+$/.test(slug)) {
     await reply(chatId, "❌ Slug mesti lowercase, alphanumeric dan dash sahaja.\nContoh: kedai-maju");
     return res.end();
   }
 
+  // ======================
+  // VALIDATE PLAN
+  // ======================
   if (!VALID_PLANS.includes(plan)) {
     await reply(chatId, `❌ Plan tidak sah: ${plan}\n\nPlan tersedia: ${VALID_PLANS.join(", ")}`);
     return res.end();
   }
 
+  // ======================
+  // VALIDATE MAINTENANCE
+  // ======================
   if (!["y", "n"].includes(maintenance)) {
     await reply(chatId, "❌ Maintenance mesti y atau n");
     return res.end();
   }
 
+  // ======================
+  // VALIDATE NAME
+  // ======================
   if (!name) {
     await reply(chatId, "❌ Nama syarikat diperlukan");
+    return res.end();
+  }
+
+  // ======================
+  // VALIDATE BRAND
+  // ======================
+  if (!brand) {
+    await reply(chatId, "❌ Brand diperlukan");
     return res.end();
   }
 
@@ -68,7 +82,11 @@ module.exports = withRole(["admin"], async (ctx) => {
 
   const config = PLAN_CONFIG[plan];
 
-  await writeLog(chatId, "superadmin", "ADDTENANT", `${slug} | ${plan} | maintenance:${maintenance} | ${name}`);
+  try {
+    await writeLog(chatId, "superadmin", "ADDTENANT", `${slug} | ${plan} | maintenance:${maintenance} | ${name}`);
+  } catch (err) {
+    console.log("WRITELOG ERROR:", err);
+  }
 
   await reply(chatId,
     `✅ TENANT CREATED\n\n` +

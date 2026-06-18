@@ -2,6 +2,7 @@ const { withRole } = require("../core/withRole");
 const { createOutlet } = require("../db/outlets/createOutlet");
 const { parseSuperadminTarget } = require("../utils/parseSuperadminTarget");
 const { writeLog } = require("../utils/formatter");
+const { normalizeItem } = require("../utils/helpers");
 
 module.exports = withRole(["admin"], async (ctx) => {
 
@@ -18,7 +19,7 @@ module.exports = withRole(["admin"], async (ctx) => {
 
   const rawOutlet = parts.slice(1).join(" ");
 
-  const { cleanValue: outletName, tenantId, error: slugError } = await parseSuperadminTarget(
+  const { cleanValue: outletRaw, tenantId, error: slugError } = await parseSuperadminTarget(
     rawOutlet,
     isSuperadmin,
     user.tenant_id || null
@@ -34,7 +35,9 @@ module.exports = withRole(["admin"], async (ctx) => {
     return res.end();
   }
 
-  const name = outletName.toLowerCase().trim();
+  // normalizeItem: lowercase + trim + collapse spaces + remove dash
+  // suitable for outlet names since outlets follow same convention
+  const name = normalizeItem(outletRaw);
 
   if (!name || name.length < 2) {
     await reply(chatId, "❌ Nama outlet terlalu pendek");
@@ -53,7 +56,11 @@ module.exports = withRole(["admin"], async (ctx) => {
     return res.end();
   }
 
-  await writeLog(chatId, user.role, "ADDOUTLET", `${name} | tenant: ${tenantId}`);
+  try {
+    await writeLog(chatId, user.role, "ADDOUTLET", `${name} | tenant: ${tenantId}`);
+  } catch (err) {
+    console.log("WRITELOG ERROR:", err);
+  }
 
   await reply(chatId,
     `✅ OUTLET CREATED\n\n` +

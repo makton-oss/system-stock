@@ -14,7 +14,8 @@ async function updateStockItem({ item, outletName, updates, tenantId = null }) {
     .from("item_stock")
     .update(updates)
     .eq("item", item)
-    .eq("outlet_id", outlet.id);
+    .eq("outlet_id", outlet.id)
+    .eq("is_active", true);
 
   q = applyTenant(q, tenantId);
 

@@ -30,7 +30,8 @@ async function createInventorySnapshot(tenantId = null) {
 
   let q = supabase
     .from("item_stock")
-    .select(`qty, outlet_id, item_id, item, cost_price, outlets(tenant_id)`);
+    .select(`qty, outlet_id, item_id, item, cost_price, outlets(tenant_id)`)
+    .eq("is_active", true);
 
   q = q.eq("outlets.tenant_id", tenantId);
 

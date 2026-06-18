@@ -8,7 +8,8 @@ async function getStockAll(outletIds = null, tenantId = null) {
       cost_price, uom,
       outlets(name),
       items(name, category)   
-    `)                        // ✅ fix: stock_items → items
+    `)
+    .eq("is_active", true)                        
     .order("outlet_id", { ascending: true })
     .order("item",      { ascending: true });
 

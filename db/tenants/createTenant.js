@@ -11,8 +11,6 @@ async function createTenant({ name, slug, plan, brand, hasMaintenance }) {
 
   const config = PLAN_CONFIG[plan];
 
-  if (!config) return { error: "INVALID_PLAN" };
-
   const { data, error } = await supabase
     .from("tenants")
     .insert({
@@ -30,6 +28,7 @@ async function createTenant({ name, slug, plan, brand, hasMaintenance }) {
 
   if (error) {
     if (error.code === "23505") return { error: "SLUG_TAKEN" };
+    console.log("CREATE_TENANT ERROR:", error);
     return { error: "DB_ERROR" };
   }
 

@@ -5,7 +5,7 @@ async function createOutlet({ name, tenantId }) {
   const { data, error } = await supabase
     .from("outlets")
     .insert({
-      name:      name.toLowerCase().trim(),
+      name,
       tenant_id: tenantId
     })
     .select()
@@ -13,6 +13,7 @@ async function createOutlet({ name, tenantId }) {
 
   if (error) {
     if (error.code === "23505") return { error: "OUTLET_EXISTS" };
+    console.log("CREATE_OUTLET ERROR:", error);
     return { error: "DB_ERROR" };
   }
 

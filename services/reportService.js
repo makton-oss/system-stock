@@ -77,7 +77,8 @@ async function getDeadReport({ start, end, outletIds, tenantId }) {
   // ⚠️ item_stock tiada tenant_id
   let stockQ = supabase
     .from("item_stock")       // ✅ fix: stock → item_stock
-    .select(`item_id, item, outlet_id, items(name), outlets(name)`);  // ✅ fix: stock_items → items
+    .select(`item_id, item, outlet_id, items(name), outlets(name)`)  // ✅ fix: stock_items → items
+    .eq("is_active", true);
 
   if (outletIds?.length) stockQ = stockQ.in("outlet_id", outletIds);
   // Tak boleh applyTenant pada item_stock — outletIds dah scope

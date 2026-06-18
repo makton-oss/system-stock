@@ -7,6 +7,7 @@ async function getStockNameList(outletId, tenantId = null) {
     .from("item_stock")       // ✅ fix: stock → item_stock
     .select("item, uom")
     .eq("outlet_id", outletId)
+    .eq("is_active", true)
     .order("item", { ascending: true });
 
   if (error) console.log("GET_STOCK_NAME_LIST ERROR:", error);
@@ -19,6 +20,7 @@ async function getStockConfig(outletIds, tenantId = null) {
     .from("item_stock")       // ✅ fix: stock → item_stock
     .select(`item, min_qty, outlet_id, cost_price, uom, items(name), outlets(name)`)
     .in("outlet_id", outletIds)   // ✅ fix: stock_items → items
+    .eq("is_active", true)
     .order("outlet_id", { ascending: true })
     .order("item",      { ascending: true });
 

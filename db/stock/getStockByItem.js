@@ -6,7 +6,9 @@ async function getStockByItem(item, outletId, tenantId = null) {
     .from("item_stock")
     .select("*")
     .eq("item", item)
-    .eq("outlet_id", outletId);
+    .eq("outlet_id", outletId)
+    .eq("is_active", true)
+    .maybeSingle();
 
   q = applyTenant(q, tenantId);
 

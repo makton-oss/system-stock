@@ -7,7 +7,7 @@ function normalizeItem(text = "") {
   return text
     .toLowerCase()
     .trim()
-    .replace(/-/g, " ")
+    .replace(/-/g, " ")   // ← replaces dash with space
     .replace(/\s+/g, " ");
 }
 
