@@ -186,6 +186,11 @@
   color: var(--text-muted);
 }
 
+.trial-card {
+  max-width: 420px;
+  margin: 0 auto;
+}
+
 .maint-header {
   margin-bottom: 1rem;
 }
