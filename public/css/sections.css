@@ -60,6 +60,11 @@
   align-items: flex-start;
 }
 
+.mockup {
+  width: 360px;
+  min-height: 650px;
+}
+
 /* ----- TRUST BAR ----- */
 .trust-bar {
   background: var(--green-dark);
