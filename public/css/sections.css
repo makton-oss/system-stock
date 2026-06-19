@@ -61,7 +61,7 @@
 }
 
 .mockup {
-  width: min(750px, 90vw);
+  width: 480px;
   height: calc(100% - 0px);
 }
 
