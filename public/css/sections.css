@@ -61,8 +61,18 @@
 }
 
 .mockup {
-  width: 360px;
+  width: 480px;
   min-height: 650px;
+}
+
+.staff-group {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.manager-group {
+  align-self: stretch;
 }
 
 /* ----- TRUST BAR ----- */
