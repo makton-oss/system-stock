@@ -1470,7 +1470,7 @@ img {
       </div>
       <div class="chat" id="chat-manager"></div>
       <div class="panel__input-wrap">
-        <textarea class="panel__input" id="input-manager" placeholder="Cuba: PENDING atau APPROVE 100" rows="1"></textarea>
+        <textarea class="panel__input" id="input-manager" placeholder="Cuba: PENDING atau STOCK" rows="1"></textarea>
         <button class="panel__send" id="send-manager" onclick="sendMessage('manager')">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
         </button>
@@ -1612,17 +1612,17 @@ function buildStockNotifMulti(reqs) {
   reqs.forEach(r => { if (grouped[r.type]) grouped[r.type].push(r); });
 
   if (grouped.in.length) {
-    text += `📥 IN\nBY: Ali Hassan (60123456789)\n`;
+    text += `📥 IN\nBY: Hassan (60123456789)\n`;
     grouped.in.forEach(r => { text += `ID ${r.id} ${r.item} x${r.qty}\n`; });
     text += '\n';
   }
   if (grouped.out.length) {
-    text += `📤 OUT\nBY: Ali Hassan (60123456789)\n`;
+    text += `📤 OUT\nBY: Hassan (60123456789)\n`;
     grouped.out.forEach(r => { text += `ID ${r.id} ${r.item} x${r.qty}\n`; });
     text += '\n';
   }
   if (grouped.wastage.length) {
-    text += `🗑️ WASTAGE\nBY: Ali Hassan (60123456789)\n`;
+    text += `🗑️ WASTAGE\nBY: Hassan (60123456789)\n`;
     grouped.wastage.forEach(r => { text += `ID ${r.id} ${r.item} x${r.qty}\n`; });
     text += '\n';
   }
