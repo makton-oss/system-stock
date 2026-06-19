@@ -6,14 +6,13 @@ const supabase = require("./services/db");
 const handlerMap = require("./core/handlerMap");
 const { createContext } = require("./core/context");
 const { sendWhatsApp } = require("./services/notification/whatsappService");
+const { sendWhatsAppMeta } = require("./services/notification/whatsappServiceMETA");
 const { parseButtonMessage } = require("./utils/parseButtonMessage");
 const { getUserByChatId } = require("./db/users/getUserByChatId");
 const { checkUserRateLimit } = require("./utils/userRateLimit");
 const { checkTenantRateLimit } = require("./utils/tenantRateLimit");
 const { gracefulShutdown, isShutdown } = require("./src/shutdown");
 const { Sentry, initSentry } = require("./services/sentry");
-const { sendWhatsAppMeta } = require("./services/notification/whatsappServiceMETA");
-
 
 initSentry();
 
@@ -25,15 +24,15 @@ app.use(express.urlencoded({ extended: true }));
 app.set("trust proxy", 1);
 
 // ======================
-// REJECT REQUESTS DURING SHUTDOWN — selepas app init
+// REJECT DURING SHUTDOWN
 // ======================
 app.use((req, res, next) => {
   if (isShutdown()) return res.status(503).end();
   next();
-})
+});
 
 // ======================
-// GLOBAL RATE LIMIT
+// GLOBAL RATE LIMIT — untuk /webhook botcommerce sahaja
 // ======================
 const globalLimiter = rateLimit({
   windowMs: 60 * 1000,
@@ -46,38 +45,63 @@ const globalLimiter = rateLimit({
   }
 });
 
+// ======================
+// HEALTH CHECK
+// ======================
 app.get("/health", (req, res) => {
   res.send("OK");
 });
 
 app.use(express.static("public"));
 
-app.use("/webhook", globalLimiter);
-
 startCronJobs();
 
 // ======================
-// META WEBHOOK VERIFY
+// REPLY FUNCTIONS
+// ======================
+async function reply(chatId, text) {
+  try {
+    console.log("REPLY TO:", chatId, "|", text.slice(0, 50));
+    await sendWhatsApp(chatId, text);
+  } catch (err) {
+    console.error("REPLY ERROR:", err);
+  }
+}
+
+async function replyMeta(chatId, text) {
+  try {
+    console.log("META REPLY TO:", chatId, "|", text.slice(0, 50));
+    await sendWhatsAppMeta(chatId, text);
+  } catch (err) {
+    console.error("META REPLY ERROR:", err);
+  }
+}
+
+// ======================
+// META WEBHOOK VERIFY (GET)
+// — MESTI sebelum globalLimiter
 // ======================
 app.get("/webhook/meta", (req, res) => {
   const mode      = req.query["hub.mode"];
   const token     = req.query["hub.verify_token"];
   const challenge = req.query["hub.challenge"];
 
+  console.log("META VERIFY HIT:", { mode, token, challenge });
+
   if (mode === "subscribe" && token === process.env.META_VERIFY_TOKEN) {
     console.log("✅ META WEBHOOK VERIFIED");
     return res.status(200).send(challenge);
   }
 
+  console.log("❌ META VERIFY FAILED — token mismatch atau mode salah");
   return res.status(403).end();
 });
 
 // ======================
-// META WEBHOOK INCOMING
+// META WEBHOOK INCOMING (POST)
 // ======================
 app.post("/webhook/meta", async (req, res) => {
 
-  // Meta expects 200 fast — always ack first
   res.status(200).end();
 
   try {
@@ -88,12 +112,9 @@ app.post("/webhook/meta", async (req, res) => {
     const changes = body.entry?.[0]?.changes?.[0]?.value;
     if (!changes?.messages?.length) return;
 
-    const msg     = changes.messages[0];
-    const chatId  = msg.from; // e.g. "60123456789"
+    const msg    = changes.messages[0];
+    const chatId = msg.from;
 
-    // ======================
-    // PARSE MESSAGE TYPE
-    // ======================
     let userMessage = "";
 
     if (msg.type === "text") {
@@ -111,9 +132,6 @@ app.post("/webhook/meta", async (req, res) => {
 
     console.log("META MSG:", chatId, "|", userMessage);
 
-    // ======================
-    // REUSE EXISTING LOGIC
-    // ======================
     const user = await getUserByChatId(chatId);
     if (!user) return;
 
@@ -129,8 +147,6 @@ app.post("/webhook/meta", async (req, res) => {
       return;
     }
 
-    // Meta button postback tak ada "#Button Reply#" prefix
-    // Tapi kita simulate supaya parseButtonMessage handle sama
     const rawMessage = msg.type === "interactive"
       ? `#Button Reply#${userMessage}`
       : userMessage;
@@ -152,7 +168,14 @@ app.post("/webhook/meta", async (req, res) => {
 
     if (type === "REPORT" && parts.length === 1) {
       const handler = handlerMap.REPORTMENU;
-      const ctx = createContext({ chatId, user, parts, message, res: { end: () => {} }, reply: replyMeta });
+      const ctx = createContext({
+        chatId,
+        user,
+        parts,
+        message,
+        res: { end: () => {} },
+        reply: replyMeta
+      });
       return await handler(ctx);
     }
 
@@ -179,38 +202,11 @@ app.post("/webhook/meta", async (req, res) => {
   }
 });
 
-async function replyMeta(chatId, text) {
-  try {
-    console.log("META REPLY TO:", chatId, "|", text.slice(0, 50));
-    await sendWhatsAppMeta(chatId, text);
-  } catch (err) {
-    console.error("META REPLY ERROR:", err);
-  }
-}
-
-
-async function reply(chatId, text) {
-
-  try {
-
-    console.log(
-      "REPLY TO:",
-      chatId,
-      "|",
-      text.slice(0, 50)
-    );
-
-    await sendWhatsApp(chatId, text);
-
-  } catch (err) {
-
-    console.error("REPLY ERROR:", err);
-  }
-}
-
 // ======================
-// WEBHOOK
+// BOTCOMMERCE WEBHOOK — dengan rate limiter
 // ======================
+app.use("/webhook", globalLimiter);
+
 app.post("/webhook", async (req, res) => {
 
   let body =
@@ -218,10 +214,7 @@ app.post("/webhook", async (req, res) => {
       ? JSON.parse(req.body)
       : req.body || {};
 
-  console.log(
-    "WEBHOOK BODY:",
-    JSON.stringify(body, null, 2)
-  );
+  console.log("WEBHOOK BODY:", JSON.stringify(body, null, 2));
 
   const rawId = (
     body.chat_id ||
@@ -232,51 +225,27 @@ app.post("/webhook", async (req, res) => {
 
   const chatId = rawId.replace(/[^\d]/g, "");
 
-  if (!chatId) {
-    return res.end();
-  }
+  if (!chatId) return res.end();
 
-  // ======================
-  // USER FETCH
-  // ======================
   const user = await getUserByChatId(chatId);
+  if (!user) return res.end();
 
-  // ======================
-  // FIX: was "if (userError)" — userError tidak wujud
-  // getUserByChatId handle error internally, returns null
-  // ======================
-  if (!user) {
-    return res.end();
-  }
-
-  // ======================
-  // PER-USER RATE LIMIT
-  // ======================
   const { allowed } = checkUserRateLimit(chatId);
-
   if (!allowed) {
     console.log("USER RATE LIMIT HIT:", chatId);
     await reply(chatId, "⏳ Terlalu banyak request. Cuba lagi sebentar.");
     return res.end();
   }
 
-  // ======================
-  // PER-TENANT RATE LIMIT
-  // ======================
   const { allowed: tenantAllowed } = checkTenantRateLimit(user.tenant_id);
-
   if (!tenantAllowed) {
     console.log("TENANT RATE LIMIT HIT:", user.tenant_id);
     await reply(chatId, "⏳ Sistem sibuk. Cuba lagi sebentar.");
     return res.end();
   }
 
-  // superadmin — tenant_id = null (bypass semua filter)
   const tenantId = user.tenant_id || null;
 
-  // ======================
-  // MESSAGE PARSE
-  // ======================
   const message = await parseButtonMessage({
     raw: body.user_message || "",
     chatId,
@@ -284,32 +253,16 @@ app.post("/webhook", async (req, res) => {
     user
   });
 
-  if (!message) {
-    return res.end();
-  }
+  if (!message) return res.end();
 
-  const parts =
-    message
-      .trim()
-      .split(/\s+/);
+  const parts = message.trim().split(/\s+/);
+  let type = parts[0]?.toUpperCase();
 
-  let type =
-    parts[0]?.toUpperCase();
+  if (type?.startsWith("APPROVE_ALL_")) type = "APPROVE";
+  else if (type?.startsWith("REJECT_ALL_")) type = "REJECT";
 
-  // Fix for "APPROVE_ALL_" and "REJECT_ALL_"
-  if (type?.startsWith("APPROVE_ALL_")) {
-    type = "APPROVE";
-  } else if (type?.startsWith("REJECT_ALL_")) {
-    type = "REJECT";
-  }
-
-  // ======================
-  // REPORT MENU
-  // ======================
   if (type === "REPORT" && parts.length === 1) {
-
     const handler = handlerMap.REPORTMENU;
-
     const ctx = createContext({
       chatId,
       user,
@@ -318,19 +271,13 @@ app.post("/webhook", async (req, res) => {
       res,
       reply
     });
-
     return await handler(ctx);
   }
 
   const handler = handlerMap[type];
 
   if (!handler) {
-
-    console.log(
-      "NO HANDLER:",
-      type
-    );
-
+    console.log("NO HANDLER:", type);
     return res.end();
   }
 
@@ -344,14 +291,8 @@ app.post("/webhook", async (req, res) => {
   });
 
   try {
-
     return await handler(ctx);
-
   } catch (err) {
-
-    // ======================
-    // CAPTURE TO SENTRY
-    // ======================
     Sentry.captureException(err, {
       extra: {
         chatId,
@@ -360,7 +301,6 @@ app.post("/webhook", async (req, res) => {
         tenant_id: user?.tenant_id
       }
     });
-
     console.error("HANDLER ERROR:", err);
     await reply(chatId, "❌ SYSTEM ERROR");
     return res.end();
@@ -375,7 +315,7 @@ const server = app.listen(PORT, () => {
 });
 
 // ======================
-// GRACEFUL SHUTDOWN — paling bawah sekali
+// GRACEFUL SHUTDOWN
 // ======================
 process.on("SIGTERM", () => gracefulShutdown(server));
 process.on("SIGINT",  () => gracefulShutdown(server));
