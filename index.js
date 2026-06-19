@@ -12,6 +12,8 @@ const { checkUserRateLimit } = require("./utils/userRateLimit");
 const { checkTenantRateLimit } = require("./utils/tenantRateLimit");
 const { gracefulShutdown, isShutdown } = require("./src/shutdown");
 const { Sentry, initSentry } = require("./services/sentry");
+const { sendWhatsAppMeta } = require("./services/notification/whatsappServiceMETA");
+
 
 initSentry();
 
@@ -53,6 +55,139 @@ app.use(express.static("public"));
 app.use("/webhook", globalLimiter);
 
 startCronJobs();
+
+// ======================
+// META WEBHOOK VERIFY
+// ======================
+app.get("/webhook/meta", (req, res) => {
+  const mode      = req.query["hub.mode"];
+  const token     = req.query["hub.verify_token"];
+  const challenge = req.query["hub.challenge"];
+
+  if (mode === "subscribe" && token === process.env.META_VERIFY_TOKEN) {
+    console.log("✅ META WEBHOOK VERIFIED");
+    return res.status(200).send(challenge);
+  }
+
+  return res.status(403).end();
+});
+
+// ======================
+// META WEBHOOK INCOMING
+// ======================
+app.post("/webhook/meta", async (req, res) => {
+
+  // Meta expects 200 fast — always ack first
+  res.status(200).end();
+
+  try {
+    const body = req.body;
+
+    if (body.object !== "whatsapp_business_account") return;
+
+    const changes = body.entry?.[0]?.changes?.[0]?.value;
+    if (!changes?.messages?.length) return;
+
+    const msg     = changes.messages[0];
+    const chatId  = msg.from; // e.g. "60123456789"
+
+    // ======================
+    // PARSE MESSAGE TYPE
+    // ======================
+    let userMessage = "";
+
+    if (msg.type === "text") {
+      userMessage = msg.text?.body || "";
+    } else if (msg.type === "interactive") {
+      const iType = msg.interactive?.type;
+      if (iType === "button_reply") {
+        userMessage = msg.interactive.button_reply?.id || "";
+      } else if (iType === "list_reply") {
+        userMessage = msg.interactive.list_reply?.id || "";
+      }
+    }
+
+    if (!userMessage) return;
+
+    console.log("META MSG:", chatId, "|", userMessage);
+
+    // ======================
+    // REUSE EXISTING LOGIC
+    // ======================
+    const user = await getUserByChatId(chatId);
+    if (!user) return;
+
+    const { allowed } = checkUserRateLimit(chatId);
+    if (!allowed) {
+      await replyMeta(chatId, "⏳ Terlalu banyak request. Cuba lagi sebentar.");
+      return;
+    }
+
+    const { allowed: tenantAllowed } = checkTenantRateLimit(user.tenant_id);
+    if (!tenantAllowed) {
+      await replyMeta(chatId, "⏳ Sistem sibuk. Cuba lagi sebentar.");
+      return;
+    }
+
+    // Meta button postback tak ada "#Button Reply#" prefix
+    // Tapi kita simulate supaya parseButtonMessage handle sama
+    const rawMessage = msg.type === "interactive"
+      ? `#Button Reply#${userMessage}`
+      : userMessage;
+
+    const message = await parseButtonMessage({
+      raw: rawMessage,
+      chatId,
+      body: { reply_message_id: msg.context?.id || null },
+      user
+    });
+
+    if (!message) return;
+
+    const parts = message.trim().split(/\s+/);
+    let type = parts[0]?.toUpperCase();
+
+    if (type?.startsWith("APPROVE_ALL_")) type = "APPROVE";
+    else if (type?.startsWith("REJECT_ALL_")) type = "REJECT";
+
+    if (type === "REPORT" && parts.length === 1) {
+      const handler = handlerMap.REPORTMENU;
+      const ctx = createContext({ chatId, user, parts, message, res: { end: () => {} }, reply: replyMeta });
+      return await handler(ctx);
+    }
+
+    const handler = handlerMap[type];
+    if (!handler) {
+      console.log("META NO HANDLER:", type);
+      return;
+    }
+
+    const ctx = createContext({
+      chatId,
+      user,
+      parts,
+      message,
+      res: { end: () => {} },
+      reply: replyMeta
+    });
+
+    await handler(ctx);
+
+  } catch (err) {
+    Sentry.captureException(err);
+    console.error("META HANDLER ERROR:", err);
+  }
+});
+
+async function replyMeta(chatId, text) {
+  try {
+    console.log("META REPLY TO:", chatId, "|", text.slice(0, 50));
+    await sendWhatsAppMeta(chatId, text);
+  } catch (err) {
+    console.error("META REPLY ERROR:", err);
+  }
+}
+
 
 async function reply(chatId, text) {
 
