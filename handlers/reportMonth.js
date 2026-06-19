@@ -1,5 +1,5 @@
 const { withRole } = require("../core/withRole");
-const { sendButtonsRouter } = require("../notification/notificationRouter");
+const { sendButtonsRouter } = require("../services/notification/notificationRouter");
 
 // ======================
 // LAST 3 MONTHS
