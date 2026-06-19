@@ -61,8 +61,8 @@
 }
 
 .mockup {
-  width: 480px;
-  min-height: 650px;
+  width: 650px;
+  height: calc(100% - 0px);
 }
 
 .staff-group {
