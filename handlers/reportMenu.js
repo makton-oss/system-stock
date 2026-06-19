@@ -1,5 +1,5 @@
 const { withRole } = require("../core/withRole");
-const { sendButtons } = require("../services/notification/buttonService");
+const { sendButtonsRouter } = require("../notification/notificationRouter");
 
 module.exports = withRole(["manager", "owner", "admin"], async (ctx) => {
 
@@ -9,7 +9,7 @@ module.exports = withRole(["manager", "owner", "admin"], async (ctx) => {
   // ======================
   // ROW 1
   // ======================
-  await sendButtons(
+  await sendButtonsRouter(
     chatId,
     `📊 REPORT MENU\n\n1. Monthly Overview — ringkasan nilai stok\n2. Stock Value — nilai stok pada tarikh\n3. In/Out Flow — aliran nilai masuk keluar`,
     [
@@ -33,7 +33,7 @@ module.exports = withRole(["manager", "owner", "admin"], async (ctx) => {
     );
   }
 
-  await sendButtons(
+  await sendButtonsRouter(
     chatId,
     `4. Item Movement — kuantiti per item\n5. Dead Stock — item tiada movement\n6. Outlet Compare — banding semua outlet (admin)`,
     row2Buttons

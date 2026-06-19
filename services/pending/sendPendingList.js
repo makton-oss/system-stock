@@ -1,4 +1,4 @@
-const { sendButtons } = require("../notification/buttonService");
+const { sendButtonsRouter } = require("../notification/notificationRouter");
 const { buildPendingButtons } = require("./buildPendingButtons");
 const { buildStockRequestMessage } = require("../../utils/messages/buildStockRequestMessage");
 
@@ -50,7 +50,7 @@ async function sendPendingList({
         outletName
       );
 
-    await sendButtons(
+    await sendButtonsRouter(
       chatId,
       text,
       buttons

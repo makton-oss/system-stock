@@ -1,5 +1,5 @@
 const { withRole } = require("../core/withRole");
-const { sendButtons } = require("../services/notification/buttonService");
+const { sendButtonsRouter } = require("../notification/notificationRouter");
 
 // ======================
 // LAST 3 MONTHS
@@ -67,7 +67,7 @@ module.exports = withRole(
     // ======================
     const months = getLast3Months();
 
-    await sendButtons(
+    await sendButtonsRouter(
       chatId,
       `📅 PILIH BULAN\n\n${mode} REPORT`, 
       months.map(m => ({

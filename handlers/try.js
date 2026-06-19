@@ -1,5 +1,5 @@
 const { withRole } = require("../core/withRole");
-const { sendButtons } = require("../services/notification/buttonService");
+const { sendButtonsRouter } = require("../notification/notificationRouter");
 
 module.exports = withRole(["staff","manager","admin"], async (ctx) => {
 
@@ -23,7 +23,7 @@ module.exports = withRole(["staff","manager","admin"], async (ctx) => {
   // ======================
   // 🚀 SEND BUTTON (POSTBACK STYLE)
   // ======================
-  await sendButtons(
+  await sendButtonsRouter(
     chatId,
     "🧪 TEST POSTBACK BUTTON\n\nPilih action:",
     [

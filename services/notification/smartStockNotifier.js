@@ -1,6 +1,6 @@
 const supabase = require("../db");
 const { toProperCase } = require("../../utils/formatter");
-const { sendButtons } = require("./buttonService");
+const { sendButtonsRouter } = require("../notification/notificationRouter");
 const { getManagersByOutlet } = require("../../db/users/getManagersByOutlet");
 const { buildStockRequestMessage } = require("../../utils/messages/buildStockRequestMessage");
 const { applyTenant } = require("../../utils/applyTenant");
@@ -56,7 +56,7 @@ async function notifySmartStock(outletId, tenantId = null) {
         { id: `reject ${r.id}`,  title: `REJECT ${r.id}`  }
       ];
 
-      await sendButtons(m.chat_id, text, buttons);
+      await sendButtonsRouter(m.chat_id, text, buttons);
     }
 
     return;
@@ -69,7 +69,7 @@ async function notifySmartStock(outletId, tenantId = null) {
 
   for (let m of managers) {
 
-    await sendButtons(
+    await sendButtonsRouter(
       m.chat_id,
       text,
       [
