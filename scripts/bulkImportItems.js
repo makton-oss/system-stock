@@ -1,7 +1,7 @@
 require("dotenv").config();
 
-const path = require("path");
-const XLSX = require("xlsx");
+const path     = require("path");
+const ExcelJS  = require("exceljs");
 
 const { normalizeItem }   = require("../utils/helpers");
 const { getTenantBySlug } = require("../db/tenants/getTenantBySlug");
@@ -9,36 +9,63 @@ const { getOutletByCode } = require("../db/outlets/getOutletByCode");
 const { addStockItem }    = require("../services/stock/addStockItem");
 
 // ======================
-// EXCEL/CSV PARSER (SheetJS handle both format)
-// Header row kena ada (case/space tak kisah):
+// EXCEL PARSER (ExcelJS)
+// Header row (row 1) kena ada, case/space tak kisah:
 // item | category | min_qty | cost | uom | outlet
 // ======================
-function parseFile(filePath) {
+async function parseFile(filePath) {
 
-  const workbook  = XLSX.readFile(filePath);
-  const sheetName = workbook.SheetNames[0];
-  const sheet     = workbook.Sheets[sheetName];
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.readFile(filePath);
 
-  const rows = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+  const sheet = workbook.worksheets[0];
+  if (!sheet) return [];
 
-  return rows.map((r, idx) => {
+  // ======================
+  // BACA HEADER ROW (row 1) — normalize jadi lowercase key
+  // ======================
+  const headerRow = sheet.getRow(1);
+  const headerMap = {}; // { colIndex: "item" }
 
-    // normalize header key — case/space tak kisah
+  headerRow.eachCell((cell, colNumber) => {
+    const key = String(cell.value ?? "").toLowerCase().trim();
+    if (key) headerMap[colNumber] = key;
+  });
+
+  const rows = [];
+
+  // ======================
+  // BACA DATA ROW (row 2 onwards)
+  // ======================
+  sheet.eachRow((row, rowNumber) => {
+
+    if (rowNumber === 1) return; // skip header
+
     const normalized = {};
-    Object.keys(r).forEach(k => {
-      normalized[k.toLowerCase().trim()] = r[k];
+
+    row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+      const key = headerMap[colNumber];
+      if (key) normalized[key] = cell.value;
     });
 
-    return {
-      rowNum:   idx + 2, // +2 sebab row 1 = header, data mula row 2
+    // skip baris kosong sepenuhnya
+    const hasAnyValue = Object.values(normalized).some(
+      v => v !== null && v !== undefined && String(v).trim() !== ""
+    );
+    if (!hasAnyValue) return;
+
+    rows.push({
+      rowNum:   rowNumber,
       item:     String(normalized.item     ?? "").trim(),
       category: String(normalized.category ?? "").trim(),
       minQty:   normalized.min_qty,
       cost:     normalized.cost,
       uom:      String(normalized.uom      ?? "").trim(),
       outlet:   String(normalized.outlet   ?? "").trim()
-    };
+    });
   });
+
+  return rows;
 }
 
 (async () => {
@@ -48,7 +75,7 @@ function parseFile(filePath) {
   const dryRun   = process.argv.includes("--dry-run");
 
   if (!slug || !filePath) {
-    console.log("❌ USAGE: node scripts/bulkImportItems.js <slug> <path-to-excel-or-csv> [--dry-run]");
+    console.log("❌ USAGE: node scripts/bulkImportItems.js <slug> <path-to-excel> [--dry-run]");
     process.exit(1);
   }
 
@@ -65,7 +92,7 @@ function parseFile(filePath) {
 
   let rawRows;
   try {
-    rawRows = parseFile(path.resolve(filePath));
+    rawRows = await parseFile(path.resolve(filePath));
   } catch (err) {
     console.log(`❌ GAGAL BACA FILE: ${err.message}`);
     process.exit(1);
@@ -87,12 +114,12 @@ function parseFile(filePath) {
 
   for (const row of rawRows) {
 
-    const item     = normalizeItem(row.item);
-    const category = row.category;
-    const minQty   = parseInt(row.minQty);
-    const cost     = parseFloat(row.cost);
-    const uom      = row.uom;
-    const outletName = row.outlet;
+    const item       = normalizeItem(row.item);
+    const category    = row.category;
+    const minQty       = parseInt(row.minQty);
+    const cost           = parseFloat(row.cost);
+    const uom              = row.uom;
+    const outletName       = row.outlet;
 
     if (!item || !category || isNaN(minQty) || isNaN(cost) || !uom || !outletName) {
       hardErrors.push(
