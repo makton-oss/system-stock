@@ -180,6 +180,12 @@
   margin-bottom: 2.5rem;
 }
 
+.pricing-card__note {
+  margin-top: 1rem;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
 .maint-header {
   margin-bottom: 1rem;
 }
