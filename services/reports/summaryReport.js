@@ -4,13 +4,13 @@ const { applyTenant } = require("../../utils/applyTenant");
 async function getSummaryReport({ start, end, outletIds, tenantId }) {
 
   let movementQ = supabase
-    .from("movements")        // ✅ fix: stock_movements → movements
+    .from("movements")
     .select(`qty, type, cost_price, outlet_id, item, outlets(name)`)
     .gte("created_at", start)
     .lte("created_at", end);
 
   if (outletIds) movementQ = movementQ.in("outlet_id", outletIds);
-  movementQ = applyTenant(movementQ, tenantId);  // movements ada tenant_id ✅
+  movementQ = applyTenant(movementQ, tenantId);
 
   const { data: movements, error } = await movementQ;
   if (error) return { error };
@@ -20,17 +20,16 @@ async function getSummaryReport({ start, end, outletIds, tenantId }) {
     .toISOString().split("T")[0];
 
   const endDate = new Date(end);
-  endDate.setDate(endDate.getDate() - 1);
   const closingDate = endDate.toISOString().split("T")[0];
 
   async function fetchSnapshot(date) {
     let q = supabase
-      .from("snapshots")      // ✅ fix: stock_snapshots → snapshots
+      .from("snapshots")
       .select("outlet_id, inventory_value, outlets(name)")
       .eq("snapshot_date", date);
 
     if (outletIds) q = q.in("outlet_id", outletIds);
-    q = applyTenant(q, tenantId);  // snapshots ada tenant_id ✅
+    q = applyTenant(q, tenantId);
 
     const { data } = await q;
     if (!data?.length) return null;
@@ -76,9 +75,11 @@ async function getSummaryReport({ start, end, outletIds, tenantId }) {
     o.closingValue = closingMap?.[outletId] ?? null;
   });
 
-  const sorted = [...outletMap.values()].sort((a, b) => a.outletId - b.outletId);
+  // SORT: alphabet by outlet name (bukan outletId)
+  const sorted = [...outletMap.values()].sort((a, b) => a.outletName.localeCompare(b.outletName));
 
   sorted.forEach(o => {
+    o.outletName = o.outletName.toUpperCase();
     o.topUsage   = Object.entries(o.usageMap).sort((a,b)=>b[1]-a[1]).slice(0,5);
     o.topWastage = Object.entries(o.wastageMap).sort((a,b)=>b[1]-a[1]).slice(0,5);
 

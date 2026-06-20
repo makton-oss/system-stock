@@ -7,7 +7,7 @@ function normalizeItem(text = "") {
   return text
     .toLowerCase()
     .trim()
-    .replace(/-/g, " ")   // ← replaces dash with space
+    .replace(/-/g, " ")
     .replace(/\s+/g, " ");
 }
 
@@ -33,7 +33,7 @@ function toProperCase(str = "") {
 }
 
 // ======================
-// CURRENCY
+// CURRENCY (legacy)
 // ======================
 function formatCurrency(n = 0) {
   return `RM${Number(n)
@@ -42,7 +42,7 @@ function formatCurrency(n = 0) {
 }
 
 // ======================
-// FORMAT AMOUNT (2 DECIMAL, THOUSANDS SEPARATOR)
+// AMOUNT (2 decimal + comma separator)
 // ======================
 function formatAmount(n = 0) {
   return Number(n)
@@ -65,14 +65,30 @@ function formatLogDateTime(date = null) {
 }
 
 // ======================
+// CHECK: IS THIS MONTH THE CURRENT MONTH?
+// ======================
+function isCurrentMonth(month, year) {
+  const now = DateTime.now().setZone("Asia/Kuala_Lumpur");
+  return now.month === month && now.year === year;
+}
+
+// ======================
 // MONTH PARSING
+// "current" ATAU bulan semasa (e.g. jun-26 bila hari ni Jun) → day-range
+// bulan lepas/lain → whole month
 // ======================
 function parseMonthInput(input) {
+
+  const now = DateTime.now().setZone("Asia/Kuala_Lumpur");
+
+  // ======================
+  // KEYWORD "current"
+  // ======================
   if (!input || input.toLowerCase() === "current") {
-    const now = DateTime.now().setZone("Asia/Kuala_Lumpur");
     return {
       start: now.startOf("month").toUTC().toJSDate(),
-      end:   now.startOf("month").plus({ months: 1 }).toUTC().toJSDate()
+      end:   now.endOf("day").toUTC().toJSDate(),
+      isDayRange: true
     };
   }
 
@@ -88,6 +104,20 @@ function parseMonthInput(input) {
 
   if (!month || isNaN(year)) return null;
 
+  // ======================
+  // BULAN YANG DIPILIH = BULAN SEMASA → day-range juga
+  // ======================
+  if (isCurrentMonth(month, year)) {
+    return {
+      start: now.startOf("month").toUTC().toJSDate(),
+      end:   now.endOf("day").toUTC().toJSDate(),
+      isDayRange: true
+    };
+  }
+
+  // ======================
+  // BULAN LAIN → whole month
+  // ======================
   const start = DateTime
     .fromObject({ year, month, day: 1 }, { zone: "Asia/Kuala_Lumpur" })
     .toUTC()
@@ -99,26 +129,41 @@ function parseMonthInput(input) {
     .toUTC()
     .toJSDate();
 
-  return { start, end };
+  return { start, end, isDayRange: false };
 }
 
+// ======================
+// MONTH LABEL
+// ======================
 function formatMonthLabel(monthInput, startDate) {
-  let d;
 
-  if (monthInput && monthInput.toLowerCase() !== "current") {
-    const months = { jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11 };
-    const [m, y] = monthInput.toLowerCase().split("-");
-    d = new Date(2000 + parseInt(y), months[m], 1);
+  const now = DateTime.now().setZone("Asia/Kuala_Lumpur");
+  let d, isDayRange, dayOfMonth;
+
+  if (!monthInput || monthInput.toLowerCase() === "current") {
+    d = now.toJSDate();
+    isDayRange = true;
+    dayOfMonth = now.day;
   } else {
-    // FIX: guna MYT sekarang, bukan parse dari startDate UTC
-    d = DateTime.now().setZone("Asia/Kuala_Lumpur").toJSDate();
+    const months = { jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:12 };
+    const [m, y] = monthInput.toLowerCase().split("-");
+    const month  = months[m];
+    const year   = 2000 + parseInt(y);
+
+    d = new Date(year, month - 1, 1);
+    isDayRange = isCurrentMonth(month, year);
+    dayOfMonth = isDayRange ? now.day : null;
   }
 
   const monthName = d.toLocaleString("en-MY", { month: "long" });
   const year      = d.getFullYear();
   const lastDay   = new Date(year, d.getMonth() + 1, 0).getDate();
 
-  return `${monthName} ${year} (1-${lastDay})`;
+  if (isDayRange) {
+    return `${monthName} ${year} (1hb-${dayOfMonth}hb)`;
+  }
+
+  return `${monthName} ${year} (1hb-${lastDay}hb)`;
 }
 
 module.exports = {
@@ -130,5 +175,6 @@ module.exports = {
   nowMY,
   formatLogDateTime,
   parseMonthInput,
-  formatMonthLabel
+  formatMonthLabel,
+  isCurrentMonth
 };

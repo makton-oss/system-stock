@@ -2,14 +2,14 @@ const { withRole } = require("../core/withRole");
 const { sendButtonsRouter } = require("../services/notification/notificationRouter");
 
 // ======================
-// LAST 3 MONTHS
+// CURRENT + LAST 2 MONTHS (3 total, mula dari bulan semasa)
 // ======================
 function getLast3Months() {
 
   const months = [];
   const now = new Date();
 
-  for (let i = 1; i <= 3; i++) {
+  for (let i = 0; i <= 2; i++) {
 
     const d = new Date(
       now.getFullYear(),
@@ -32,28 +32,8 @@ function getLast3Months() {
   return months;
 }
 
-// ======================
-// LAST MONTH dd/mm/yy
-// ======================
-function getLastMonthDate() {
-
-  const now = new Date();
-
-  const lastDay = new Date(
-    now.getFullYear(),
-    now.getMonth(),
-    0
-  );
-
-  const dd = String(lastDay.getDate()).padStart(2, "0");
-  const mm = String(lastDay.getMonth() + 1).padStart(2, "0");
-  const yy = String(lastDay.getFullYear()).slice(-2);
-
-  return `${dd}/${mm}/${yy}`;
-}
-
 module.exports = withRole(
-  ["manager", "admin"],
+  ["manager", "owner", "admin"],
   async (ctx) => {
 
     const { chatId, parts, res } = ctx;
@@ -62,14 +42,11 @@ module.exports = withRole(
 
     if (!mode) return res.end();
 
-    // ======================
-    // OTHER REPORTS
-    // ======================
     const months = getLast3Months();
 
     await sendButtonsRouter(
       chatId,
-      `📅 PILIH BULAN\n\n${mode} REPORT`, 
+      `📅 PILIH BULAN\n\n${mode} REPORT`,
       months.map(m => ({
         id: `REPORT ${mode} ${m}`,
         title: m

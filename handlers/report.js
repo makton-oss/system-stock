@@ -2,13 +2,9 @@ const { withRole } = require("../core/withRole");
 const { getAccessibleOutletIds } = require("../db/outlets/getAccessibleOutletIds");
 const { getInventoryReport, getFlowReport, getDeadReport, getDetailReport } = require("../services/reportService");
 const { getSummaryReport } = require("../services/reports/summaryReport");
+const { getOwnerReport } = require("../services/reports/ownerSummary");
 const { formatSummaryReport, formatInventoryReport, formatDetailReport, formatDeadReport, formatFlowReport, parseMonthInput, formatMonthLabel } = require("../utils/formatter");
-
-function toEndOfMonth(rangeEnd) {
-  const d = new Date(rangeEnd);
-  d.setMilliseconds(-1);
-  return d.toISOString();
-}
+const { formatOwnerReport } = require("../utils/formatters/ownerFormat");
 
 module.exports = withRole(["manager", "owner", "admin"], async (ctx) => {
 
@@ -25,7 +21,7 @@ module.exports = withRole(["manager", "owner", "admin"], async (ctx) => {
     return res.end();
   }
 
-  const REPORT_MODES = ["FLOW", "DEAD", "DETAIL", "INVENTORY"];
+  const REPORT_MODES = ["FLOW", "DEAD", "DETAIL", "INVENTORY", "COMPARE"];
   const first = parts[1]?.toUpperCase();
 
   let mode = null;
@@ -46,6 +42,44 @@ module.exports = withRole(["manager", "owner", "admin"], async (ctx) => {
   }
 
   // ======================
+  // COMPARE — OWNER ONLY
+  // ======================
+  if (mode === "COMPARE") {
+
+    if (user.role !== "owner" && user.role !== "superadmin") {
+      await reply(chatId, "❌ NO ACCESS");
+      return res.end();
+    }
+
+    const ownerOutletIds = await getAccessibleOutletIds(user);
+    const compareMode = parts[2] ? "monthly" : "dayrange";
+
+    try {
+      const result = await getOwnerReport({
+        mode: compareMode,
+        monthInput: parts[2],
+        outletIds: ownerOutletIds,
+        tenantId
+      });
+
+      if (result.error === "INVALID_MONTH") {
+        await reply(chatId, "❌ FORMAT: REPORT COMPARE may-26");
+        return res.end();
+      }
+
+      if (result.error) throw result.error;
+
+      await reply(chatId, formatOwnerReport(result.data, result.label));
+
+    } catch (err) {
+      console.log("COMPARE REPORT ERROR:", err);
+      await reply(chatId, "❌ REPORT ERROR");
+    }
+
+    return res.end();
+  }
+
+  // ======================
   // INVENTORY
   // ======================
   if (mode === "INVENTORY") {
@@ -58,20 +92,21 @@ module.exports = withRole(["manager", "owner", "admin"], async (ctx) => {
       return res.end();
     }
 
-    const endDate = new Date(range.end);
-    endDate.setDate(endDate.getDate() - 1);
-    const snapshotDate = endDate.toISOString().split("T")[0];
-    const monthLabel   = formatMonthLabel(invMonthInput, range.start.toISOString());
+    // snapshot date = last day yang relevant (hari ini kalau day-range, last day bulan kalau whole-month)
+    let snapshotDate;
+    if (range.isDayRange) {
+      snapshotDate = new Date(range.end).toISOString().split("T")[0];
+    } else {
+      const endDate = new Date(range.end);
+      endDate.setDate(endDate.getDate() - 1);
+      snapshotDate = endDate.toISOString().split("T")[0];
+    }
+
+    const monthLabel = formatMonthLabel(invMonthInput, range.start.toISOString());
 
     try {
       const result = await getInventoryReport({ outletIds, snapshotDate, tenantId });
       if (result.error) throw result.error;
-
-      if (!Object.keys(result).length) {
-        await reply(chatId, `❌ TIADA SNAPSHOT UNTUK: ${monthLabel}\n\nSnapshot dijana setiap hari tengah malam.`);
-        return res.end();
-      }
-
       await reply(chatId, formatInventoryReport(result, monthLabel));
 
     } catch (err) {
@@ -83,7 +118,38 @@ module.exports = withRole(["manager", "owner", "admin"], async (ctx) => {
   }
 
   // ======================
-  // MONTH PARSE
+  // DEAD STOCK — guna asOfDate, bukan start/end range
+  // ======================
+  if (mode === "DEAD") {
+
+    const range = parseMonthInput(monthInput);
+
+    if (!range) {
+      await reply(chatId, "❌ FORMAT: REPORT DEAD may-26");
+      return res.end();
+    }
+
+    const asOfDate = range.isDayRange
+      ? new Date(range.end).toISOString()
+      : new Date(new Date(range.end).getTime() - 1).toISOString(); // last moment of whole month
+
+    const monthLabel = formatMonthLabel(monthInput, range.start.toISOString());
+
+    try {
+      const result = await getDeadReport({ outletIds, tenantId, asOfDate });
+      if (result.error) throw result.error;
+      await reply(chatId, formatDeadReport(result, monthLabel));
+
+    } catch (err) {
+      console.log("DEAD REPORT ERROR:", err);
+      await reply(chatId, "❌ REPORT ERROR");
+    }
+
+    return res.end();
+  }
+
+  // ======================
+  // MONTH PARSE — FLOW / DETAIL / SUMMARY
   // ======================
   const range = parseMonthInput(monthInput);
 
@@ -93,7 +159,7 @@ module.exports = withRole(["manager", "owner", "admin"], async (ctx) => {
   }
 
   const start      = range.start.toISOString();
-  const end        = toEndOfMonth(range.end);
+  const end        = range.end.toISOString();
   const monthLabel = formatMonthLabel(monthInput, start);
 
   // ======================
@@ -111,26 +177,10 @@ module.exports = withRole(["manager", "owner", "admin"], async (ctx) => {
         await reply(chatId, formatFlowReport(result, monthLabel));
         break;
 
-      case "DEAD":
-        result = await getDeadReport({ start, end, outletIds, tenantId });
-        if (result.error) throw result.error;
-        const hasDead = Object.values(result).some(arr => arr.length);
-        if (!hasDead) {
-          await reply(chatId, `✅ TIADA DEAD STOCK\n${monthLabel}`);
-        } else {
-          await reply(chatId, formatDeadReport(result, monthLabel));
-        }
-        break;
-
       case "DETAIL":
         result = await getDetailReport({ start, end, outletIds, tenantId });
         if (result.error) throw result.error;
-        const hasData = Object.values(result).some(arr => arr.length);
-        if (!hasData) {
-          await reply(chatId, "📭 TIADA DATA");
-        } else {
-          await reply(chatId, formatDetailReport(result, monthLabel));
-        }
+        await reply(chatId, formatDetailReport(result, monthLabel));
         break;
 
       default:

@@ -34,7 +34,7 @@ async function parseButtonMessage({ raw, chatId, body, user }) {
   // ======================
   // REPORT TYPE SELECTION
   // ======================
-  const REPORT_MODES = ["SUMMARY", "INVENTORY", "FLOW", "DEAD", "DETAIL"];
+  const REPORT_MODES = ["SUMMARY", "INVENTORY", "FLOW", "DEAD", "DETAIL", "COMPARE"];
 
   if (REPORT_MODES.includes(upperClean) && hasReplyId) {
     reportModeStore.set(chatId, upperClean);

@@ -1,5 +1,6 @@
 const supabase = require("./db");
 const { applyTenant } = require("../utils/applyTenant");
+const { DateTime } = require("luxon");
 
 function groupByOutlet(rows) {
   const map = {};
@@ -11,15 +12,22 @@ function groupByOutlet(rows) {
   return map;
 }
 
+function sortByOutletNameAsc(grouped) {
+  const sortedKeys = Object.keys(grouped).sort((a, b) => a.localeCompare(b));
+  const result = {};
+  sortedKeys.forEach(k => { result[k.toUpperCase()] = grouped[k]; });
+  return result;
+}
+
 async function getInventoryReport({ outletIds, snapshotDate, tenantId }) {
 
   let q = supabase
-    .from("snapshots")        // ✅ fix: stock_snapshots → snapshots
+    .from("snapshots")
     .select(`qty, inventory_value, outlet_id, item_name, outlets(name)`)
     .eq("snapshot_date", snapshotDate);
 
   if (outletIds) q = q.in("outlet_id", outletIds);
-  q = applyTenant(q, tenantId);  // snapshots ada tenant_id ✅
+  q = applyTenant(q, tenantId);
 
   const { data, error } = await q;
   if (error) return { error };
@@ -37,19 +45,19 @@ async function getInventoryReport({ outletIds, snapshotDate, tenantId }) {
     g.items = g.items.sort((a, b) => b.value - a.value).slice(0, 10);
   });
 
-  return grouped;
+  return sortByOutletNameAsc(grouped);
 }
 
 async function getDetailReport({ start, end, outletIds, tenantId }) {
 
   let q = supabase
-    .from("movements")        // ✅ fix: stock_movements → movements
+    .from("movements")
     .select(`item_id, item, qty, type, outlet_id, outlets(name)`)
     .gte("created_at", start)
     .lte("created_at", end);
 
   if (outletIds?.length) q = q.in("outlet_id", outletIds);
-  q = applyTenant(q, tenantId);  // movements ada tenant_id ✅
+  q = applyTenant(q, tenantId);
 
   const { data, error } = await q;
   if (error) return { error };
@@ -66,54 +74,80 @@ async function getDetailReport({ start, end, outletIds, tenantId }) {
       else if (r.type === "out")     map[key].out     += Number(r.qty || 0);
       else if (r.type === "wastage") map[key].wastage += Number(r.qty || 0);
     });
-    result[outlet] = Object.values(map).map(i => ({ ...i, bal: i.in - i.out - i.wastage }));
+
+    // FILTER: hanya item dengan IN > 0 atau OUT > 0
+    const items = Object.values(map)
+      .map(i => ({ ...i, bal: i.in - i.out - i.wastage }))
+      .filter(i => i.in > 0 || i.out > 0);
+
+    result[outlet] = items;
   });
 
-  return result;
+  return sortByOutletNameAsc(result);
 }
 
-async function getDeadReport({ start, end, outletIds, tenantId }) {
+// ======================
+// DEAD STOCK — last movement date per item, kira hari tidak bergerak
+// asOfDate = end of period yang dipilih (bukan hari ini, supaya konsisten bila query bulan lepas)
+// ======================
+async function getDeadReport({ outletIds, tenantId, asOfDate }) {
 
-  // ⚠️ item_stock tiada tenant_id
   let stockQ = supabase
-    .from("item_stock")       // ✅ fix: stock → item_stock
-    .select(`item_id, item, outlet_id, items(name), outlets(name)`)  // ✅ fix: stock_items → items
+    .from("item_stock")
+    .select(`item_id, item, outlet_id, items(name), outlets(name)`)
     .eq("is_active", true);
 
   if (outletIds?.length) stockQ = stockQ.in("outlet_id", outletIds);
-  // Tak boleh applyTenant pada item_stock — outletIds dah scope
 
-  const { data: stock } = await stockQ;
+  const { data: stock, error: stockError } = await stockQ;
+  if (stockError) return { error: stockError };
 
+  // ======================
+  // CARI LAST MOVEMENT DATE PER ITEM (any time, bukan terhad date range)
+  // ======================
   let moveQ = supabase
-    .from("movements")        // ✅ fix: stock_movements → movements
-    .select("item_id, outlet_id")
-    .gte("created_at", start)
-    .lte("created_at", end);
+    .from("movements")
+    .select("item_id, outlet_id, created_at")
+    .lte("created_at", asOfDate)
+    .order("created_at", { ascending: false });
 
-  if (outletIds?.length) moveQ = moveQ.in("outlet_id", outletIds);
   moveQ = applyTenant(moveQ, tenantId);
 
-  const { data: move } = await moveQ;
+  const { data: moves, error: moveError } = await moveQ;
+  if (moveError) return { error: moveError };
 
-  const used    = new Set(move.map(m => `${m.item_id}-${m.outlet_id}`));
-  const grouped = groupByOutlet(stock);
-  const result  = {};
-
-  Object.entries(grouped).forEach(([outlet, rows]) => {
-    result[outlet] = rows
-      .filter(r => !used.has(`${r.item_id}-${r.outlet_id}`))
-      .map(r => ({ name: r.items?.name || r.item }));  // ✅ fix: stock_items → items
+  const lastMoveMap = {};
+  moves.forEach(m => {
+    const key = `${m.item_id}-${m.outlet_id}`;
+    if (!lastMoveMap[key]) lastMoveMap[key] = m.created_at; // first hit = latest, sebab order desc
   });
 
-  return result;
+  const grouped = groupByOutlet(stock);
+  const result  = {};
+  const now     = DateTime.fromISO(asOfDate);
+
+  Object.entries(grouped).forEach(([outlet, rows]) => {
+    result[outlet] = rows.map(r => {
+      const key = `${r.item_id}-${r.outlet_id}`;
+      const lastMove = lastMoveMap[key];
+
+      if (!lastMove) {
+        return { name: r.items?.name || r.item, daysSince: null, neverMoved: true };
+      }
+
+      const daysSince = Math.floor(now.diff(DateTime.fromISO(lastMove), "days").days);
+      return { name: r.items?.name || r.item, daysSince, neverMoved: false };
+    }).sort((a, b) => (b.daysSince ?? 99999) - (a.daysSince ?? 99999));
+  });
+
+  return sortByOutletNameAsc(result);
 }
 
 async function getFlowReport({ start, end, outletIds, tenantId }) {
 
   let q = supabase
-    .from("movements")        // ✅ fix: stock_movements → movements
-    .select(`qty, type, item_id, item, outlet_id, cost_price, items(name), outlets(name)`)  // ✅ fix
+    .from("movements")
+    .select(`qty, type, item_id, item, outlet_id, cost_price, items(name), outlets(name)`)
     .gte("created_at", start)
     .lte("created_at", end);
 
@@ -153,7 +187,7 @@ async function getFlowReport({ start, end, outletIds, tenantId }) {
     };
   });
 
-  return result;
+  return sortByOutletNameAsc(result);
 }
 
 module.exports = { getInventoryReport, getDetailReport, getDeadReport, getFlowReport };
