@@ -16,9 +16,9 @@ async function getGlobalStaffSummary() {
 
   const { data: users, error: userError } = await supabase
     .from("users")
-    .select("tenant_id, role")
+    .select("chat_id, tenant_id, role")
     .eq("is_active", true)
-    .in("role", ["staff", "supervisor", "manager", "admin"]);
+    .in("role", ["staff", "supervisor", "manager", "admin", "owner"]); // ✅ tambah owner
 
   if (userError) {
     console.log("GET_GLOBAL_SUMMARY USER ERROR:", userError);
@@ -34,15 +34,15 @@ async function getGlobalStaffSummary() {
     return [];
   }
 
-  // ⚠️ keyed by tenant_id (UUID) — bukan nama — jamin isolation walau nama collide
-  const map = new Map();
+  const map  = new Map();
+  const seen = new Set(); // ✅ dedupe guard
 
   tenants.forEach(t => {
     map.set(t.id, {
       tenantId:    t.id,
       tenantName:  t.name,
       outletCount: 0,
-      staff: 0, supervisor: 0, manager: 0, admin: 0
+      owner: 0, admin: 0, manager: 0, supervisor: 0, staff: 0
     });
   });
 
@@ -54,10 +54,18 @@ async function getGlobalStaffSummary() {
   users.forEach(u => {
     const entry = map.get(u.tenant_id);
     if (!entry) return;
-    if (u.role === "staff")      entry.staff++;
-    if (u.role === "supervisor") entry.supervisor++;
-    if (u.role === "manager")    entry.manager++;
+
+    // ✅ pastikan setiap chat_id dikira SEKALI je per (tenant, role) —
+    // jamin manager multi-outlet tak pernah double count
+    const dedupeKey = `${u.tenant_id}-${u.role}-${u.chat_id}`;
+    if (seen.has(dedupeKey)) return;
+    seen.add(dedupeKey);
+
+    if (u.role === "owner")      entry.owner++;
     if (u.role === "admin")      entry.admin++;
+    if (u.role === "manager")    entry.manager++;
+    if (u.role === "supervisor") entry.supervisor++;
+    if (u.role === "staff")      entry.staff++;
   });
 
   return [...map.values()];

@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+<meta charset="UTF-8">
+<title>Message Logs Viewer</title>
+<style>
+  body { font-family: sans-serif; background:#ece5dd; margin:0; padding:20px; }
+  .topbar { display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap; }
+  input, select, button { padding:8px; border-radius:6px; border:1px solid #ccc; font-size:14px; }
+  button { background:#1D9E75; color:#fff; border:none; cursor:pointer; }
+  .chat { max-width:600px; margin:0 auto; display:flex; flex-direction:column; gap:8px; }
+  .msg { padding:8px 12px; border-radius:8px; max-width:80%; font-size:14px; word-break:break-word; }
+  .msg.in { background:#fff; align-self:flex-start; border-radius:0 8px 8px 8px; }
+  .msg.out { background:#d9fdd3; align-self:flex-end; border-radius:8px 0 8px 8px; }
+  .meta { font-size:11px; color:#888; margin-top:4px; }
+  .empty { text-align:center; color:#888; margin-top:40px; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <input id="token" placeholder="Admin token" type="password">
+  <input id="chatId" placeholder="Chat ID (kosongkan utk semua)">
+  <select id="channel">
+    <option value="meta">Meta</option>
+    <option value="botcommerce">BotCommerce</option>
+  </select>
+  <button onclick="loadLogs()">Load</button>
+</div>
+
+<div id="chat" class="chat"></div>
+
+<script>
+function loadLogs() {
+  const token   = document.getElementById('token').value;
+  const chatId  = document.getElementById('chatId').value;
+  const channel = document.getElementById('channel').value;
+
+  if (!token) { alert('Masukkan token dulu'); return; }
+
+  let url = `/admin/logs?token=${encodeURIComponent(token)}&channel=${channel}`;
+  if (chatId) url += `&chat_id=${encodeURIComponent(chatId)}`;
+
+  fetch(url)
+    .then(r => r.json())
+    .then(data => render(data))
+    .catch(err => alert('Gagal load: ' + err));
+}
+
+function render(data) {
+  const chat = document.getElementById('chat');
+  chat.innerHTML = '';
+
+  if (!data.length) {
+    chat.innerHTML = '<div class="empty">Tiada log dijumpai</div>';
+    return;
+  }
+
+  [...data].reverse().forEach(row => {
+    const div = document.createElement('div');
+    div.className = 'msg ' + row.direction;
+    const time = new Date(row.created_at).toLocaleString('ms-MY');
+    div.innerHTML = `${row.message || '(kosong)'}<div class="meta">${row.chat_id} • ${time}</div>`;
+    chat.appendChild(div);
+  });
+
+  chat.scrollTop = chat.scrollHeight;
+}
+</script>
+
+</body>
+</html>

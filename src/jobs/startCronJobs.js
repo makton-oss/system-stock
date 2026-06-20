@@ -1,6 +1,7 @@
 const cron = require("node-cron");
 const { createInventorySnapshot } = require("../../services/snapshot/createInventorySnapshot");
 const { runBackup } = require("./backupJob");
+const supabase = require("../../services/db");
 
 function startCronJobs() {
 
@@ -22,6 +23,16 @@ function startCronJobs() {
     async () => {
       console.log("💾 DAILY BACKUP");
       await runBackup();
+    },
+    { timezone: "Asia/Kuala_Lumpur" }
+  );
+
+  // trim message logs — 1:30 AM (buang log lebih 30 hari)
+  cron.schedule(
+    "30 1 * * *",
+    async () => {
+      console.log("🧹 TRIM MESSAGE LOGS");
+      await supabase.rpc("trim_message_logs");
     },
     { timezone: "Asia/Kuala_Lumpur" }
   );

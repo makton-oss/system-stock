@@ -96,15 +96,31 @@ function formatStaffOrgView({ outletGroups = [], admins = [], owners = [] }) {
 
   let text = "👥 STAFF LIST\n\n";
 
+  // ✅ Owner & Admin di ATAS dulu
+  if (owners.length) {
+    text += "👔 Owner\n";
+    owners.forEach((u, i) => {
+      text += `${i + 1}. ${toProperCase(u.nickname)} - ${u.chat_id}\n`;
+    });
+    text += "\n";
+  }
+
+  if (admins.length) {
+    text += "🛠 Admin\n";
+    admins.forEach((u, i) => {
+      text += `${i + 1}. ${toProperCase(u.nickname)} - ${u.chat_id}\n`;
+    });
+    text += "\n";
+  }
+
   outletGroups.forEach(group => {
-    text += `${toProperCase(group.outletName)}\n\n`;
+    text += `🏪 ${(group.outletName || "-").toUpperCase()}\n`;
 
     if (group.managers.length) {
       text += "Manager\n";
       group.managers.forEach((u, i) => {
         text += `${i + 1}. ${toProperCase(u.nickname)} - ${u.chat_id}\n`;
       });
-      text += "\n";
     }
 
     if (group.supervisors.length) {
@@ -112,7 +128,6 @@ function formatStaffOrgView({ outletGroups = [], admins = [], owners = [] }) {
       group.supervisors.forEach((u, i) => {
         text += `${i + 1}. ${toProperCase(u.nickname)} - ${u.chat_id}\n`;
       });
-      text += "\n";
     }
 
     if (group.staff.length) {
@@ -124,21 +139,6 @@ function formatStaffOrgView({ outletGroups = [], admins = [], owners = [] }) {
 
     text += "\n";
   });
-
-  if (admins.length) {
-    text += "🛠 Admin\n";
-    admins.forEach((u, i) => {
-      text += `${i + 1}. ${toProperCase(u.nickname)} - ${u.chat_id}\n`;
-    });
-    text += "\n";
-  }
-
-  if (owners.length) {
-    text += "👔 Owner\n";
-    owners.forEach((u, i) => {
-      text += `${i + 1}. ${toProperCase(u.nickname)} - ${u.chat_id}\n`;
-    });
-  }
 
   return text.trim();
 }
@@ -154,11 +154,12 @@ function formatStaffSummaryGlobal(rows) {
 
   rows.forEach(t => {
     text += `Tenant: ${t.tenantName}\n`;
-    text += `outlet : ${t.outletCount}\n`;
-    text += `👤 Staff: ${t.staff}\n`;
-    text += `👮 Supervisor: ${t.supervisor}\n`;
+    text += `🏪 outlet : ${t.outletCount}\n`;
+    text += `👔 Owner: ${t.owner}\n`;
+    text += `🛠 Admin: ${t.admin}\n`;
     text += `📊 Manager: ${t.manager}\n`;
-    text += `🛠 Admin: ${t.admin}\n\n`;
+    text += `👮 Supervisor: ${t.supervisor}\n`;
+    text += `👤 Staff: ${t.staff}\n\n`;
   });
 
   return text.trim();

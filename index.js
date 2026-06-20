@@ -12,6 +12,7 @@ const { getUserByChatId } = require("./db/users/getUserByChatId");
 const { checkUserRateLimit } = require("./utils/userRateLimit");
 const { checkTenantRateLimit } = require("./utils/tenantRateLimit");
 const { gracefulShutdown, isShutdown } = require("./src/shutdown");
+const { logMessage } = require("./services/logging/messageLogger");
 const { Sentry, initSentry } = require("./services/sentry");
 
 initSentry();
@@ -52,6 +53,25 @@ app.get("/health", (req, res) => {
   res.send("OK");
 });
 
+app.get("/admin/logs", async (req, res) => {
+  if (req.query.token !== process.env.ADMIN_LOG_TOKEN) {
+    return res.status(403).end();
+  }
+
+  let q = supabase
+    .from("message_logs")
+    .select("*")
+    .eq("channel", req.query.channel || "meta")
+    .order("created_at", { ascending: false })
+    .limit(200);
+
+  if (req.query.chat_id) q = q.eq("chat_id", req.query.chat_id);
+
+  const { data, error } = await q;
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data);
+});
+
 app.use(express.static("public"));
 
 startCronJobs();
@@ -70,10 +90,11 @@ async function reply(chatId, text) {
 
 async function replyMeta(chatId, text) {
   try {
-    console.log("META REPLY TO:", chatId, "|", text.slice(0, 50));
+    console.log(`[META_OUT] ${chatId} | ${text}`);
+    await logMessage({ channel: "meta", direction: "out", chatId, message: text });
     await sendWhatsAppMeta(chatId, text);
   } catch (err) {
-    console.error("META REPLY ERROR:", err);
+    console.error(`[META_OUT_ERROR] ${chatId}`, err);
   }
 }
 
@@ -130,7 +151,8 @@ app.post("/webhook/meta", async (req, res) => {
 
     if (!userMessage) return;
 
-    console.log("META MSG:", chatId, "|", userMessage);
+    console.log(`[META_IN] ${chatId} | type:${msg.type} | ${userMessage}`);
+    await logMessage({ channel: "meta", direction: "in", chatId, message: userMessage, msgType: msg.type });
 
     const user = await getUserByChatId(chatId);
     if (!user) return;
