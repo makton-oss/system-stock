@@ -53,6 +53,9 @@ app.get("/health", (req, res) => {
   res.send("OK");
 });
 
+// ======================
+// ADMIN LOGS & SEND MESSAGE
+// ======================
 app.get("/admin/logs", async (req, res) => {
   if (req.query.token !== process.env.ADMIN_LOG_TOKEN) {
     return res.status(403).end();
@@ -72,8 +75,36 @@ app.get("/admin/logs", async (req, res) => {
   res.json(data);
 });
 
+app.post("/admin/send", async (req, res) => {
+  if (req.query.token !== process.env.ADMIN_LOG_TOKEN) {
+    return res.status(403).end();
+  }
+
+  const { chat_id, message } = req.body;
+
+  if (!chat_id || !message) {
+    return res.status(400).json({ error: "chat_id dan message diperlukan" });
+  }
+
+  const result = await sendWhatsAppMeta(chat_id, message);
+
+  if (!result.ok) {
+    return res.status(500).json({ error: result.reason || "SEND_FAILED" });
+  }
+
+  await logMessage({ channel: "meta", direction: "out", chatId: chat_id, message, msgType: "manual" });
+
+  res.json({ ok: true });
+});
+
+// ======================
+// USE STATIC FILES
+// ======================
 app.use(express.static("public"));
 
+// ======================
+// CRON JOBS
+// ======================
 startCronJobs();
 
 // ======================

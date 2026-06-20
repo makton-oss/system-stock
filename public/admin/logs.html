@@ -6,21 +6,24 @@
 <style>
   body { font-family: sans-serif; background:#ece5dd; margin:0; padding:20px; }
   .topbar { display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap; }
-  input, select, button { padding:8px; border-radius:6px; border:1px solid #ccc; font-size:14px; }
+  input, select, button, textarea { padding:8px; border-radius:6px; border:1px solid #ccc; font-size:14px; font-family:inherit; }
   button { background:#1D9E75; color:#fff; border:none; cursor:pointer; }
-  .chat { max-width:600px; margin:0 auto; display:flex; flex-direction:column; gap:8px; }
+  .chat { max-width:600px; margin:0 auto; display:flex; flex-direction:column; gap:8px; min-height:200px; }
   .msg { padding:8px 12px; border-radius:8px; max-width:80%; font-size:14px; word-break:break-word; }
   .msg.in { background:#fff; align-self:flex-start; border-radius:0 8px 8px 8px; }
   .msg.out { background:#d9fdd3; align-self:flex-end; border-radius:8px 0 8px 8px; }
+  .msg.manual { border:1px dashed #1D9E75; }
   .meta { font-size:11px; color:#888; margin-top:4px; }
   .empty { text-align:center; color:#888; margin-top:40px; }
+  .composer { max-width:600px; margin:20px auto 0; display:flex; gap:8px; }
+  .composer textarea { flex:1; resize:none; height:44px; }
 </style>
 </head>
 <body>
 
 <div class="topbar">
   <input id="token" placeholder="Admin token" type="password">
-  <input id="chatId" placeholder="Chat ID (kosongkan utk semua)">
+  <input id="chatId" placeholder="Chat ID">
   <select id="channel">
     <option value="meta">Meta</option>
     <option value="botcommerce">BotCommerce</option>
@@ -29,6 +32,11 @@
 </div>
 
 <div id="chat" class="chat"></div>
+
+<div class="composer">
+  <textarea id="replyText" placeholder="Taip reply untuk chat_id di atas..."></textarea>
+  <button onclick="sendReply()">Hantar</button>
+</div>
 
 <script>
 function loadLogs() {
@@ -58,13 +66,39 @@ function render(data) {
 
   [...data].reverse().forEach(row => {
     const div = document.createElement('div');
-    div.className = 'msg ' + row.direction;
+    div.className = 'msg ' + row.direction + (row.msg_type === 'manual' ? ' manual' : '');
     const time = new Date(row.created_at).toLocaleString('ms-MY');
     div.innerHTML = `${row.message || '(kosong)'}<div class="meta">${row.chat_id} • ${time}</div>`;
     chat.appendChild(div);
   });
 
   chat.scrollTop = chat.scrollHeight;
+}
+
+function sendReply() {
+  const token  = document.getElementById('token').value;
+  const chatId = document.getElementById('chatId').value;
+  const text   = document.getElementById('replyText').value.trim();
+
+  if (!token) { alert('Masukkan token dulu'); return; }
+  if (!chatId) { alert('Masukkan chat_id dulu — kena tahu nak hantar kat siapa'); return; }
+  if (!text) return;
+
+  fetch(`/admin/send?token=${encodeURIComponent(token)}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ chat_id: chatId, message: text })
+  })
+    .then(r => r.json())
+    .then(data => {
+      if (data.error) {
+        alert('Gagal hantar: ' + data.error);
+        return;
+      }
+      document.getElementById('replyText').value = '';
+      loadLogs();
+    })
+    .catch(err => alert('Gagal hantar: ' + err));
 }
 </script>
 
