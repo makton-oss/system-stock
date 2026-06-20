@@ -3,7 +3,7 @@ const { approveRequest } = require("../services/stock/approveRequest");
 const { processRequestAction } = require("../services/stock/processRequestAction");
 const { parseRequestAction } = require("../services/stock/parseRequestAction");
 const { notifyManagers } = require("../services/notification/notifyManager");
-const { writeLog, formatLowStockAlert } = require("../utils/formatter");
+const { writeLog, formatLowStockAlertGroup } = require("../utils/formatter");
 const { buildApproveMessage } = require("../utils/messages/buildApproveMessage");
 const { emitEvent } = require("../services/events/emitEvent");
 const { withOutletLock } = require("../db/requests/outletLock");
@@ -32,23 +32,20 @@ async function handleApproval(rows, ctx) {
 }
 
   // ======================
-  // LOW STOCK ALERT
+  // LOW STOCK ALERT (CONSOLIDATED)
   // ======================
+  const lowStockByOutlet = {};
+
   for (const r of processed) {
-
     if (!r._lowStock) continue;
+    const outletId = r._lowStock.outlet_id;
+    if (!lowStockByOutlet[outletId]) lowStockByOutlet[outletId] = [];
+    lowStockByOutlet[outletId].push(r._lowStock);
+  }
 
-    const alertText = formatLowStockAlert(
-      r._lowStock.item,
-      r._lowStock.qty,
-      r._lowStock.min
-    );
-
-    await notifyManagers(
-      alertText,
-      r._lowStock.outlet_id,
-      chatId
-    );
+  for (const [outletId, items] of Object.entries(lowStockByOutlet)) {
+    const alertText = formatLowStockAlertGroup(items);
+    await notifyManagers(alertText, Number(outletId), chatId);
   }
 
   // ======================

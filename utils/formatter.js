@@ -24,6 +24,7 @@ module.exports = {
   formatPending:       stockFormat.formatPending,
   formatPendingAdmin:  stockFormat.formatPendingAdmin,
   formatLowStockAlert: stockFormat.formatLowStockAlert,
+  formatLowStockAlertGroup: stockFormat.formatLowStockAlertGroup,
 
   // reports
   formatMainReport:      reportFormat.formatMainReport,
@@ -38,6 +39,8 @@ module.exports = {
   // staff
   formatStaffList:      staffFormat.formatStaffList,
   formatStaffListAdmin: staffFormat.formatStaffListAdmin,
+  formatStaffOrgView:   staffFormat.formatStaffOrgView,
+  formatStaffSummaryGlobal: staffFormat.formatStaffSummaryGlobal,
 
   // db-coupled
   formatLogs:     dbHelpers.formatLogs,

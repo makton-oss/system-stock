@@ -85,7 +85,88 @@ function formatStaffListAdmin(rows) {
   return text;
 }
 
+// ======================
+// ORG VIEW — manager / admin / owner / superadmin@slug
+// ======================
+function formatStaffOrgView({ outletGroups = [], admins = [], owners = [] }) {
+
+  if (!outletGroups.length && !admins.length && !owners.length) {
+    return "👥 STAFF KOSONG";
+  }
+
+  let text = "👥 STAFF LIST\n\n";
+
+  outletGroups.forEach(group => {
+    text += `${toProperCase(group.outletName)}\n\n`;
+
+    if (group.managers.length) {
+      text += "Manager\n";
+      group.managers.forEach((u, i) => {
+        text += `${i + 1}. ${toProperCase(u.nickname)} - ${u.chat_id}\n`;
+      });
+      text += "\n";
+    }
+
+    if (group.supervisors.length) {
+      text += "Supervisor\n";
+      group.supervisors.forEach((u, i) => {
+        text += `${i + 1}. ${toProperCase(u.nickname)} - ${u.chat_id}\n`;
+      });
+      text += "\n";
+    }
+
+    if (group.staff.length) {
+      text += "Staff\n";
+      group.staff.forEach((u, i) => {
+        text += `${i + 1}. ${toProperCase(u.nickname)} - ${u.chat_id}\n`;
+      });
+    }
+
+    text += "\n";
+  });
+
+  if (admins.length) {
+    text += "🛠 Admin\n";
+    admins.forEach((u, i) => {
+      text += `${i + 1}. ${toProperCase(u.nickname)} - ${u.chat_id}\n`;
+    });
+    text += "\n";
+  }
+
+  if (owners.length) {
+    text += "👔 Owner\n";
+    owners.forEach((u, i) => {
+      text += `${i + 1}. ${toProperCase(u.nickname)} - ${u.chat_id}\n`;
+    });
+  }
+
+  return text.trim();
+}
+
+// ======================
+// GLOBAL SUMMARY — superadmin (no slug)
+// ======================
+function formatStaffSummaryGlobal(rows) {
+
+  if (!rows?.length) return "🌐 GLOBAL STAFF SUMMARY\n\nTiada tenant aktif";
+
+  let text = "🌐 GLOBAL STAFF SUMMARY\n\n";
+
+  rows.forEach(t => {
+    text += `Tenant: ${t.tenantName}\n`;
+    text += `outlet : ${t.outletCount}\n`;
+    text += `👤 Staff: ${t.staff}\n`;
+    text += `👮 Supervisor: ${t.supervisor}\n`;
+    text += `📊 Manager: ${t.manager}\n`;
+    text += `🛠 Admin: ${t.admin}\n\n`;
+  });
+
+  return text.trim();
+}
+
 module.exports = {
   formatStaffList,
-  formatStaffListAdmin
+  formatStaffListAdmin,
+  formatStaffOrgView,
+  formatStaffSummaryGlobal
 };

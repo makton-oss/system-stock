@@ -124,6 +124,25 @@ function formatLowStockAlert(item, qty, minQty) {
   return `⚠️ LOW STOCK ALERT\n\nITEM: ${toProperCase(item)}\nBALANCE: ${qty}\nMINIMUM: ${minQty}`;
 }
 
+// ======================
+// LOW STOCK ALERT — CONSOLIDATED
+// ======================
+function formatLowStockAlertGroup(items) {
+  if (!items?.length) return null;
+
+  let text = "⚠️ LOW STOCK ALERT\n\n";
+
+  if (items.length === 1) {
+    text += `${toProperCase(items[0].item)} (Bal: ${items[0].qty})`;
+  } else {
+    text += items
+      .map((i, idx) => `${idx + 1}. ${toProperCase(i.item)} (Bal: ${i.qty})`)
+      .join("\n");
+  }
+
+  return text;
+}
+
 module.exports = {
   formatItemNameList,
   formatItemList,
@@ -132,5 +151,6 @@ module.exports = {
   formatStockAdmin,
   formatPending,
   formatPendingAdmin,
-  formatLowStockAlert
+  formatLowStockAlert,
+  formatLowStockAlertGroup
 };
