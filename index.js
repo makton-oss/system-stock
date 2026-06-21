@@ -75,6 +75,32 @@ app.get("/admin/logs", async (req, res) => {
   res.json(data);
 });
 
+app.get("/admin/conversations", async (req, res) => {
+  if (req.query.token !== process.env.ADMIN_LOG_TOKEN) {
+    return res.status(403).end();
+  }
+
+  const channel = req.query.channel || "meta";
+
+  const { data: convos, error } = await supabase.rpc("get_conversations", {
+    p_channel: channel,
+    p_limit: 100
+  });
+
+  if (error) return res.status(500).json({ error: error.message });
+
+  const chatIds = convos.map(c => c.chat_id);
+  const { data: users } = await supabase
+    .from("users")
+    .select("chat_id, nickname")
+    .in("chat_id", chatIds.length ? chatIds : ["__none__"]);
+
+  const nickMap = {};
+  (users || []).forEach(u => { nickMap[u.chat_id] = u.nickname; });
+
+  res.json(convos.map(c => ({ ...c, nickname: nickMap[c.chat_id] || null })));
+});
+
 app.post("/admin/send", async (req, res) => {
   if (req.query.token !== process.env.ADMIN_LOG_TOKEN) {
     return res.status(403).end();
