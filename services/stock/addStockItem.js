@@ -44,7 +44,8 @@ async function addStockItem({ item, category, minQty, cost, uom, outlet, tenantI
     outletId: outlet.id,
     minQty,
     cost,
-    uom
+    uom,
+    tenantId
   });
 
   if (stockError) return { error: "STOCK_DB_ERROR" };

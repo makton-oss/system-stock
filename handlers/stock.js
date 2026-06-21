@@ -3,7 +3,7 @@ const { getStockAll } = require("../db/stock/getStockAll");
 const { formatStock, formatStockAdmin } = require("../utils/formatter");
 const { getAccessibleOutletIds } = require("../db/outlets/getAccessibleOutletIds");
 
-module.exports = withRole(["staff", "supervisor" ,"manager","admin"], async (ctx) => {
+module.exports = withRole(["staff", "supervisor" ,"manager","admin", "owner"], async (ctx) => {
 
   const { chatId, user, reply, res } = ctx;
 

@@ -1,253 +1,238 @@
 const ROLE_GUIDE = {
 
 staff: `
-📦 STAFF GUIDE
+📦 *PANDUAN STAFF*
 
-Hai 👋
-Gunakan sistem untuk rekod keluar masuk barang.
+Hai! 👋 Selamat datang ke StokBot.
+Guna sistem ni untuk rekod stok masuk & keluar outlet anda.
 
 ────────────────────
 
-📥 Barang masuk:
+📥 *Stok masuk*
 IN ayam 10
-IN tepung 5
 
-────────────────────
-
-📤 Barang guna:
+📤 *Stok keluar/guna*
 OUT ayam 2
-OUT tepung 1
 
-────────────────────
-
-🗑️ Rekod wastage:
+🗑️ *Wastage*
 WASTAGE ayam 2
 
+💡 Boleh rekod banyak item sekali gus — pisahkan dengan koma:
+IN ayam 10, tepung 5, gula 2
+
 ────────────────────
 
-📦 Semak stok:
+📦 Semak stok semasa:
 STOCK
 
-────────────────────
-
-📋 Semak request:
-LIST
+📋 Semak status request anda:
+STATUS
 
 ────────────────────
 
-⚠️ PENTING:
-- Rekod IN dan OUT boleh dibuat pada bila-bila masa
-- JANGAN tunggu waktu closing baru nak rekod
-- Rekod terus bila barang masuk atau digunakan
-- Rekod tepat = stok tepat
+⚠️ *PENTING*
+- Rekod bila-bila masa anda free hari ini — tak perlu tunggu closing time
+- Rekod tepat = stok tepat = bisnes lancar
 
-❓ Bantuan:
-HELP
+────────────────────
+
+❓ Perlukan bantuan bila-bila masa? Taip HELP
 `,
 
 supervisor: `
-📋 SUPERVISOR GUIDE
+📋 *PANDUAN SUPERVISOR*
 
-Hai 👋
-Anda semak dan luluskan request outlet anda.
+Hai! 👋 Anda bertanggungjawab semak & luluskan request stok outlet anda.
+
+────────────────────
+
+📥 *Bila staff hantar request*
+Notifikasi automatik akan masuk WhatsApp anda — tekan butang APPROVE atau REJECT terus dari situ.
+
+📋 Semak semua request pending:
+PENDING
+
+📦 Semak stok semasa:
+STOCK
+
+📦 Semak konfigurasi item:
+ITEM
 
 ────────────────────
 
-📥 Request masuk:
-- Notifikasi akan masuk bila staff hantar request
-- Tekan butang APPROVE atau REJECT pada notifikasi
+⚠️ *PENTING*
+- Approve atau reject SEMUA request sebelum 11:30 malam
+- Request yang tertinggal akan jejaskan laporan harian — laporan ni penting untuk Owner pantau prestasi outlet
 
 ────────────────────
+
+📲 *NOTA*
+Pastikan anda hantar mesej/command kepada StokBot sekurang-kurangnya *sekali sehari* 
+(contoh: taip STOCK), supaya anda terus terima notifikasi request baru.
+
+────────────────────
+
+❓ Perlukan bantuan? Taip HELP
+`,
+
+  manager: `
+📊 *PANDUAN MANAGER*
+
+Hai! 👋 Anda urus approval & pantau prestasi stok outlet anda.
+
+────────────────────
+
+📥 *Bila staff hantar request*
+Notifikasi automatik akan masuk — tekan APPROVE atau REJECT terus dari WhatsApp.
 
 📋 Semak request pending:
 PENDING
 
-────────────────────
-
-📦 Semak stok:
+📦 Semak stok semasa:
 STOCK
 
 ────────────────────
 
-📦 Semak item config:
-ITEM
+📊 *LAPORAN*
 
-────────────────────
-
-⚠️ PENTING:
-- Semua request MESTI di-approve atau reject
-  sebelum jam 12 malam
-- Jangan biarkan request pending hingga esok
-
-❓ Bantuan:
-HELP
-`,
-
-  manager: `
-📊 MANAGER GUIDE
-
-Hai 👋
-Anda urus approval & pantau stok outlet.
-
-────────────────────
-
-📥 Request masuk:
-- Notifikasi akan masuk bila staff hantar request
-- Tekan butang APPROVE atau REJECT pada notifikasi
-
-────────────────────
-
-📋 Semak request:
-PENDING
-
-────────────────────
-
-📦 Semak stok:
-STOCK
-
-────────────────────
-
-📊 REPORT
-
-Main report:
+Taip:
 REPORT
-REPORT may-26
 
-Detail:
-REPORT INVENTORY
-REPORT DETAIL
-REPORT FLOW
-REPORT DEAD
+Sistem akan papar butang — pilih jenis laporan dan bulan yang dikehendaki, semua guna butang, tak perlu hafal command.
+
+💡 Jenis laporan:
+Summary   — ringkasan keseluruhan bulan
+Inventory — nilai stok pada tarikh tertentu
+Flow      — aliran stok masuk/keluar
+Dead      — item yang tak bergerak
 
 ────────────────────
 
-👥 Semak staff:
+👥 Semak senarai staff:
 STAFF
 
 ────────────────────
 
-⚠️ PENTING:
-- Semua request MESTI di-approve atau reject
-  sebelum jam 12 malam
-- Jangan biarkan request pending hingga esok
+⚠️ *PENTING*
+- Approve atau reject SEMUA request sebelum 11:30 malam
+- Request yang tertinggal akan jejaskan laporan harian — laporan ni penting untuk Owner pantau prestasi outlet
 
-❓ Bantuan:
-HELP
+────────────────────
+
+📲 *NOTA*
+Pastikan anda hantar mesej/command kepada StokBot sekurang-kurangnya *sekali sehari* 
+(contoh: taip STOCK), supaya anda terus terima notifikasi.
+
+────────────────────
+
+❓ Perlukan bantuan? Taip HELP
 `,
 
   owner: `
-👔 OWNER GUIDE
+👔 *PANDUAN OWNER*
 
-Hai 👋
-Pantau operasi dan laporan semua outlet.
+Hai! 👋 Pantau operasi & prestasi semua outlet anda di sini.
 
 ────────────────────
 
-📊 REPORT
+📊 *LAPORAN*
 
-Main report:
+Taip:
 REPORT
-REPORT may-26
 
-Detail:
-REPORT INVENTORY
-REPORT DETAIL
-REPORT FLOW
-REPORT DEAD
+Sistem akan papar butang — pilih jenis laporan dan bulan yang dikehendaki, semua guna butang, tak perlu hafal command.
+
+💡 Jenis laporan:
+Summary   — ringkasan keseluruhan bulan
+Inventory — nilai stok pada tarikh tertentu
+Flow      — aliran stok masuk/keluar
+Dead      — item yang tak bergerak
+Compare   — banding prestasi outlet/bulan
 
 ────────────────────
 
-💡 TIPS:
-- REPORT untuk tengok prestasi outlet
-- STOCK untuk semak stok semua outlet
+📦 Semak stok semua outlet:
+STOCK
 
-❓ Bantuan:
-HELP
+👥 Semak senarai staff:
+STAFF
+
+────────────────────
+
+❓ Perlukan bantuan? Taip HELP
 `,
 
   admin: `
-🛠 ADMIN GUIDE
+🛠 *PANDUAN ADMIN*
 
-Hai 👋
-Akses penuh semua outlet & sistem.
+Hai! 👋 Anda ada akses penuh ke semua outlet & sistem.
 
 ────────────────────
 
-👤 Urus user:
+👤 *Urus user*
 SETROLE 60123456789 manager ali muiz
 
-✅ Format:
-[phone] [role] [nickname] [outlet]
+Format: [phone] [role] [nickname] [outlet]
 
-────────────────────
-
-🗑 Buang user:
+🗑 Buang akses user:
 REMOVEROLE 60123456789
 
 ────────────────────
 
-👥 Semak staff:
+👥 Semak senarai staff:
 STAFF
-
-────────────────────
 
 📜 Log sistem:
 LOG
 
-────────────────────
-
-📦 Semak stok:
+📦 Semak stok semua outlet:
 STOCK
 
-────────────────────
-
-📦 Semak item config:
+📦 Semak konfigurasi item:
 ITEM
 
 ────────────────────
 
-📊 REPORT
+📊 *LAPORAN*
 
-Main:
+Taip:
 REPORT
-REPORT may-26
 
-Detail:
-REPORT INVENTORY
-REPORT DETAIL
-REPORT FLOW
-REPORT DEAD
+Sistem akan papar butang — pilih jenis laporan dan bulan yang dikehendaki, semua guna butang, tak perlu hafal command.
 
-────────────────────
-
-📋 Semak request:
-LIST
+💡 Jenis laporan:
+Summary   — ringkasan keseluruhan bulan
+Inventory — nilai stok pada tarikh tertentu
+Flow      — aliran stok masuk/keluar
+Dead      — item yang tak bergerak
 
 ────────────────────
 
-➕ Tambah item:
+📋 Semak semua request pending:
+PENDING
+
+────────────────────
+
+➕ *Tambah item baru*
 ADDITEM minyak bijan kering 2 9 botol bta
 
-✅ Format:
-[nama item] [category] [min_qty] [cost] [uom] [outlet]
+Format: [nama item] [category] [min_qty] [cost] [uom] [outlet]
 
-────────────────────
-
-➖ Buang item:
+➖ *Buang item*
 REMOVEITEM minyak bijan muiz
 
-✅ Format:
-[nama item] [outlet]
+Format: [nama item] [outlet]
 
 ────────────────────
 
-💡 TIPS:
+💡 *TIPS*
 - Nama item mesti konsisten (elak duplicate)
-- Pastikan cost, uom & min qty betul
+- Pastikan cost, uom & min qty betul sebelum simpan
 - Format SETROLE: phone role nickname outlet
 
-❓ Bantuan:
-HELP
+────────────────────
+
+❓ Perlukan bantuan? Taip HELP
 `
 };
 

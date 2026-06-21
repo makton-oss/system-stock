@@ -98,9 +98,9 @@ async function getDeadReport({ outletIds, tenantId, asOfDate }) {
     .eq("is_active", true);
 
   if (outletIds?.length) stockQ = stockQ.in("outlet_id", outletIds);
+  stockQ = applyTenant(stockQ, tenantId);   // ✅ FIX
 
   const { data: stock, error: stockError } = await stockQ;
-  if (stockError) return { error: stockError };
 
   // ======================
   // CARI LAST MOVEMENT DATE PER ITEM (any time, bukan terhad date range)

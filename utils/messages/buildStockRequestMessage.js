@@ -14,10 +14,10 @@ function buildStockRequestMessage({
     const r = rows[0];
 
     return (
-`📥 STOCK ${r.type.toUpperCase()} - ${outletName}
+`📥 STOCK ${r.type.toUpperCase()} - ${toProperCase(outletName)}
 
 ID ${r.id} ${r.item} x${r.qty}
-BY: ${r.users?.nickname || "-"}
+BY: ${toProperCase(r.users?.nickname || "-")}
 `
     );
   }

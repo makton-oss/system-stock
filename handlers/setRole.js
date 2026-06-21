@@ -5,6 +5,7 @@ const { upsertUser } = require("../db/users/upsertUser");
 const { getUserOutletIds, insertUserOutlets, clearUserOutlets } = require("../db/users/manageUserOutlets");
 const { getTenantBySlug } = require("../db/tenants/getTenantBySlug");
 const { checkUserLimit } = require("../services/tenants/checkUserLimit");
+const ASSIGNABLE_ROLES = ["staff", "supervisor", "manager", "admin", "owner"];
 
 // ======================
 // PARSE SUPERADMIN FORMAT
@@ -82,6 +83,19 @@ module.exports = withRole(["admin"], async (ctx) => {
   }
 
   const { phone, role, nickname, outletNames } = parsed;
+
+  // ======================
+  // ✅ ROLE WHITELIST — block privilege escalation
+  // ======================
+  if (!ASSIGNABLE_ROLES.includes(role)) {
+    await reply(chatId, `❌ ROLE TAK SAH: ${role}\n\nRole yang sah: ${ASSIGNABLE_ROLES.join(", ")}`);
+    return res.end();
+  }
+
+  if (!isSuperadmin && (role === "admin" || role === "owner")) {
+    await reply(chatId, "❌ HANYA SUPERADMIN BOLEH SET ROLE ADMIN/OWNER");
+    return res.end();
+  }
 
   // ======================
   // GET OUTLETS (scoped to resolved tenant)
