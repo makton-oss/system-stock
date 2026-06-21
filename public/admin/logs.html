@@ -36,9 +36,10 @@
   .composer button { padding:0 18px; border-radius:6px; border:none; background:#1D9E75; color:#fff; cursor:pointer; }
 
   .scroll-latest-btn {
-    position: absolute;
-    right: 20px;
-    bottom: 80px;
+    position: fixed;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: 20px;
     background: #1D9E75;
     color: #fff;
     border: none;
@@ -70,10 +71,10 @@
     <div id="chatHeader" class="chatpane__header" style="display:none"></div>
     <div id="chatEmpty" class="chatpane__empty">Pilih perbualan di sebelah kiri</div>
     <div id="chatMessages" class="chatpane__messages" style="display:none"></div>
-    <button id="scrollLatestBtn" class="scroll-latest-btn" onclick="scrollToLatest()">⬇ Mesej terbaru</button>
+    <button id="scrollLatestBtn" class="scroll-latest-btn" allign="center" onclick="scrollToLatest()">⬇ Mesej terbaru</button>
     <div id="composer" class="composer" style="display:none">
       <textarea id="replyText" placeholder="Taip mesej..."></textarea>
-      <button onclick="sendReply()">Hantar</button>
+      <button onclick="sendReply()">Send</button>
     </div>
   </div>
 </div>
