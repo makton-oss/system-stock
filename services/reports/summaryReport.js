@@ -1,5 +1,6 @@
 const supabase = require("../db");
 const { applyTenant } = require("../../utils/applyTenant");
+const { DateTime } = require("luxon");
 
 async function getSummaryReport({ start, end, outletIds, tenantId }) {
 
@@ -15,13 +16,22 @@ async function getSummaryReport({ start, end, outletIds, tenantId }) {
   const { data: movements, error } = await movementQ;
   if (error) return { error };
 
-  const startDate   = new Date(start);
-  const openingDate = new Date(startDate.getFullYear(), startDate.getMonth(), 1)
-    .toISOString().split("T")[0];
+  // ======================
+  // SNAPSHOT DATES — timezone-safe (Luxon), sync dgn createInventorySnapshot.js
+  // ======================
+  const startKL = DateTime.fromISO(start).setZone("Asia/Kuala_Lumpur");
+  const endKL   = DateTime.fromISO(end).setZone("Asia/Kuala_Lumpur");
+  const todayKL = DateTime.now().setZone("Asia/Kuala_Lumpur");
 
-  const endDate = new Date(end);
-  const closingDate = endDate.toISOString().split("T")[0];
+  const openingDate = startKL.startOf("month").toFormat("yyyy-MM-dd");
 
+  // Snapshot dijana 23:59 KL — kalau end = hari ini, snapshot belum wujud,
+  // fallback ke semalam (closing terakhir yang sah)
+  const closingTarget = endKL.hasSame(todayKL, "day")
+    ? todayKL.minus({ days: 1 })
+    : endKL;
+  const closingDate = closingTarget.toFormat("yyyy-MM-dd");
+  
   async function fetchSnapshot(date) {
     let q = supabase
       .from("snapshots")

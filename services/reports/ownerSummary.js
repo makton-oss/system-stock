@@ -29,7 +29,7 @@ function getDayRangeWindows() {
       start: prevStart.toUTC().toISO(),
       end:   prevEnd.toUTC().toISO()
     },
-    label: `${currentStart.toFormat("d")}hb-${currentEnd.toFormat("d")}hb vs bulan lepas ${prevStart.toFormat("d")}hb-${prevEnd.toFormat("d")}hb`
+    label: `${currentStart.toFormat("d")}hb-${currentEnd.toFormat("d")}hb ${currentStart.toFormat("LLL").toUpperCase()} vs ${prevStart.toFormat("d")}hb-${prevEnd.toFormat("d")}hb ${prevStart.toFormat("LLL").toUpperCase()}`
   };
 }
 

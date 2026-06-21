@@ -23,7 +23,6 @@ module.exports = withRole(["manager", "owner", "admin"], async (ctx) => {
   // ROW 2
   // ======================
   const row2Buttons = [
-    { id: "DETAIL", title: "DETAIL" },
     { id: "DEAD",   title: "DEAD"   }
   ];
 
@@ -35,7 +34,7 @@ module.exports = withRole(["manager", "owner", "admin"], async (ctx) => {
 
   await sendButtonsRouter(
     chatId,
-    `4. Item Movement — kuantiti per item\n5. Dead Stock — item tiada movement\n6. Outlet Compare — banding bulan & outlet (owner)`,
+    `4. Dead Stock — item tiada movement\n6. Outlet Compare — banding bulan & outlet`,
     row2Buttons
   );
 

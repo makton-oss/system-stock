@@ -5,6 +5,7 @@ const { getSummaryReport } = require("../services/reports/summaryReport");
 const { getOwnerReport } = require("../services/reports/ownerSummary");
 const { formatSummaryReport, formatInventoryReport, formatDetailReport, formatDeadReport, formatFlowReport, parseMonthInput, formatMonthLabel } = require("../utils/formatter");
 const { formatOwnerReport } = require("../utils/formatters/ownerFormat");
+const { DateTime } = require("luxon");
 
 module.exports = withRole(["manager", "owner", "admin"], async (ctx) => {
 
@@ -92,10 +93,12 @@ module.exports = withRole(["manager", "owner", "admin"], async (ctx) => {
       return res.end();
     }
 
-    // snapshot date = last day yang relevant (hari ini kalau day-range, last day bulan kalau whole-month)
     let snapshotDate;
     if (range.isDayRange) {
-      snapshotDate = new Date(range.end).toISOString().split("T")[0];
+      const todayKL = DateTime.now().setZone("Asia/Kuala_Lumpur");
+      const endKL   = DateTime.fromJSDate(range.end).setZone("Asia/Kuala_Lumpur");
+      const target  = endKL.hasSame(todayKL, "day") ? todayKL.minus({ days: 1 }) : endKL;
+      snapshotDate = target.toFormat("yyyy-MM-dd");
     } else {
       const endDate = new Date(range.end);
       endDate.setDate(endDate.getDate() - 1);

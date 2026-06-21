@@ -116,8 +116,9 @@ function formatFlowReport(data, month) {
       text += "-\n\n";
     } else {
       r.topIn.forEach((t, i) => {
-        text += `${i + 1}. ${toProperCase(t[0])}\nRM ${formatAmount(t[1])}\n\n`;
+        text += `${i + 1}. ${toProperCase(t[0])} - RM ${formatAmount(t[1])}\n`;
       });
+      text += "\n";
     }
 
     text += "🔝 Top 5 OUT\n";
@@ -125,15 +126,17 @@ function formatFlowReport(data, month) {
       text += "-\n\n";
     } else {
       r.topOut.forEach((t, i) => {
-        text += `${i + 1}. ${toProperCase(t[0])}\nRM ${formatAmount(t[1])}\n\n`;
+        text += `${i + 1}. ${toProperCase(t[0])} - RM ${formatAmount(t[1])}\n`;
       });
+      text += "\n";
     }
 
     if (r.topWastage?.length) {
       text += "🔝 Top 5 WASTAGE\n";
       r.topWastage.forEach((t, i) => {
-        text += `${i + 1}. ${toProperCase(t[0])}\nRM ${formatAmount(t[1])}\n\n`;
+        text += `${i + 1}. ${toProperCase(t[0])} - RM ${formatAmount(t[1])}\n`;
       });
+      text += "\n";
     }
 
     text += "━━━━━━━━━━\n\n";
@@ -185,21 +188,35 @@ function formatDeadReport(data, month) {
     return `💀 DEAD STOCK\n${month}\n\n✅ TIADA DEAD STOCK\n\nSemua item ada pergerakan dalam tempoh ini.`;
   }
 
+  const BUCKETS = [
+    { label: "⚪ TIDAK PERNAH DIREKOD", test: r => r.neverMoved },
+    { label: "🔴 90+ HARI",             test: r => !r.neverMoved && r.daysSince >= 90 },
+    { label: "🟠 60-89 HARI",           test: r => !r.neverMoved && r.daysSince >= 60 && r.daysSince < 90 },
+    { label: "🟡 30-59 HARI",           test: r => !r.neverMoved && r.daysSince >= 30 && r.daysSince < 60 }
+  ];
+
   let text = `💀 DEAD STOCK\n${month}\n\n`;
 
   Object.entries(data).forEach(([outlet, rows]) => {
     text += `🏪 ${outlet}\n\n`;
 
-    if (!rows.length) {
+    const dead = rows.filter(r => r.neverMoved || r.daysSince >= 30);
+
+    if (!dead.length) {
       text += "✅ Tiada dead stock\n\n";
       return;
     }
 
-    rows.forEach((r, i) => {
-      const daysLabel = r.neverMoved
-        ? "Tidak pernah direkod"
-        : `Tidak bergerak ${r.daysSince} hari`;
-      text += `${i + 1}. ${toProperCase(r.name)}\n${daysLabel}\n\n`;
+    BUCKETS.forEach(bucket => {
+      const items = dead.filter(bucket.test);
+      if (!items.length) return;
+
+      text += `${bucket.label} (${items.length})\n`;
+      items.forEach((r, i) => {
+        const days = r.neverMoved ? "" : ` (${r.daysSince} hari)`;
+        text += `${i + 1}. ${toProperCase(r.name)}${days}\n`;
+      });
+      text += "\n";
     });
   });
 
