@@ -54,7 +54,7 @@ app.get("/health", (req, res) => {
 });
 
 // ======================
-// ADMIN LOGS & SEND MESSAGE
+// ADMIN LOGS, CONVERSATIONS, USER INFO, SEND MESSAGE
 // ======================
 app.get("/admin/logs", async (req, res) => {
   if (req.query.token !== process.env.ADMIN_LOG_TOKEN) {
@@ -99,6 +99,42 @@ app.get("/admin/conversations", async (req, res) => {
   (users || []).forEach(u => { nickMap[u.chat_id] = u.nickname; });
 
   res.json(convos.map(c => ({ ...c, nickname: nickMap[c.chat_id] || null })));
+});
+
+app.get("/admin/user-info", async (req, res) => {
+  if (req.query.token !== process.env.ADMIN_LOG_TOKEN) {
+    return res.status(403).end();
+  }
+
+  const chatId = req.query.chat_id;
+  if (!chatId) return res.status(400).json({ error: "chat_id diperlukan" });
+
+  const { data: user, error } = await supabase
+    .from("users")
+    .select("chat_id, nickname, role, tenant_id, outlets(name)")
+    .eq("chat_id", chatId)
+    .maybeSingle();
+
+  if (error) return res.status(500).json({ error: error.message });
+  if (!user) return res.json(null);
+
+  let tenant = null;
+  if (user.tenant_id) {
+    const { data: t } = await supabase
+      .from("tenants")
+      .select("name, slug")
+      .eq("id", user.tenant_id)
+      .maybeSingle();
+    tenant = t;
+  }
+
+  res.json({
+    chat_id: user.chat_id,
+    nickname: user.nickname,
+    role: user.role,
+    outlet_name: user.outlets?.name || null,
+    tenant_slug: tenant?.slug || null
+  });
 });
 
 app.post("/admin/send", async (req, res) => {

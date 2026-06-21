@@ -29,7 +29,7 @@
   .msg.in { background:#fff; align-self:flex-start; border-radius:0 8px 8px 8px; }
   .msg.out { background:#d9fdd3; align-self:flex-end; border-radius:8px 0 8px 8px; }
   .msg.manual { border:1px dashed #1D9E75; }
-  .msg__time { font-size:10px; color:#888; margin-top:4px; }
+  .msg__time { font-size:10px; color:#888; margin-top:4px; white-space: pre-wrap; }
 
   .composer { display:flex; gap:8px; padding:12px 16px; background:#f0f0f0; border-top:1px solid #ddd; }
   .composer textarea { flex:1; resize:none; height:42px; padding:8px; border-radius:6px; border:1px solid #ccc; font-family:inherit; }
@@ -118,7 +118,22 @@ function openChat(chatId, name) {
   document.getElementById('composer').style.display = 'flex';
 
   renderSidebar();
+  loadUserInfo(chatId);
   loadMessages(chatId);
+}
+
+function loadUserInfo(chatId) {
+  fetch(`/admin/user-info?token=${encodeURIComponent(getToken())}&chat_id=${encodeURIComponent(chatId)}`)
+    .then(r => r.json())
+    .then(info => {
+      if (!info) return;
+      const parts = [info.nickname || chatId];
+      if (info.role) parts.push(info.role.toUpperCase());
+      if (info.outlet_name) parts.push(info.outlet_name);
+      if (info.tenant_slug) parts.push(info.tenant_slug);
+      document.getElementById('chatHeader').textContent = parts.join(' - ');
+    })
+    .catch(() => {});
 }
 
 function loadMessages(chatId) {
@@ -134,8 +149,17 @@ function renderMessages(data) {
   [...data].reverse().forEach(row => {
     const div = document.createElement('div');
     div.className = 'msg ' + row.direction + (row.msg_type === 'manual' ? ' manual' : '');
-    const time = new Date(row.created_at).toLocaleString('ms-MY');
-    div.innerHTML = `${row.message || '(kosong)'}<div class="msg__time">${time}</div>`;
+
+    const text = document.createElement('div');
+    text.className = 'msg__text';
+    text.textContent = row.message || '(kosong)';
+    div.appendChild(text);
+
+    const time = document.createElement('div');
+    time.className = 'msg__time';
+    time.textContent = new Date(row.created_at).toLocaleString('ms-MY');
+    div.appendChild(time);
+
     box.appendChild(div);
   });
 
