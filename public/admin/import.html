@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+<meta charset="UTF-8">
+<title>Bulk Import — Items</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: sans-serif; margin:0; padding:20px; background:#f5f5f5; }
+  .card { max-width:520px; margin:0 auto; background:#fff; padding:24px; border-radius:10px; box-shadow:0 2px 10px rgba(0,0,0,0.08); }
+  label { display:block; margin:14px 0 4px; font-size:13px; font-weight:600; color:#444; }
+  input[type=text], input[type=password] { width:100%; padding:8px; border:1px solid #ccc; border-radius:6px; font-size:14px; }
+  .row { display:flex; align-items:center; gap:8px; margin-top:14px; }
+  button { margin-top:20px; width:100%; padding:10px; border:none; border-radius:6px; background:#1D9E75; color:#fff; font-weight:700; cursor:pointer; }
+  button:disabled { background:#aaa; cursor:not-allowed; }
+  pre { background:#0f172a; color:#d1fae5; padding:14px; border-radius:8px; font-size:12px; max-height:340px; overflow:auto; white-space:pre-wrap; margin-top:16px; }
+  .error { color:#b91c1c; font-size:13px; margin-top:10px; white-space:pre-wrap; }
+</style>
+</head>
+<body>
+<div class="card">
+  <h2>📦 Bulk Import Items</h2>
+
+  <label>Admin Token</label>
+  <input type="password" id="token" placeholder="Admin token">
+
+  <label>Tenant Slug</label>
+  <input type="text" id="slug" placeholder="contoh: kedai-maju">
+
+  <label>Fail Excel (.xlsx)</label>
+  <input type="file" id="file" accept=".xlsx">
+
+  <div class="row">
+    <input type="checkbox" id="dryRun" checked>
+    <label style="margin:0">Dry Run (validate sahaja)</label>
+  </div>
+
+  <button id="submitBtn" onclick="runImport()">Jalankan Import</button>
+
+  <div id="errorBox" class="error"></div>
+  <pre id="logBox" style="display:none"></pre>
+</div>
+
+<script>
+async function runImport() {
+  const token  = document.getElementById('token').value;
+  const slug   = document.getElementById('slug').value.trim();
+  const fileEl = document.getElementById('file');
+  const dryRun = document.getElementById('dryRun').checked;
+  const btn    = document.getElementById('submitBtn');
+  const errorBox = document.getElementById('errorBox');
+  const logBox = document.getElementById('logBox');
+
+  errorBox.textContent = '';
+  logBox.style.display = 'none';
+
+  if (!token) return errorBox.textContent = 'Masukkan admin token.';
+  if (!slug) return errorBox.textContent = 'Masukkan tenant slug.';
+  if (!fileEl.files.length) return errorBox.textContent = 'Pilih fail .xlsx dulu.';
+
+  const fd = new FormData();
+  fd.append('file', fileEl.files[0]);
+  fd.append('slug', slug);
+  fd.append('dryRun', dryRun ? 'true' : 'false');
+
+  btn.disabled = true;
+  btn.textContent = 'Memproses...';
+
+  try {
+    const res = await fetch(`/admin/import/items?token=${encodeURIComponent(token)}`, { method: 'POST', body: fd });
+    const data = await res.json();
+
+    if (!res.ok || data.error) {
+      errorBox.textContent = data.error || 'Import gagal.';
+      if (data.hardErrors) errorBox.textContent += '\n\n' + data.hardErrors.join('\n');
+    }
+    if (data.logs) {
+      logBox.style.display = 'block';
+      logBox.textContent = data.logs.join('\n');
+    }
+  } catch (err) {
+    errorBox.textContent = 'Network error: ' + err.message;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Jalankan Import';
+  }
+}
+</script>
+</body>
+</html>

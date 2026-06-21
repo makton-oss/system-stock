@@ -1,5 +1,8 @@
 const express = require("express");
 require("dotenv").config();
+const path = require("path");
+const fs = require("fs");
+const multer = require("multer");
 const rateLimit = require("express-rate-limit");
 const startCronJobs = require("./src/jobs/startCronJobs");
 const supabase = require("./services/db");
@@ -14,6 +17,7 @@ const { checkTenantRateLimit } = require("./utils/tenantRateLimit");
 const { gracefulShutdown, isShutdown } = require("./src/shutdown");
 const { logMessage } = require("./services/logging/messageLogger");
 const { Sentry, initSentry } = require("./services/sentry");
+const { runBulkImportItems } = require("./services/imports/runBulkImportItems");
 
 initSentry();
 
@@ -51,6 +55,23 @@ const globalLimiter = rateLimit({
 // ======================
 app.get("/health", (req, res) => {
   res.send("OK");
+});
+
+// ======================
+// FILE UPLOAD CONFIG — untuk admin bulk import (.xlsx)
+// Fail disimpan sementara dalam tmp_uploads/, automatik dipadam
+// lepas proses import settle (success ATAU fail) — tengok finally{} block kat bawah
+// ======================
+const uploadDir = path.join(__dirname, "tmp_uploads");
+if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+
+const upload = multer({
+  dest: uploadDir,
+  limits: { fileSize: 5 * 1024 * 1024 }, // max 5MB per fail
+  fileFilter: (req, file, cb) => {
+    // hanya terima .xlsx — fail lain ditolak senyap (req.file jadi undefined)
+    cb(null, file.originalname.toLowerCase().endsWith(".xlsx"));
+  }
 });
 
 // ======================
@@ -157,6 +178,45 @@ app.post("/admin/send", async (req, res) => {
   await logMessage({ channel: "meta", direction: "out", chatId: chat_id, message, msgType: "manual" });
 
   res.json({ ok: true });
+});
+
+// ======================
+// ADMIN BULK IMPORT — ITEMS (.xlsx upload dari browser)
+// UI: public/admin/import.html
+// Logic sebenar (parse + validate + insert) DIKONGSI dengan CLI script
+// scripts/bulkImportItems.js → kedua-dua panggil services/imports/runBulkImportItems.js
+// supaya tiada duplicate logic antara CLI dan web.
+// ======================
+app.post("/admin/import/items", upload.single("file"), async (req, res) => {
+
+  // ✅ AUTH CHECK DULU — kalau token salah, padam fail yang dah ke-upload sekali
+  if (req.query.token !== process.env.ADMIN_LOG_TOKEN) {
+    if (req.file) fs.unlink(req.file.path, () => {});
+    return res.status(403).end();
+  }
+
+  if (!req.file) {
+    return res.status(400).json({ error: "FILE_REQUIRED (.xlsx sahaja)" });
+  }
+
+  const slug   = req.body.slug;
+  const dryRun = req.body.dryRun === "true";
+
+  if (!slug) {
+    fs.unlink(req.file.path, () => {});
+    return res.status(400).json({ error: "SLUG_REQUIRED" });
+  }
+
+  try {
+    const result = await runBulkImportItems({ slug, filePath: req.file.path, dryRun });
+    res.json(result);
+  } catch (err) {
+    console.error("IMPORT ITEMS ERROR:", err);
+    res.status(500).json({ error: "IMPORT_FAILED" });
+  } finally {
+    // ✅ SELALU padam fail sementara — tak kira success ke fail
+    fs.unlink(req.file.path, () => {});
+  }
 });
 
 // ======================
