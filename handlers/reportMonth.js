@@ -36,7 +36,7 @@ module.exports = withRole(
   ["manager", "owner", "admin"],
   async (ctx) => {
 
-    const { chatId, parts, res } = ctx;
+    const { chatId, parts, res, channel } = ctx;
 
     const mode = parts[1]?.toUpperCase();
 
@@ -50,7 +50,8 @@ module.exports = withRole(
       months.map(m => ({
         id: `REPORT ${mode} ${m}`,
         title: m
-      }))
+      })),
+      channel
     );
 
     return res.end();

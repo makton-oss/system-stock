@@ -3,7 +3,7 @@ const { sendButtonsRouter } = require("../services/notification/notificationRout
 
 module.exports = withRole(["staff","manager","admin"], async (ctx) => {
 
-  const { chatId, parts, reply, res } = ctx;
+  const { chatId, parts, reply, res, channel } = ctx;
 
   const action = parts[1]?.toUpperCase(); // jangan uppercase dulu (nak exact match)
 
@@ -29,7 +29,8 @@ module.exports = withRole(["staff","manager","admin"], async (ctx) => {
     [
       { id: "TRY_APPROVE", title: "Approve" },
       { id: "TRY_REJECT", title: "Reject" }
-    ]
+    ],
+    channel
   );
 
   return res.end();

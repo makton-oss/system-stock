@@ -44,7 +44,7 @@ async function writeLog(chatId, role, command, details = "", tenantId = null) {
       details,
       tenant_id: tenantId
     });
-    await supabase.rpc("trim_logs");
+    await supabase.rpc("audit_trim_logs");
   } catch (err) {
     console.log("LOG ERROR:", err);
   }

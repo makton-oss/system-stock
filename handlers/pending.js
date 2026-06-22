@@ -7,7 +7,7 @@ module.exports =
 withRole(["supervisor", "manager"],
 async (ctx) => {
 
-  const { chatId, user, reply, res } = ctx;
+  const { chatId, user, reply, res, channel } = ctx;
 
   // ======================
   // ACCESS
@@ -30,7 +30,8 @@ async (ctx) => {
 
     await reply(
       chatId,
-      "❌ ERROR"
+      "❌ ERROR",
+      channel
     );
 
     return res.end();
@@ -52,7 +53,8 @@ async (ctx) => {
 
   await sendPendingList({
     chatId,
-    rows: data
+    rows: data,
+    channel
   });
 
   return res.end();

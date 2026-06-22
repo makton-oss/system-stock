@@ -4,6 +4,8 @@ const { sendButtonsRouter } = require("../notification/notificationRouter");
 const { getManagersByOutlet } = require("../../db/users/getManagersByOutlet");
 const { buildStockRequestMessage } = require("../../utils/messages/buildStockRequestMessage");
 const { applyTenant } = require("../../utils/applyTenant");
+// Push notification channel ikut env — manager receive kat channel yang diorang guna
+const NOTIFY_CHANNEL = process.env.META_ENABLED === "true" ? "meta" : "botcommerce";
 
 async function notifySmartStock(outletId, tenantId = null) {
 
@@ -56,7 +58,7 @@ async function notifySmartStock(outletId, tenantId = null) {
         { id: `reject ${r.id}`,  title: `REJECT ${r.id}`  }
       ];
 
-      await sendButtonsRouter(m.chat_id, text, buttons);
+      await sendButtonsRouter(m.chat_id, text, buttons, NOTIFY_CHANNEL);
     }
 
     return;
@@ -75,7 +77,8 @@ async function notifySmartStock(outletId, tenantId = null) {
       [
         { id: `approve_all_${outletId}`, title: `APPROVE ${outletName.toUpperCase()}` },
         { id: `reject_all_${outletId}`,  title: `REJECT ${outletName.toUpperCase()}`  }
-      ]
+      ],
+      NOTIFY_CHANNEL
     );
   }
 }

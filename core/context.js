@@ -6,7 +6,8 @@ function createContext({ chatId, user, parts, message, res, reply }) {
     parts,
 	  message,
     res,
-    reply
+    reply,
+    channel: channel || "botcommerce" // "meta" | "botcommerce"
   };
 }
 

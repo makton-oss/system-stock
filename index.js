@@ -385,7 +385,8 @@ app.post("/webhook/meta", async (req, res) => {
         parts,
         message,
         res: { end: () => {} },
-        reply: replyMeta
+        reply: replyMeta,
+        channel: "meta"
       });
       return await handler(ctx);
     }
@@ -402,7 +403,8 @@ app.post("/webhook/meta", async (req, res) => {
       parts,
       message,
       res: { end: () => {} },
-      reply: replyMeta
+      reply: replyMeta,
+      channel: "meta"
     });
 
     await handler(ctx);
@@ -480,7 +482,8 @@ app.post("/webhook", async (req, res) => {
       parts,
       body: message,
       res,
-      reply
+      reply,
+      channel: "botcommerce"
     });
     return await handler(ctx);
   }
@@ -498,7 +501,8 @@ app.post("/webhook", async (req, res) => {
     parts,
     message,
     res,
-    reply
+    reply,
+    channel: "botcommerce"
   });
 
   try {

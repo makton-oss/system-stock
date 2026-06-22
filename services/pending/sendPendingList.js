@@ -6,10 +6,7 @@ const { buildStockRequestMessage } = require("../../utils/messages/buildStockReq
 // SEND PENDING
 // ======================
 
-async function sendPendingList({
-  chatId,
-  rows
-}) {
+async function sendPendingList({ chatId, rows, channel="botcommerce" }) {
 
   // ======================
   // GROUP OUTLET
@@ -53,7 +50,8 @@ async function sendPendingList({
     await sendButtonsRouter(
       chatId,
       text,
-      buttons
+      buttons,
+      channel
     );
   }
 }

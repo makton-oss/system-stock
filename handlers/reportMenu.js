@@ -3,7 +3,7 @@ const { sendButtonsRouter } = require("../services/notification/notificationRout
 
 module.exports = withRole(["manager", "owner", "admin"], async (ctx) => {
 
-  const { chatId, user, res } = ctx;
+  const { chatId, user, res, channel } = ctx;
   const isOwner = user.role === "owner" || user.role === "superadmin";
 
   // ======================
@@ -16,7 +16,8 @@ module.exports = withRole(["manager", "owner", "admin"], async (ctx) => {
       { id: "SUMMARY",   title: "SUMMARY"   },
       { id: "INVENTORY", title: "INVENTORY" },
       { id: "FLOW",      title: "FLOW"      }
-    ]
+    ],
+    channel
   );
 
   // ======================
@@ -35,7 +36,8 @@ module.exports = withRole(["manager", "owner", "admin"], async (ctx) => {
   await sendButtonsRouter(
     chatId,
     `4. Dead Stock — item tiada movement\n6. Outlet Compare — banding bulan & outlet`,
-    row2Buttons
+    row2Buttons,
+    channel
   );
 
   return res.end();
