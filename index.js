@@ -18,6 +18,7 @@ const { gracefulShutdown, isShutdown } = require("./src/shutdown");
 const { logMessage } = require("./services/logging/messageLogger");
 const { Sentry, initSentry } = require("./services/sentry");
 const { runBulkImportItems } = require("./services/imports/runBulkImportItems");
+const { runBulkImportUsers } = require("./services/imports/runBulkImportUsers");
 
 initSentry();
 
@@ -215,6 +216,41 @@ app.post("/admin/import/items", upload.single("file"), async (req, res) => {
     res.status(500).json({ error: "IMPORT_FAILED" });
   } finally {
     // ✅ SELALU padam fail sementara — tak kira success ke fail
+    fs.unlink(req.file.path, () => {});
+  }
+});
+
+// ======================
+// ADMIN BULK IMPORT — USERS (.xlsx upload dari browser)
+// UI: public/admin/import.html (right panel)
+// Logic dikongsi dengan scripts/bulkImportUsers.js
+// ======================
+app.post("/admin/import/users", upload.single("file"), async (req, res) => {
+
+  if (req.query.token !== process.env.ADMIN_LOG_TOKEN) {
+    if (req.file) fs.unlink(req.file.path, () => {});
+    return res.status(403).end();
+  }
+
+  if (!req.file) {
+    return res.status(400).json({ error: "FILE_REQUIRED (.xlsx sahaja)" });
+  }
+
+  const slug   = req.body.slug;
+  const dryRun = req.body.dryRun === "true";
+
+  if (!slug) {
+    fs.unlink(req.file.path, () => {});
+    return res.status(400).json({ error: "SLUG_REQUIRED" });
+  }
+
+  try {
+    const result = await runBulkImportUsers({ slug, filePath: req.file.path, dryRun });
+    res.json(result);
+  } catch (err) {
+    console.error("IMPORT USERS ERROR:", err);
+    res.status(500).json({ error: "IMPORT_FAILED" });
+  } finally {
     fs.unlink(req.file.path, () => {});
   }
 });

@@ -2,88 +2,348 @@
 <html lang="ms">
 <head>
 <meta charset="UTF-8">
-<title>Bulk Import — Items</title>
+<title>Bulk Import — Admin</title>
 <style>
-  * { box-sizing: border-box; }
-  body { font-family: sans-serif; margin:0; padding:20px; background:#f5f5f5; }
-  .card { max-width:520px; margin:0 auto; background:#fff; padding:24px; border-radius:10px; box-shadow:0 2px 10px rgba(0,0,0,0.08); }
-  label { display:block; margin:14px 0 4px; font-size:13px; font-weight:600; color:#444; }
-  input[type=text], input[type=password] { width:100%; padding:8px; border:1px solid #ccc; border-radius:6px; font-size:14px; }
-  .row { display:flex; align-items:center; gap:8px; margin-top:14px; }
-  button { margin-top:20px; width:100%; padding:10px; border:none; border-radius:6px; background:#1D9E75; color:#fff; font-weight:700; cursor:pointer; }
-  button:disabled { background:#aaa; cursor:not-allowed; }
-  pre { background:#0f172a; color:#d1fae5; padding:14px; border-radius:8px; font-size:12px; max-height:340px; overflow:auto; white-space:pre-wrap; margin-top:16px; }
-  .error { color:#b91c1c; font-size:13px; margin-top:10px; white-space:pre-wrap; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: sans-serif;
+    background: #f0f0f0;
+    min-height: 100vh;
+  }
+
+  /* ── NAVBAR ── */
+  .navbar {
+    padding: 10px 16px;
+    background: #075e54;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .navbar__title {
+    flex: 1;
+    color: #fff;
+    font-weight: 700;
+    font-size: 15px;
+  }
+  .navbar__btn {
+    padding: 6px 14px;
+    border-radius: 6px;
+    background: #d9fdd3;
+    color: #075e54;
+    font-weight: 700;
+    font-size: 13px;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  .navbar__btn:hover { background: #c3f7bd; }
+
+  /* ── TOKEN BAR ── */
+  .tokenbar {
+    padding: 8px 16px;
+    background: #064e47;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .tokenbar label {
+    color: #9FE1CB;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .tokenbar input {
+    padding: 6px 10px;
+    border-radius: 6px;
+    border: none;
+    font-size: 13px;
+    width: 260px;
+  }
+
+  /* ── LAYOUT ── */
+  .content {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    padding: 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  @media (max-width: 800px) {
+    .content { grid-template-columns: 1fr; }
+    .tokenbar input { width: 100%; }
+  }
+
+  /* ── CARD ── */
+  .card {
+    background: #fff;
+    padding: 24px;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+  }
+  .card__title {
+    font-size: 15px;
+    font-weight: 700;
+    color: #111;
+    margin-bottom: 16px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #f0fdf8;
+  }
+
+  /* ── FORM ELEMENTS ── */
+  .form-label {
+    display: block;
+    margin: 14px 0 4px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #444;
+  }
+  .form-input {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 14px;
+    font-family: inherit;
+  }
+  .form-input:focus { outline: 2px solid #075e54; border-color: transparent; }
+
+  input[type="file"].form-input { padding: 6px; }
+
+  .dryrun-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 14px;
+  }
+  .dryrun-row input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; }
+  .dryrun-row label {
+    font-size: 13px;
+    color: #444;
+    cursor: pointer;
+    margin: 0;
+  }
+
+  /* ── SUBMIT BUTTON ── */
+  .btn-submit {
+    margin-top: 18px;
+    width: 100%;
+    padding: 10px;
+    border: none;
+    border-radius: 6px;
+    background: #075e54;
+    color: #fff;
+    font-weight: 700;
+    font-size: 14px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 0.15s;
+  }
+  .btn-submit:hover { background: #064e47; }
+  .btn-submit:disabled { background: #aaa; cursor: not-allowed; }
+
+  /* ── RESULT AREA ── */
+  .result-error {
+    color: #b91c1c;
+    font-size: 13px;
+    margin-top: 12px;
+    white-space: pre-wrap;
+    line-height: 1.5;
+  }
+  .result-success {
+    color: #065f46;
+    font-size: 13px;
+    font-weight: 600;
+    margin-top: 12px;
+  }
+  .result-log {
+    display: none;
+    background: #0f172a;
+    color: #d1fae5;
+    padding: 14px;
+    border-radius: 8px;
+    font-size: 12px;
+    max-height: 280px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    margin-top: 12px;
+    line-height: 1.5;
+  }
 </style>
 </head>
 <body>
-<div class="card">
-  <h2>📦 Bulk Import Items</h2>
 
-  <label>Admin Token</label>
-  <input type="password" id="token" placeholder="Admin token">
+<!-- ── NAVBAR ── -->
+<div class="navbar">
+  <span class="navbar__title">📦 Bulk Import — Admin</span>
+  <a href="/admin/logs.html" class="navbar__btn">📥 Inbox</a>
+</div>
 
-  <label>Tenant Slug</label>
-  <input type="text" id="slug" placeholder="contoh: kedai-maju">
+<!-- ── TOKEN BAR (shared) ── -->
+<div class="tokenbar">
+  <label>Admin Token:</label>
+  <input type="password" id="globalToken" placeholder="Masukkan admin token...">
+</div>
 
-  <label>Fail Excel (.xlsx)</label>
-  <input type="file" id="file" accept=".xlsx">
+<!-- ── 2 COLUMN CONTENT ── -->
+<div class="content">
 
-  <div class="row">
-    <input type="checkbox" id="dryRun" checked>
-    <label style="margin:0">Dry Run (validate sahaja)</label>
+  <!-- ══ LEFT: ITEMS ══ -->
+  <div class="card">
+    <div class="card__title">📦 Import Items (Stok)</div>
+
+    <label class="form-label">Tenant Slug</label>
+    <input class="form-input" type="text" id="itemSlug" placeholder="contoh: kedai-maju">
+
+    <label class="form-label">Fail Excel (.xlsx)</label>
+    <input class="form-input" type="file" id="itemFile" accept=".xlsx">
+
+    <div class="dryrun-row">
+      <input type="checkbox" id="itemDryRun" checked>
+      <label for="itemDryRun">Dry Run — validate sahaja, tiada tulis ke DB</label>
+    </div>
+
+    <button class="btn-submit" id="itemBtn" onclick="runItemImport()">
+      Jalankan Import Items
+    </button>
+
+    <div id="itemError"   class="result-error"></div>
+    <div id="itemSuccess" class="result-success"></div>
+    <pre id="itemLog"     class="result-log"></pre>
   </div>
 
-  <button id="submitBtn" onclick="runImport()">Jalankan Import</button>
+  <!-- ══ RIGHT: USERS ══ -->
+  <div class="card">
+    <div class="card__title">👥 Import Users</div>
 
-  <div id="errorBox" class="error"></div>
-  <pre id="logBox" style="display:none"></pre>
+    <label class="form-label">Tenant Slug</label>
+    <input class="form-input" type="text" id="userSlug" placeholder="contoh: kedai-maju">
+
+    <label class="form-label">Fail Excel (.xlsx)</label>
+    <input class="form-input" type="file" id="userFile" accept=".xlsx">
+
+    <div class="dryrun-row">
+      <input type="checkbox" id="userDryRun" checked>
+      <label for="userDryRun">Dry Run — validate sahaja, tiada tulis ke DB</label>
+    </div>
+
+    <button class="btn-submit" id="userBtn" onclick="runUserImport()">
+      Jalankan Import Users
+    </button>
+
+    <div id="userError"   class="result-error"></div>
+    <div id="userSuccess" class="result-success"></div>
+    <pre id="userLog"     class="result-log"></pre>
+  </div>
+
 </div>
 
 <script>
-async function runImport() {
-  const token  = document.getElementById('token').value;
-  const slug   = document.getElementById('slug').value.trim();
-  const fileEl = document.getElementById('file');
-  const dryRun = document.getElementById('dryRun').checked;
-  const btn    = document.getElementById('submitBtn');
-  const errorBox = document.getElementById('errorBox');
-  const logBox = document.getElementById('logBox');
-
-  errorBox.textContent = '';
-  logBox.style.display = 'none';
-
-  if (!token) return errorBox.textContent = 'Masukkan admin token.';
-  if (!slug) return errorBox.textContent = 'Masukkan tenant slug.';
-  if (!fileEl.files.length) return errorBox.textContent = 'Pilih fail .xlsx dulu.';
-
-  const fd = new FormData();
-  fd.append('file', fileEl.files[0]);
-  fd.append('slug', slug);
-  fd.append('dryRun', dryRun ? 'true' : 'false');
-
-  btn.disabled = true;
-  btn.textContent = 'Memproses...';
-
-  try {
-    const res = await fetch(`/admin/import/items?token=${encodeURIComponent(token)}`, { method: 'POST', body: fd });
-    const data = await res.json();
-
-    if (!res.ok || data.error) {
-      errorBox.textContent = data.error || 'Import gagal.';
-      if (data.hardErrors) errorBox.textContent += '\n\n' + data.hardErrors.join('\n');
-    }
-    if (data.logs) {
-      logBox.style.display = 'block';
-      logBox.textContent = data.logs.join('\n');
-    }
-  } catch (err) {
-    errorBox.textContent = 'Network error: ' + err.message;
-  } finally {
-    btn.disabled = false;
-    btn.textContent = 'Jalankan Import';
+  // ── SHARED ──
+  function getToken() {
+    return document.getElementById('globalToken').value;
   }
-}
+
+  function resetPanel(prefix) {
+    document.getElementById(prefix + 'Error').textContent   = '';
+    document.getElementById(prefix + 'Success').textContent = '';
+    document.getElementById(prefix + 'Log').style.display   = 'none';
+    document.getElementById(prefix + 'Log').textContent     = '';
+  }
+
+  function showResult(prefix, data, dryRun, successTemplate) {
+    if (data.error) {
+      let msg = data.error;
+      if (data.hardErrors?.length) msg += '\n\n' + data.hardErrors.join('\n');
+      document.getElementById(prefix + 'Error').textContent = msg;
+    } else {
+      document.getElementById(prefix + 'Success').textContent = successTemplate(data, dryRun);
+    }
+    if (data.logs?.length) {
+      const logEl = document.getElementById(prefix + 'Log');
+      logEl.style.display = 'block';
+      logEl.textContent   = data.logs.join('\n');
+    }
+  }
+
+  // ── ITEMS IMPORT ──
+  async function runItemImport() {
+    const token  = getToken();
+    const slug   = document.getElementById('itemSlug').value.trim();
+    const fileEl = document.getElementById('itemFile');
+    const dryRun = document.getElementById('itemDryRun').checked;
+    const btn    = document.getElementById('itemBtn');
+
+    resetPanel('item');
+
+    if (!token) return document.getElementById('itemError').textContent = '⚠️ Masukkan admin token dulu.';
+    if (!slug)  return document.getElementById('itemError').textContent = '⚠️ Masukkan tenant slug.';
+    if (!fileEl.files.length) return document.getElementById('itemError').textContent = '⚠️ Pilih fail .xlsx dulu.';
+
+    const fd = new FormData();
+    fd.append('file',   fileEl.files[0]);
+    fd.append('slug',   slug);
+    fd.append('dryRun', dryRun ? 'true' : 'false');
+
+    btn.disabled    = true;
+    btn.textContent = '⏳ Memproses...';
+
+    try {
+      const res  = await fetch(`/admin/import/items?token=${encodeURIComponent(token)}`, { method: 'POST', body: fd });
+      const data = await res.json();
+
+      showResult('item', data, dryRun, (d, dr) =>
+        dr
+          ? `✅ Dry run OK — ${d.validCount} row valid. Uncheck dry run untuk execute sebenar.`
+          : `✅ Done — ${d.created} created | ${d.skipped} skipped (dup) | ${d.failed} failed`
+      );
+    } catch (err) {
+      document.getElementById('itemError').textContent = 'Network error: ' + err.message;
+    } finally {
+      btn.disabled    = false;
+      btn.textContent = 'Jalankan Import Items';
+    }
+  }
+
+  // ── USERS IMPORT ──
+  async function runUserImport() {
+    const token  = getToken();
+    const slug   = document.getElementById('userSlug').value.trim();
+    const fileEl = document.getElementById('userFile');
+    const dryRun = document.getElementById('userDryRun').checked;
+    const btn    = document.getElementById('userBtn');
+
+    resetPanel('user');
+
+    if (!token) return document.getElementById('userError').textContent = '⚠️ Masukkan admin token dulu.';
+    if (!slug)  return document.getElementById('userError').textContent = '⚠️ Masukkan tenant slug.';
+    if (!fileEl.files.length) return document.getElementById('userError').textContent = '⚠️ Pilih fail .xlsx dulu.';
+
+    const fd = new FormData();
+    fd.append('file',   fileEl.files[0]);
+    fd.append('slug',   slug);
+    fd.append('dryRun', dryRun ? 'true' : 'false');
+
+    btn.disabled    = true;
+    btn.textContent = '⏳ Memproses...';
+
+    try {
+      const res  = await fetch(`/admin/import/users?token=${encodeURIComponent(token)}`, { method: 'POST', body: fd });
+      const data = await res.json();
+
+      showResult('user', data, dryRun, (d, dr) =>
+        dr
+          ? `✅ Dry run OK — ${d.validCount} user valid. Uncheck dry run untuk execute sebenar.`
+          : `✅ Done — ${d.created} created | ${d.updated} updated | ${d.skippedLimit} skip (had) | ${d.failed} failed`
+      );
+    } catch (err) {
+      document.getElementById('userError').textContent = 'Network error: ' + err.message;
+    } finally {
+      btn.disabled    = false;
+      btn.textContent = 'Jalankan Import Users';
+    }
+  }
 </script>
 </body>
 </html>

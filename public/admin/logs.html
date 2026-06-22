@@ -9,6 +9,8 @@
   .tokenbar { padding:10px 16px; background:#075e54; display:flex; gap:8px; align-items:center; }
   .tokenbar input { padding:6px 10px; border-radius:6px; border:none; font-size:13px; }
   .tokenbar button { padding:6px 14px; border-radius:6px; border:none; background:#fff; color:#075e54; font-weight:700; cursor:pointer; }
+  .tokenbar__nav-btn { padding: 6px 14px; border-radius: 6px; background: #d9fdd3; color: #075e54; font-weight: 700; font-size: 13px; text-decoration: none; white-space: nowrap; }
+  .tokenbar__nav-btn:hover { background: #c3f7bd; }
   .main { flex:1; display:flex; overflow:hidden; }
 
   .sidebar { width:300px; border-right:1px solid #ddd; overflow-y:auto; background:#fff; flex-shrink:0; }
@@ -60,7 +62,7 @@
 <div class="tokenbar">
   <input id="token" type="password" placeholder="Admin token">
   <button onclick="loadConversations()">Connect</button>
-  <a href="/admin/import.html" class="button">Import</a>
+  <a href="/admin/import.html" class="tokenbar__nav-btn">📦 Import</a>
 </div>
 
 <div class="main">
