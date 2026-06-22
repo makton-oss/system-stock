@@ -59,6 +59,9 @@
     font-size: 13px;
     width: 260px;
   }
+  .tokenbar .navbar__btn {
+    margin-left: auto;
+  }
 
   /* ── LAYOUT ── */
   .content {
@@ -174,16 +177,17 @@
 </head>
 <body>
 
-<!-- ── NAVBAR ── -->
+<!-- ── NAVBAR ── 
 <div class="navbar">
   <span class="navbar__title">📦 Bulk Import — Admin</span>
   <a href="/admin/logs.html" class="navbar__btn">📥 Inbox</a>
-</div>
+</div> -->
 
 <!-- ── TOKEN BAR (shared) ── -->
 <div class="tokenbar">
   <label>Admin Token:</label>
   <input type="password" id="globalToken" placeholder="Masukkan admin token...">
+  <a href="/admin/logs.html" class="navbar__btn">📥 Inbox</a>
 </div>
 
 <!-- ── 2 COLUMN CONTENT ── -->
