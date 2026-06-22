@@ -1,4 +1,4 @@
-function createContext({ chatId, user, parts, message, res, reply }) {
+function createContext({ chatId, user, parts, message, res, reply, channel }) {
   return {
     chatId,
     user,
