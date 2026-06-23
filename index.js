@@ -480,7 +480,7 @@ app.post("/webhook", async (req, res) => {
       chatId,
       user,
       parts,
-      body: message,
+      message,
       res,
       reply,
       channel: "botcommerce"

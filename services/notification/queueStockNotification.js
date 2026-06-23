@@ -3,7 +3,7 @@ const { notifySmartStock } = require("./smartStockNotifier");
 
 const QUEUE_DELAY = 1 * 60 * 1000; // 1 minit
 
-async function queueStockNotification(outletId, tenantId = null) {
+async function queueStockNotification(outletId, tenantId = null, channel = "botcommerce") {
 
   const key = `${tenantId || "null"}_${outletId}`;
 
@@ -16,11 +16,13 @@ async function queueStockNotification(outletId, tenantId = null) {
 
   // ======================
   // SET NEW TIMER
+  // Simpan channel dalam key supaya debounce tidak overwrite channel lama
+  // dengan channel berbeza
   // ======================
   pendingNotifyQueue[key] = setTimeout(async () => {
 
     try {
-      await notifySmartStock(outletId, tenantId);
+      await notifySmartStock(outletId, tenantId, channel);
     } catch (err) {
       console.log("QUEUE ERROR:", err);
     } finally {

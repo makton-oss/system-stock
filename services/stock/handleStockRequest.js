@@ -10,7 +10,7 @@ const EMOJI = {
 
 async function handleStockRequest(type, ctx) {
 
-  const { chatId, parts, user, reply, res } = ctx;
+  const { chatId, parts, user, reply, res, channel } = ctx;
 
   const rawInput = parts.slice(1).join(" ");
 
@@ -75,7 +75,8 @@ async function handleStockRequest(type, ctx) {
       successList.push({ item: p.item, qty: p.qty, id: result.id });
     }
 
-    await queueStockNotification(user.outlet_id, user.tenant_id || null);
+    // Pass channel supaya manager dapat notification kat channel yang sama
+    await queueStockNotification(user.outlet_id, user.tenant_id || null, channel);
 
     const emoji = EMOJI[type];
     const lines = successList.map(p => `${emoji} ${p.item} x${p.qty}`).join("\n");
@@ -112,7 +113,8 @@ async function handleStockRequest(type, ctx) {
     return res.end();
   }
 
-  await queueStockNotification(user.outlet_id, user.tenant_id || null);
+  // Pass channel supaya manager dapat notification kat channel yang sama
+  await queueStockNotification(user.outlet_id, user.tenant_id || null, channel);
   await reply(chatId, "✅ REQUEST SENT");
 
   return res.end();
