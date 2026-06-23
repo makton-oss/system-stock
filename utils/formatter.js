@@ -21,6 +21,8 @@ module.exports = {
   formatItemListAdmin: stockFormat.formatItemListAdmin,
   formatStock:         stockFormat.formatStock,
   formatStockAdmin:    stockFormat.formatStockAdmin,
+  formatStockByCategory: stockFormat.formatStockByCategory,
+  formatStockAdminByCategory: stockFormat.formatStockAdminByCategory,
   formatPending:       stockFormat.formatPending,
   formatPendingAdmin:  stockFormat.formatPendingAdmin,
   formatLowStockAlert: stockFormat.formatLowStockAlert,

@@ -1,9 +1,9 @@
 const { withRole } = require("../core/withRole");
 const { getStockAll } = require("../db/stock/getStockAll");
-const { formatStock, formatStockAdmin } = require("../utils/formatter");
+const { formatStockByCategory, formatStockAdminByCategory } = require("../utils/formatter");
 const { getAccessibleOutletIds } = require("../db/outlets/getAccessibleOutletIds");
 
-module.exports = withRole(["staff", "supervisor" ,"manager","admin", "owner"], async (ctx) => {
+module.exports = withRole(["staff", "supervisor", "manager", "admin", "owner"], async (ctx) => {
 
   const { chatId, user, reply, res } = ctx;
 
@@ -21,9 +21,10 @@ module.exports = withRole(["staff", "supervisor" ,"manager","admin", "owner"], a
   const uniqueOutlet = [...new Set(data.map(r => r.outlet_id))];
 
   if (uniqueOutlet.length > 1) {
-    await reply(chatId, formatStockAdmin(data));
+    await reply(chatId, formatStockAdminByCategory(data));
   } else {
-    await reply(chatId, formatStock(data));
+    await reply(chatId, formatStockByCategory(data));
   }
+
   return res.end();
 });

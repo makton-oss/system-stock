@@ -94,6 +94,81 @@ function formatStockAdmin(rows) {
 }
 
 // ======================
+// STOCK — single outlet, grouped by category
+// ======================
+function formatStockByCategory(rows) {
+  if (!rows?.length) return "📦 STOCK KOSONG";
+
+  const outlet = rows[0]?.outlets?.name || "-";
+  let text = `📦 STOCK\n🏪 ${toProperCase(outlet)}\n${formatLogDateTime()}\n\n`;
+
+  // Group by category
+  const categoryMap = new Map();
+  rows.forEach(r => {
+    const cat = toProperCase(r.items?.category || r.category || "Lain-lain");
+    if (!categoryMap.has(cat)) categoryMap.set(cat, []);
+    categoryMap.get(cat).push(r);
+  });
+
+  // Sort categories alphabetically
+  const sortedCategories = [...categoryMap.keys()].sort();
+
+  let counter = 1;
+  sortedCategories.forEach(cat => {
+    text += `${cat}\n`;
+    categoryMap.get(cat).forEach(r => {
+      const name = toProperCase(r.items?.name || r.item || "-");
+      const low = r.qty <= r.min_qty && r.min_qty > 0 ? ' ⚠️' : '';
+      text += `${counter}. ${name} x ${r.qty} (${r.uom || "UOM"})${low}\n`;
+      counter++;
+    });
+    text += "\n";
+  });
+
+  return text.trim();
+}
+
+// ======================
+// STOCK — multi outlet, grouped by category
+// ======================
+function formatStockAdminByCategory(rows) {
+  if (!rows?.length) return "📦 STOCK KOSONG";
+
+  let text = "📦 STOCK\n";
+
+  const outletMap = _groupByOutlet(rows);
+
+  outletMap.forEach((items, outlet) => {
+    text += `🏪 ${toProperCase(outlet)}\n${formatLogDateTime()}\n\n`;
+
+    const categoryMap = new Map();
+    items.forEach(r => {
+      const cat = toProperCase(r.items?.category || r.category || "Lain-lain");
+      if (!categoryMap.has(cat)) categoryMap.set(cat, []);
+      categoryMap.get(cat).push(r);
+    });
+
+    const sortedCategories = [...categoryMap.keys()].sort();
+
+    let counter = 1;
+    sortedCategories.forEach(cat => {
+      text += `${cat}\n`;
+      categoryMap.get(cat).forEach(r => {
+        const name = toProperCase(r.items?.name || r.item || "-");
+        const low = r.qty <= r.min_qty && r.min_qty > 0 ? ' ⚠️' : '';
+        text += `${counter}. ${name} x ${r.qty} (${r.uom || "UOM"})${low}\n`;
+        counter++;
+      });
+      text += "\n";
+    });
+
+    text += "\n";
+  });
+
+  return text.trim();
+}
+
+// ======================
 // PENDING — single outlet
 // ======================
 function formatPending(rows) {
@@ -149,6 +224,8 @@ module.exports = {
   formatItemListAdmin,
   formatStock,
   formatStockAdmin,
+  formatStockByCategory,
+  formatStockAdminByCategory,
   formatPending,
   formatPendingAdmin,
   formatLowStockAlert,
