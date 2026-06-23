@@ -4,6 +4,7 @@ const { sendButtonsRouter } = require("../notification/notificationRouter");
 const { getManagersByOutlet } = require("../../db/users/getManagersByOutlet");
 const { buildStockRequestMessage } = require("../../utils/messages/buildStockRequestMessage");
 const { applyTenant } = require("../../utils/applyTenant");
+
 // Push notification channel ikut env — manager receive kat channel yang diorang guna
 const NOTIFY_CHANNEL = process.env.META_ENABLED === "true" ? "meta" : "botcommerce";
 

@@ -30,8 +30,7 @@ async (ctx) => {
 
     await reply(
       chatId,
-      "❌ ERROR",
-      channel
+      "❌ ERROR"
     );
 
     return res.end();
