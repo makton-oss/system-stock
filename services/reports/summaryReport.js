@@ -1,20 +1,24 @@
 const supabase = require("../db");
 const { applyTenant } = require("../../utils/applyTenant");
 const { DateTime } = require("luxon");
+const { applyDailyNetting } = require("../../utils/movementNetting");
 
 async function getSummaryReport({ start, end, outletIds, tenantId }) {
 
   let movementQ = supabase
     .from("movements")
-    .select(`qty, type, cost_price, outlet_id, item, outlets(name)`)
+    .select(`qty, type, cost_price, outlet_id, item, created_at, outlets(name)`)
     .gte("created_at", start)
-    .lte("created_at", end);
+    .lte("created_at", end)
+    .order("created_at", { ascending: true });
 
   if (outletIds) movementQ = movementQ.in("outlet_id", outletIds);
   movementQ = applyTenant(movementQ, tenantId);
 
-  const { data: movements, error } = await movementQ;
+  const { data: rawMovements, error } = await movementQ;
   if (error) return { error };
+
+  const movements = applyDailyNetting(rawMovements);
 
   // ======================
   // SNAPSHOT DATES — timezone-safe (Luxon), sync dgn createInventorySnapshot.js
@@ -75,9 +79,21 @@ async function getSummaryReport({ start, end, outletIds, tenantId }) {
     const o     = outletMap.get(outletId);
     const value = Number(r.qty || 0) * Number(r.cost_price || 0);
 
-    if (r.type === "in")      { o.stockIn  += value; }
-    if (r.type === "out")     { o.stockOut += value; o.usageMap[r.item]   = (o.usageMap[r.item]   || 0) + value; }
-    if (r.type === "wastage") { o.wastage  += value; o.wastageMap[r.item] = (o.wastageMap[r.item] || 0) + value; }
+    if (r.type === "in" && !r.isCorrection) {
+      o.stockIn += value;
+    }
+    if (r.type === "in" && r.isCorrection) {
+      o.stockOut -= value;
+      o.usageMap[r.item] = (o.usageMap[r.item] || 0) - value;
+    }
+    if (r.type === "out") {
+      o.stockOut += value;
+      o.usageMap[r.item] = (o.usageMap[r.item] || 0) + value;
+    }
+    if (r.type === "wastage") {
+      o.wastage += value;
+      o.wastageMap[r.item] = (o.wastageMap[r.item] || 0) + value;
+    }
   });
 
   outletMap.forEach((o, outletId) => {

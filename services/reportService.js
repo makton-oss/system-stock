@@ -1,6 +1,7 @@
 const supabase = require("./db");
 const { applyTenant } = require("../utils/applyTenant");
 const { DateTime } = require("luxon");
+const { applyDailyNetting } = require("../utils/movementNetting");
 
 function groupByOutlet(rows) {
   const map = {};
@@ -52,15 +53,18 @@ async function getDetailReport({ start, end, outletIds, tenantId }) {
 
   let q = supabase
     .from("movements")
-    .select(`item_id, item, qty, type, outlet_id, outlets(name)`)
+    .select(`item_id, item, qty, type, outlet_id, created_at, outlets(name)`)
     .gte("created_at", start)
-    .lte("created_at", end);
+    .lte("created_at", end)
+    .order("created_at", { ascending: true });
 
   if (outletIds?.length) q = q.in("outlet_id", outletIds);
   q = applyTenant(q, tenantId);
 
-  const { data, error } = await q;
+  const { data: rawData, error } = await q;
   if (error) return { error };
+
+  const data = applyDailyNetting(rawData);
 
   const grouped = groupByOutlet(data);
   const result  = {};
@@ -70,9 +74,10 @@ async function getDetailReport({ start, end, outletIds, tenantId }) {
     rows.forEach(r => {
       const key = r.item || "unknown";
       if (!map[key]) map[key] = { name: r.item || "Unknown", in: 0, out: 0, wastage: 0 };
-      if (r.type === "in")           map[key].in      += Number(r.qty || 0);
-      else if (r.type === "out")     map[key].out     += Number(r.qty || 0);
-      else if (r.type === "wastage") map[key].wastage += Number(r.qty || 0);
+      if (r.type === "in" && !r.isCorrection)      map[key].in      += Number(r.qty || 0);
+      else if (r.type === "in" && r.isCorrection)   map[key].out     -= Number(r.qty || 0);
+      else if (r.type === "out")                    map[key].out     += Number(r.qty || 0);
+      else if (r.type === "wastage")                map[key].wastage += Number(r.qty || 0);
     });
 
     // FILTER: hanya item dengan IN > 0 atau OUT > 0
@@ -101,6 +106,7 @@ async function getDeadReport({ outletIds, tenantId, asOfDate }) {
   stockQ = applyTenant(stockQ, tenantId);   // ✅ FIX
 
   const { data: stock, error: stockError } = await stockQ;
+  if (stockError) return { error: stockError };
 
   // ======================
   // CARI LAST MOVEMENT DATE PER ITEM (any time, bukan terhad date range)
@@ -147,15 +153,18 @@ async function getFlowReport({ start, end, outletIds, tenantId }) {
 
   let q = supabase
     .from("movements")
-    .select(`qty, type, item_id, item, outlet_id, cost_price, items(name), outlets(name)`)
+    .select(`qty, type, item_id, item, outlet_id, cost_price, created_at, items(name), outlets(name)`)
     .gte("created_at", start)
-    .lte("created_at", end);
+    .lte("created_at", end)
+    .order("created_at", { ascending: true });
 
   if (outletIds?.length) q = q.in("outlet_id", outletIds);
   q = applyTenant(q, tenantId);
 
-  const { data, error } = await q;
+  const { data: rawData, error } = await q;
   if (error) return { error };
+
+  const data = applyDailyNetting(rawData);
 
   const grouped = groupByOutlet(data);
   const result  = {};
@@ -166,9 +175,12 @@ async function getFlowReport({ start, end, outletIds, tenantId }) {
 
     rows.forEach(r => {
       const val = r.qty * (r.cost_price || 0);
-      if (r.type === "in") {
+      if (r.type === "in" && !r.isCorrection) {
         inVal += val;
         inMap[r.item] = (inMap[r.item] || 0) + val;
+      } else if (r.type === "in" && r.isCorrection) {
+        outVal -= val;
+        outMap[r.item] = (outMap[r.item] || 0) - val;
       } else if (r.type === "out") {
         outVal += val;
         outMap[r.item] = (outMap[r.item] || 0) + val;
