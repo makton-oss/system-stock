@@ -1,5 +1,6 @@
 const express = require("express");
 require("dotenv").config();
+const supabase = require("./services/db");
 const startCronJobs = require("./src/jobs/startCronJobs");
 const { gracefulShutdown, isShutdown } = require("./src/shutdown");
 const { Sentry, initSentry } = require("./services/sentry");
