@@ -241,6 +241,139 @@
     <pre id="userLog"     class="result-log"></pre>
   </div>
 
+  <!-- ══ DIVIDER ══ -->
+  <div style="grid-column: 1 / -1; margin: 8px 0 -4px;">
+    <h2 style="font-size:15px;color:#075e54;font-weight:700;">⚙️ Other Admin Tools</h2>
+  </div>
+
+  <!-- ══ UPDATE ITEM ══ -->
+  <div class="card">
+    <div class="card__title">✏️ Update Item (Cost / Min Qty)</div>
+    <label class="form-label">Tenant Slug</label>
+    <input class="form-input" type="text" id="updSlug" placeholder="contoh: kedai-maju">
+    <label class="form-label">Nama Item</label>
+    <input class="form-input" type="text" id="updItem" placeholder="contoh: ayam">
+    <label class="form-label">Outlet</label>
+    <input class="form-input" type="text" id="updOutlet" placeholder="contoh: muiz">
+    <label class="form-label">Cost Baru (RM) — biar kosong jika tak ubah</label>
+    <input class="form-input" type="number" step="0.01" id="updCost" placeholder="3.50">
+    <label class="form-label">Min Qty Baru — biar kosong jika tak ubah</label>
+    <input class="form-input" type="number" id="updMinQty" placeholder="5">
+    <button class="btn-submit" id="updBtn" onclick="runUpdateItem()">Update Item</button>
+    <div id="updError" class="result-error"></div>
+    <div id="updSuccess" class="result-success"></div>
+  </div>
+
+  <!-- ══ ADD ITEM (SINGLE) ══ -->
+  <div class="card">
+    <div class="card__title">➕ Add Item (Single)</div>
+    <label class="form-label">Tenant Slug</label>
+    <input class="form-input" type="text" id="addiSlug" placeholder="contoh: kedai-maju">
+    <label class="form-label">Nama Item</label>
+    <input class="form-input" type="text" id="addiItem" placeholder="contoh: minyak bijan">
+    <label class="form-label">Category</label>
+    <input class="form-input" type="text" id="addiCategory" placeholder="contoh: bahan basah">
+    <label class="form-label">Min Qty</label>
+    <input class="form-input" type="number" id="addiMinQty" placeholder="2">
+    <label class="form-label">Cost (RM)</label>
+    <input class="form-input" type="number" step="0.01" id="addiCost" placeholder="9.00">
+    <label class="form-label">UOM</label>
+    <input class="form-input" type="text" id="addiUom" placeholder="contoh: botol">
+    <label class="form-label">Outlet</label>
+    <input class="form-input" type="text" id="addiOutlet" placeholder="contoh: bta">
+    <button class="btn-submit" id="addiBtn" onclick="runAddItem()">Add Item</button>
+    <div id="addiError" class="result-error"></div>
+    <div id="addiSuccess" class="result-success"></div>
+  </div>
+
+  <!-- ══ REMOVE ITEM (SINGLE) ══ -->
+  <div class="card">
+    <div class="card__title">🗑 Remove Item (Single)</div>
+    <label class="form-label">Tenant Slug</label>
+    <input class="form-input" type="text" id="remiSlug" placeholder="contoh: kedai-maju">
+    <label class="form-label">Nama Item</label>
+    <input class="form-input" type="text" id="remiItem" placeholder="contoh: ayam">
+    <label class="form-label">Outlet</label>
+    <input class="form-input" type="text" id="remiOutlet" placeholder="contoh: muiz">
+    <button class="btn-submit" id="remiBtn" onclick="runRemoveItem()">Remove Item</button>
+    <div id="remiError" class="result-error"></div>
+    <div id="remiSuccess" class="result-success"></div>
+  </div>
+
+  <!-- ══ SET ROLE ══ -->
+  <div class="card">
+    <div class="card__title">🛠 Set Role (Assign Role + Outlet)</div>
+    <label class="form-label">Tenant Slug</label>
+    <input class="form-input" type="text" id="setrSlug" placeholder="contoh: kedai-maju">
+    <label class="form-label">Phone</label>
+    <input class="form-input" type="text" id="setrPhone" placeholder="60123456789">
+    <label class="form-label">Role</label>
+    <select class="form-input" id="setrRole">
+      <option value="staff">staff</option>
+      <option value="supervisor">supervisor</option>
+      <option value="manager">manager</option>
+      <option value="admin">admin</option>
+      <option value="owner">owner</option>
+    </select>
+    <label class="form-label">Nickname</label>
+    <input class="form-input" type="text" id="setrNickname" placeholder="contoh: Ali">
+    <label class="form-label">Outlet(s) — koma-separated utk manager</label>
+    <input class="form-input" type="text" id="setrOutlets" placeholder="outlet1,outlet2">
+    <button class="btn-submit" id="setrBtn" onclick="runSetRole()">Set Role</button>
+    <div id="setrError" class="result-error"></div>
+    <div id="setrSuccess" class="result-success"></div>
+  </div>
+
+  <!-- ══ REMOVE ROLE ══ -->
+  <div class="card">
+    <div class="card__title">⛔ Remove Role (Deactivate User)</div>
+    <label class="form-label">Tenant Slug</label>
+    <input class="form-input" type="text" id="remrSlug" placeholder="contoh: kedai-maju">
+    <label class="form-label">Phone</label>
+    <input class="form-input" type="text" id="remrPhone" placeholder="60123456789">
+    <button class="btn-submit" id="remrBtn" onclick="runRemoveRole()">Remove Role</button>
+    <div id="remrError" class="result-error"></div>
+    <div id="remrSuccess" class="result-success"></div>
+  </div>
+
+  <!-- ══ REACTIVATE USER ══ -->
+  <div class="card">
+    <div class="card__title">♻️ Reactivate User</div>
+    <label class="form-label">Tenant Slug</label>
+    <input class="form-input" type="text" id="reactSlug" placeholder="contoh: kedai-maju">
+    <label class="form-label">Phone</label>
+    <input class="form-input" type="text" id="reactPhone" placeholder="60123456789">
+    <button class="btn-submit" id="reactBtn" onclick="runReactivateUser()">Reactivate User</button>
+    <div id="reactError" class="result-error"></div>
+    <div id="reactSuccess" class="result-success"></div>
+  </div>
+
+  <!-- ══ ADD OUTLET ══ -->
+  <div class="card">
+    <div class="card__title">🏪 Add Outlet Baru</div>
+    <label class="form-label">Tenant Slug</label>
+    <input class="form-input" type="text" id="addoSlug" placeholder="contoh: kedai-maju">
+    <label class="form-label">Nama Outlet</label>
+    <input class="form-input" type="text" id="addoOutlet" placeholder="contoh: outlet-baru">
+    <button class="btn-submit" id="addoBtn" onclick="runAddOutlet()">Add Outlet</button>
+    <div id="addoError" class="result-error"></div>
+    <div id="addoSuccess" class="result-success"></div>
+  </div>
+
+  <!-- ══ REMOVE OUTLET ACCESS ══ -->
+  <div class="card">
+    <div class="card__title">🚫 Remove Outlet Access (User)</div>
+    <label class="form-label">Tenant Slug</label>
+    <input class="form-input" type="text" id="remoSlug" placeholder="contoh: kedai-maju">
+    <label class="form-label">Phone</label>
+    <input class="form-input" type="text" id="remoPhone" placeholder="60123456789">
+    <label class="form-label">Outlet</label>
+    <input class="form-input" type="text" id="remoOutlet" placeholder="contoh: outlet1">
+    <button class="btn-submit" id="remoBtn" onclick="runRemoveOutletAccess()">Remove Outlet Access</button>
+    <div id="remoError" class="result-error"></div>
+    <div id="remoSuccess" class="result-success"></div>
+  </div>
+
 </div>
 
 <script>
@@ -347,6 +480,195 @@
       btn.disabled    = false;
       btn.textContent = 'Jalankan Import Users';
     }
+  }
+
+  // ── SHARED HELPER UNTUK SINGLE-ACTION CARDS ──
+  function resetSimplePanel(prefix) {
+    document.getElementById(prefix + 'Error').textContent   = '';
+    document.getElementById(prefix + 'Success').textContent = '';
+  }
+
+  async function postAdminAction(url, payload) {
+    const res = await fetch(`${url}?token=${encodeURIComponent(getToken())}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    return res.json();
+  }
+
+  async function runSimpleAction(prefix, url, payload, successFn) {
+    resetSimplePanel(prefix);
+
+    if (!getToken()) {
+      document.getElementById(prefix + 'Error').textContent = '⚠️ Masukkan admin token dulu.';
+      return;
+    }
+
+    const btn = document.getElementById(prefix + 'Btn');
+    const originalLabel = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = '⏳ Memproses...';
+
+    try {
+      const data = await postAdminAction(url, payload);
+      if (data.error) {
+        document.getElementById(prefix + 'Error').textContent = data.error;
+      } else {
+        document.getElementById(prefix + 'Success').textContent = successFn(data);
+      }
+    } catch (err) {
+      document.getElementById(prefix + 'Error').textContent = 'Network error: ' + err.message;
+    } finally {
+      btn.disabled = false;
+      btn.textContent = originalLabel;
+    }
+  }
+
+  // ── UPDATE ITEM ──
+  function runUpdateItem() {
+    const slug   = document.getElementById('updSlug').value.trim();
+    const item   = document.getElementById('updItem').value.trim();
+    const outlet = document.getElementById('updOutlet').value.trim();
+    const cost   = document.getElementById('updCost').value.trim();
+    const minQty = document.getElementById('updMinQty').value.trim();
+
+    resetSimplePanel('upd');
+    if (!slug || !item || !outlet) {
+      document.getElementById('updError').textContent = '⚠️ Slug, item, outlet wajib diisi.';
+      return;
+    }
+    if (!cost && !minQty) {
+      document.getElementById('updError').textContent = '⚠️ Isi sekurang-kurangnya Cost atau Min Qty.';
+      return;
+    }
+
+    runSimpleAction('upd', '/admin/update-item', { slug, item, outlet, cost, minQty },
+      d => `✅ Updated — ${d.item} @ ${d.outlet}`);
+  }
+
+  // ── ADD ITEM (SINGLE) ──
+  function runAddItem() {
+    const slug     = document.getElementById('addiSlug').value.trim();
+    const item     = document.getElementById('addiItem').value.trim();
+    const category = document.getElementById('addiCategory').value.trim();
+    const minQty   = document.getElementById('addiMinQty').value.trim();
+    const cost     = document.getElementById('addiCost').value.trim();
+    const uom      = document.getElementById('addiUom').value.trim();
+    const outlet   = document.getElementById('addiOutlet').value.trim();
+
+    resetSimplePanel('addi');
+    if (!slug || !item || !category || !uom || !outlet || minQty === '' || cost === '') {
+      document.getElementById('addiError').textContent = '⚠️ Semua field wajib diisi.';
+      return;
+    }
+
+    runSimpleAction('addi', '/admin/add-item', { slug, item, category, minQty, cost, uom, outlet },
+      d => `✅ Item Added — ${d.item} @ ${d.outlet}`);
+  }
+
+  // ── REMOVE ITEM (SINGLE) ──
+  function runRemoveItem() {
+    const slug   = document.getElementById('remiSlug').value.trim();
+    const item   = document.getElementById('remiItem').value.trim();
+    const outlet = document.getElementById('remiOutlet').value.trim();
+
+    resetSimplePanel('remi');
+    if (!slug || !item || !outlet) {
+      document.getElementById('remiError').textContent = '⚠️ Slug, item, outlet wajib diisi.';
+      return;
+    }
+
+    runSimpleAction('remi', '/admin/remove-item', { slug, item, outlet },
+      d => `✅ Item Removed — ${d.item} @ ${d.outlet}`);
+  }
+
+  // ── SET ROLE ──
+  function runSetRole() {
+    const slug     = document.getElementById('setrSlug').value.trim();
+    const phone    = document.getElementById('setrPhone').value.trim();
+    const role     = document.getElementById('setrRole').value;
+    const nickname = document.getElementById('setrNickname').value.trim();
+    const outlets  = document.getElementById('setrOutlets').value.trim();
+
+    resetSimplePanel('setr');
+    if (!slug || !phone || !nickname) {
+      document.getElementById('setrError').textContent = '⚠️ Slug, phone, nickname wajib diisi.';
+      return;
+    }
+    const outletCount = outlets.split(',').map(s => s.trim()).filter(Boolean).length;
+    if ((role === 'staff' || role === 'supervisor') && outletCount !== 1) {
+      document.getElementById('setrError').textContent = '⚠️ Staff/Supervisor mesti ada exactly 1 outlet.';
+      return;
+    }
+    if (role === 'manager' && outletCount < 1) {
+      document.getElementById('setrError').textContent = '⚠️ Manager mesti ada sekurang-kurangnya 1 outlet.';
+      return;
+    }
+
+    runSimpleAction('setr', '/admin/set-role', { slug, phone, role, nickname, outlets },
+      d => `✅ ${d.nickname} set sebagai ${d.role}`);
+  }
+
+  // ── REMOVE ROLE ──
+  function runRemoveRole() {
+    const slug  = document.getElementById('remrSlug').value.trim();
+    const phone = document.getElementById('remrPhone').value.trim();
+
+    resetSimplePanel('remr');
+    if (!slug || !phone) {
+      document.getElementById('remrError').textContent = '⚠️ Slug dan phone wajib diisi.';
+      return;
+    }
+
+    runSimpleAction('remr', '/admin/remove-role', { slug, phone },
+      d => `✅ User ${d.phone} dinyahaktifkan`);
+  }
+
+  // ── REACTIVATE USER ──
+  function runReactivateUser() {
+    const slug  = document.getElementById('reactSlug').value.trim();
+    const phone = document.getElementById('reactPhone').value.trim();
+
+    resetSimplePanel('react');
+    if (!slug || !phone) {
+      document.getElementById('reactError').textContent = '⚠️ Slug dan phone wajib diisi.';
+      return;
+    }
+
+    runSimpleAction('react', '/admin/reactivate-user', { slug, phone },
+      d => `✅ User ${d.phone} diaktifkan semula`);
+  }
+
+  // ── ADD OUTLET ──
+  function runAddOutlet() {
+    const slug   = document.getElementById('addoSlug').value.trim();
+    const outlet = document.getElementById('addoOutlet').value.trim();
+
+    resetSimplePanel('addo');
+    if (!slug || !outlet) {
+      document.getElementById('addoError').textContent = '⚠️ Slug dan nama outlet wajib diisi.';
+      return;
+    }
+
+    runSimpleAction('addo', '/admin/add-outlet', { slug, outlet },
+      d => `✅ Outlet Created — ${d.outlet.name} (ID: ${d.outlet.id})`);
+  }
+
+  // ── REMOVE OUTLET ACCESS ──
+  function runRemoveOutletAccess() {
+    const slug   = document.getElementById('remoSlug').value.trim();
+    const phone  = document.getElementById('remoPhone').value.trim();
+    const outlet = document.getElementById('remoOutlet').value.trim();
+
+    resetSimplePanel('remo');
+    if (!slug || !phone || !outlet) {
+      document.getElementById('remoError').textContent = '⚠️ Slug, phone, outlet wajib diisi.';
+      return;
+    }
+
+    runSimpleAction('remo', '/admin/remove-outlet-access', { slug, phone, outlet },
+      d => `✅ Outlet ${d.outlet} dibuang dari ${d.phone}`);
   }
 </script>
 </body>

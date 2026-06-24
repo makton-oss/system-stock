@@ -7,8 +7,7 @@ async function getStockByItem(item, outletId, tenantId = null) {
     .select("*")
     .eq("item", item)
     .eq("outlet_id", outletId)
-    .eq("is_active", true)
-    .maybeSingle();
+    .eq("is_active", true);
 
   q = applyTenant(q, tenantId);
 
