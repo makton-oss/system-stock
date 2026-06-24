@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Login • StokBot</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Sora:wght@700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --green:#1D9E75;
+    --green-light:#E1F5EE;
+    --green-dark:#0F6E56;
+    --text:#1a1a1a;
+    --text-muted:#6b7280;
+    --border:#e5e7eb;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{
+    font-family:'Plus Jakarta Sans',sans-serif;
+    background:linear-gradient(180deg,#f0fdf8 0%,#fff 100%);
+    min-height:100vh;
+    display:flex;align-items:center;justify-content:center;
+    color:var(--text);
+    padding:1rem;
+  }
+  .card{
+    width:100%;max-width:380px;
+    background:#fff;border:1px solid var(--border);border-radius:16px;
+    padding:2.25rem 2rem;
+    box-shadow:0 10px 40px rgba(0,0,0,0.07);
+    text-align:center;
+  }
+  .card__icon{
+    width:52px;height:52px;border-radius:14px;background:var(--green);
+    color:#fff;display:flex;align-items:center;justify-content:center;
+    font-family:'Sora',sans-serif;font-weight:800;font-size:1.4rem;
+    margin:0 auto 1.1rem;
+  }
+  .card h1{font-family:'Sora',sans-serif;font-size:1.25rem;font-weight:800;margin-bottom:0.35rem;}
+  .card p{font-size:0.85rem;color:var(--text-muted);margin-bottom:1.6rem;line-height:1.5;}
+  .field{margin-bottom:1.1rem;text-align:left;}
+  .field label{display:block;font-size:0.76rem;font-weight:700;color:var(--text-muted);
+    text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px;}
+  .field input{
+    width:100%;padding:0.7rem 0.85rem;border:1px solid var(--border);border-radius:10px;
+    font-size:0.92rem;font-family:inherit;outline:none;transition:border-color .15s,box-shadow .15s;
+  }
+  .field input:focus{border-color:var(--green);box-shadow:0 0 0 3px var(--green-light);}
+  .btn{
+    width:100%;padding:0.78rem;border:none;border-radius:10px;
+    background:var(--green);color:#fff;font-weight:700;font-size:0.92rem;
+    cursor:pointer;transition:background .15s;font-family:inherit;
+  }
+  .btn:hover{background:var(--green-dark);}
+  .btn:disabled{background:#a8d8c8;cursor:not-allowed;}
+  .err{
+    margin-top:0.9rem;font-size:0.8rem;color:#b91c1c;
+    background:#fef2f2;border:1px solid #fee2e2;border-radius:8px;padding:0.6rem 0.75rem;
+    display:none;text-align:left;
+  }
+  .footnote{margin-top:1.4rem;font-size:0.72rem;color:#9ca3af;}
+</style>
+</head>
+<body>
+
+  <div class="card">
+    <div class="card__icon">S</div>
+    <h1>StokBot Admin</h1>
+    <p>Masukkan admin token untuk akses Inbox &amp; Bulk Import.</p>
+
+    <form id="loginForm">
+      <div class="field">
+        <label for="token">Admin Token</label>
+        <input type="password" id="token" placeholder="Masukkan token..." autocomplete="off" required>
+      </div>
+      <button type="submit" class="btn" id="loginBtn">Connect</button>
+    </form>
+
+    <div class="err" id="err"></div>
+    <div class="footnote">Token disimpan dalam browser anda selama 12 jam.</div>
+  </div>
+
+<script>
+  const COOKIE_NAME = 'stokbot_admin_token';
+
+  function setCookie(name, value, hours) {
+    const expires = new Date(Date.now() + hours * 60 * 60 * 1000).toUTCString();
+    document.cookie = `${name}=${encodeURIComponent(value)}; expires=${expires}; path=/; SameSite=Lax`;
+  }
+
+  function getCookie(name) {
+    const match = document.cookie.match(new RegExp('(?:^|; )' + name + '=([^;]*)'));
+    return match ? decodeURIComponent(match[1]) : null;
+  }
+
+  // Dah ada token tersimpan — terus masuk logs.html, tak payah login semula
+  if (getCookie(COOKIE_NAME)) {
+    window.location.href = '/admin/logs.html';
+  }
+
+  document.getElementById('loginForm').addEventListener('submit', async function (e) {
+    e.preventDefault();
+
+    const token = document.getElementById('token').value.trim();
+    const btn   = document.getElementById('loginBtn');
+    const errEl = document.getElementById('err');
+
+    errEl.style.display = 'none';
+    if (!token) return;
+
+    btn.disabled = true;
+    btn.textContent = 'Menyambung...';
+
+    try {
+      // Validate token guna endpoint sedia ada (ringan + memang akan dipanggil
+      // sejurus selepas login) — tiada endpoint /admin/validate baru diperlukan
+      const res = await fetch(`/admin/conversations?token=${encodeURIComponent(token)}&channel=meta`);
+
+      if (res.status === 403) {
+        errEl.textContent = '❌ Token tidak sah.';
+        errEl.style.display = 'block';
+        return;
+      }
+
+      if (!res.ok) {
+        errEl.textContent = '⚠️ Ralat server. Sila cuba lagi.';
+        errEl.style.display = 'block';
+        return;
+      }
+
+      setCookie(COOKIE_NAME, token, 12); // 12 jam
+      window.location.href = '/admin/logs.html';
+
+    } catch (err) {
+      errEl.textContent = '⚠️ Gagal sambung ke server. Semak sambungan internet.';
+      errEl.style.display = 'block';
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Connect';
+    }
+  });
+</script>
+</body>
+</html>
