@@ -5,7 +5,7 @@ const QUEUE_DELAY = 1 * 60 * 1000; // 1 minit
 
 async function queueStockNotification(outletId, tenantId = null, channel = "botcommerce") {
 
-  const key = `${tenantId || "null"}_${outletId}`;
+  const key = `${tenantId || "null"}_${outletId}_${channel}`;
 
   // ======================
   // CLEAR EXISTING TIMER (DEBOUNCE)
