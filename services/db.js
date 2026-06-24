@@ -10,7 +10,7 @@ if (!supabaseUrl || !supabaseKey) {
   process.exit(1);
 }
 
-console.log("🔥 DATABASE CONNECTED");
+console.log("✅ DATABASE CONNECTED");
 
 const supabase = createClient(supabaseUrl, supabaseKey, {
   realtime: {

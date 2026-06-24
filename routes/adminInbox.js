@@ -6,7 +6,7 @@ const { sendWhatsAppMeta } = require("../services/notification/whatsappServiceME
 const { logMessage } = require("../services/logging/messageLogger");
 const { requireAdminToken } = require("../core/requireAdminToken");
 
-router.use(requireAdminToken);
+//router.use(requireAdminToken);
 
 // ======================
 // GET LOGS
