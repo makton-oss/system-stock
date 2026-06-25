@@ -58,16 +58,16 @@ app.get("/health", async (req, res) => {
 });
 
 // ======================
+// STATIC FILES
+// ======================
+app.use(express.static("public"));
+
+// ======================
 // ADMIN ROUTES
 // ======================
 app.use("/admin", require("./routes/adminInbox"));
 app.use("/admin/import", require("./routes/adminImport"));
 app.use("/admin", require("./routes/adminTools"));
-
-// ======================
-// STATIC FILES
-// ======================
-app.use(express.static("public"));
 
 // ======================
 // CRON JOBS
