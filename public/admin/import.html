@@ -2,398 +2,602 @@
 <html lang="ms">
 <head>
 <meta charset="UTF-8">
-<title>Bulk Import — Admin</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bulk Import — StokBot Admin</title>
+
+<!-- ============================================================
+     AUTH GUARD + THEME — jalan sebelum apa-apa render, elak "flash"
+     untuk orang yang takde token sah, dan elak flash light→dark.
+============================================================ -->
+<script>
+  (function () {
+    function getCookie(name) {
+      var m = document.cookie.match(new RegExp('(?:^|; )' + name + '=([^;]*)'));
+      return m ? decodeURIComponent(m[1]) : null;
+    }
+    if (!getCookie('stokbot_admin_token')) {
+      window.location.replace('/admin/login.html');
+      return;
+    }
+    var theme = getCookie('stokbot_admin_theme');
+    document.documentElement.setAttribute('data-theme', theme === 'dark' ? 'dark' : 'light');
+  })();
+</script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Sora:wght@700;800&display=swap" rel="stylesheet">
+
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-
-  body {
-    font-family: sans-serif;
-    background: #f0f0f0;
-    min-height: 100vh;
+  :root{
+    --green:#1D9E75; --green-light:#E1F5EE; --green-dark:#0F6E56;
+    --amber:#EF9F27; --amber-light:#FAEEDA;
+    --text:#1a1a1a; --text-muted:#6b7280; --text-xmuted:#9ca3af;
+    --border:#e5e7eb; --section-bg:#f9fafb;
+    --wallpaper:#F3F8F6;
+    --bg:#ffffff;
+    --shadow-color:rgba(0,0,0,0.06);
+    --shadow-color-strong:rgba(0,0,0,0.18);
+    --scrollbar-thumb:rgba(0,0,0,0.12);
   }
 
-  /* ── NAVBAR ── */
-  .navbar {
-    padding: 10px 16px;
-    background: #075e54;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-  .navbar__title {
-    flex: 1;
-    color: #fff;
-    font-weight: 700;
-    font-size: 15px;
-  }
-  .navbar__btn {
-    padding: 6px 14px;
-    border-radius: 6px;
-    background: #d9fdd3;
-    color: #075e54;
-    font-weight: 700;
-    font-size: 13px;
-    text-decoration: none;
-    white-space: nowrap;
-  }
-  .navbar__btn:hover { background: #c3f7bd; }
-
-  /* ── TOKEN BAR ── */
-  .tokenbar {
-    padding: 8px 16px;
-    background: #064e47;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-  .tokenbar label {
-    color: #9FE1CB;
-    font-size: 12px;
-    font-weight: 600;
-    white-space: nowrap;
-  }
-  .tokenbar input {
-    padding: 6px 10px;
-    border-radius: 6px;
-    border: none;
-    font-size: 13px;
-    width: 260px;
-  }
-  .tokenbar .navbar__btn {
-    margin-left: auto;
+  /* ===================== DARK MODE ===================== */
+  [data-theme="dark"]{
+    --green-light:#16382c; --amber-light:#3a2a12;
+    --text:#e6e8eb; --text-muted:#9aa3af; --text-xmuted:#6b7280;
+    --border:#2d3340; --section-bg:#1c212b;
+    --wallpaper:#0d1117;
+    --bg:#161b22;
+    --shadow-color:rgba(0,0,0,0.35);
+    --shadow-color-strong:rgba(0,0,0,0.55);
+    --scrollbar-thumb:rgba(255,255,255,0.14);
   }
 
-  /* ── LAYOUT ── */
-  .content {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 20px;
-    padding: 20px;
-    max-width: 1200px;
-    margin: 0 auto;
+  *,*::before,*::after{ box-sizing:border-box; margin:0; padding:0; }
+  html,body{ height:100%; }
+  body{
+    font-family:'Plus Jakarta Sans',sans-serif;
+    color:var(--text);
+    background:var(--bg);
+    overflow:hidden;
+    transition:background-color .15s, color .15s;
   }
 
-  @media (max-width: 800px) {
-    .content { grid-template-columns: 1fr; }
-    .tokenbar input { width: 100%; }
+  .app{ display:flex; height:100vh; }
+
+  /* ===================== SIDEBAR ===================== */
+  .sidebar{
+    width:340px; flex-shrink:0;
+    display:flex; flex-direction:column;
+    background:var(--bg); border-right:1px solid var(--border);
+  }
+  .sidebar__header{
+    padding:14px 16px; display:flex; align-items:center; gap:10px;
+    border-bottom:1px solid var(--border); flex-shrink:0;
+  }
+  .sidebar__brand{ display:flex; align-items:center; gap:10px; flex:1; min-width:0; }
+  .sidebar__brand-icon{
+    width:36px;height:36px;border-radius:10px;background:var(--green);color:#fff;
+    display:flex;align-items:center;justify-content:center;
+    font-family:'Sora',sans-serif;font-weight:800;font-size:1rem;flex-shrink:0;
+  }
+  .sidebar__brand-text strong{ display:block; font-family:'Sora',sans-serif; font-size:0.92rem; font-weight:800; }
+  .sidebar__brand-text small{ display:block; font-size:0.72rem; color:var(--text-muted); }
+  .sidebar__actions{ display:flex; gap:4px; flex-shrink:0; }
+  .icon-btn{
+    width:34px;height:34px;border-radius:50%;border:none;background:none;
+    display:flex;align-items:center;justify-content:center;
+    color:var(--text-muted);cursor:pointer;text-decoration:none;
+    transition:background .15s,color .15s;
+  }
+  .icon-btn:hover{ background:var(--section-bg); color:var(--green-dark); }
+  .icon-btn svg{ width:18px;height:18px; }
+
+  /* theme toggle icon swap */
+  #themeToggleBtn .icon-moon{ display:none; }
+  [data-theme="dark"] #themeToggleBtn .icon-sun{ display:none; }
+  [data-theme="dark"] #themeToggleBtn .icon-moon{ display:block; }
+
+  .sidebar__list{ flex:1; overflow-y:auto; padding-bottom:10px; }
+  .sidebar__list::-webkit-scrollbar{ width:6px; }
+  .sidebar__list::-webkit-scrollbar-thumb{ background:var(--scrollbar-thumb); border-radius:6px; }
+
+  .tool-group__label{
+    padding:16px 16px 6px; font-size:0.7rem; font-weight:700;
+    letter-spacing:.05em; color:var(--text-xmuted); text-transform:uppercase;
   }
 
-  /* ── CARD ── */
-  .card {
-    background: #fff;
-    padding: 24px;
-    border-radius: 10px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+  .tool-row{
+    display:flex; gap:12px; align-items:flex-start;
+    padding:10px 16px; cursor:pointer; transition:background .12s;
   }
-  .card__title {
-    font-size: 15px;
-    font-weight: 700;
-    color: #111;
-    margin-bottom: 16px;
-    padding-bottom: 10px;
-    border-bottom: 2px solid #f0fdf8;
+  .tool-row:hover{ background:var(--section-bg); }
+  .tool-row.active{ background:var(--green-light); }
+  .tool-row__icon{
+    width:38px;height:38px;border-radius:10px;background:var(--section-bg);
+    display:flex;align-items:center;justify-content:center;font-size:1.05rem;flex-shrink:0;
+  }
+  .tool-row.active .tool-row__icon{ background:var(--bg); }
+  .tool-row__body{ min-width:0; }
+  .tool-row__title{ font-weight:700; font-size:0.86rem; }
+  .tool-row__desc{ font-size:0.74rem; color:var(--text-muted); margin-top:2px; line-height:1.4; }
+
+  /* ===================== DETAIL PANE ===================== */
+  .detailpane{ flex:1; display:flex; flex-direction:column; min-width:0; background:var(--section-bg); }
+
+  .detailpane__back{
+    display:none; width:32px;height:32px;border-radius:50%;border:none;background:none;
+    align-items:center;justify-content:center;color:var(--text-muted);cursor:pointer;flex-shrink:0;
+  }
+  .detailpane__back svg{ width:18px;height:18px; }
+
+  .detailpane__header{
+    display:none; align-items:center; gap:12px;
+    padding:11px 20px; background:var(--bg); border-bottom:1px solid var(--border); flex-shrink:0;
+  }
+  .detailpane__icon{
+    width:38px;height:38px;border-radius:10px;background:var(--green-light);
+    display:flex;align-items:center;justify-content:center;font-size:1.05rem;flex-shrink:0;
+  }
+  .detailpane__title{ font-weight:700; font-size:0.95rem; }
+
+  .detailpane__empty{
+    flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:10px; color:var(--text-muted); text-align:center; padding:0 20px;
+  }
+  .detailpane__empty svg{ width:52px;height:52px;color:var(--text-xmuted); }
+  .detailpane__empty p{ font-size:0.88rem; max-width:280px; line-height:1.5; }
+
+  .detailpane__content{ display:none; flex:1; overflow-y:auto; padding:28px; }
+  .detailpane__content::-webkit-scrollbar{ width:6px; }
+  .detailpane__content::-webkit-scrollbar-thumb{ background:var(--scrollbar-thumb); border-radius:6px; }
+
+  .panel-section{ max-width:560px; }
+
+  /* ===================== CARD / FORM (reuse dari design asal) ===================== */
+  .card{
+    background:var(--bg); padding:24px; border-radius:14px;
+    box-shadow:0 1px 3px var(--shadow-color); border:1px solid var(--border);
+  }
+  .card__title{
+    font-size:15px; font-weight:700; color:var(--text);
+    margin-bottom:16px; padding-bottom:10px; border-bottom:2px solid var(--section-bg);
   }
 
-  /* ── FORM ELEMENTS ── */
-  .form-label {
-    display: block;
-    margin: 14px 0 4px;
-    font-size: 13px;
-    font-weight: 600;
-    color: #444;
+  .form-label{ display:block; margin:14px 0 4px; font-size:13px; font-weight:600; color:var(--text-muted); }
+  .form-input{
+    width:100%; padding:8px 10px; border:1px solid var(--border); border-radius:6px;
+    font-size:14px; font-family:inherit; background:var(--bg); color:var(--text);
   }
-  .form-input {
-    width: 100%;
-    padding: 8px 10px;
-    border: 1px solid #ccc;
-    border-radius: 6px;
-    font-size: 14px;
-    font-family: inherit;
-  }
-  .form-input:focus { outline: 2px solid #075e54; border-color: transparent; }
+  .form-input:focus{ outline:2px solid var(--green); border-color:transparent; }
+  input[type="file"].form-input{ padding:6px; }
 
-  input[type="file"].form-input { padding: 6px; }
+  .dryrun-row{ display:flex; align-items:center; gap:8px; margin-top:14px; }
+  .dryrun-row input[type="checkbox"]{ width:16px; height:16px; cursor:pointer; }
+  .dryrun-row label{ font-size:13px; color:var(--text-muted); cursor:pointer; margin:0; }
 
-  .dryrun-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-top: 14px;
+  .btn-submit{
+    margin-top:18px; width:100%; padding:10px; border:none; border-radius:6px;
+    background:var(--green); color:#fff; font-weight:700; font-size:14px;
+    cursor:pointer; font-family:inherit; transition:background .15s;
   }
-  .dryrun-row input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; }
-  .dryrun-row label {
-    font-size: 13px;
-    color: #444;
-    cursor: pointer;
-    margin: 0;
+  .btn-submit:hover{ background:var(--green-dark); }
+  .btn-submit:disabled{ background:var(--text-xmuted); cursor:not-allowed; }
+
+  .result-error{ color:#ef4444; font-size:13px; margin-top:12px; white-space:pre-wrap; line-height:1.5; }
+  [data-theme="dark"] .result-error{ color:#f87171; }
+  .result-success{ color:#10b981; font-size:13px; font-weight:600; margin-top:12px; }
+  [data-theme="dark"] .result-success{ color:#34d399; }
+  .result-log{
+    display:none; background:#0f172a; color:#d1fae5; padding:14px; border-radius:8px;
+    font-size:12px; max-height:280px; overflow-y:auto; white-space:pre-wrap;
+    margin-top:12px; line-height:1.5;
   }
 
-  /* ── SUBMIT BUTTON ── */
-  .btn-submit {
-    margin-top: 18px;
-    width: 100%;
-    padding: 10px;
-    border: none;
-    border-radius: 6px;
-    background: #075e54;
-    color: #fff;
-    font-weight: 700;
-    font-size: 14px;
-    cursor: pointer;
-    font-family: inherit;
-    transition: background 0.15s;
-  }
-  .btn-submit:hover { background: #064e47; }
-  .btn-submit:disabled { background: #aaa; cursor: not-allowed; }
-
-  /* ── RESULT AREA ── */
-  .result-error {
-    color: #b91c1c;
-    font-size: 13px;
-    margin-top: 12px;
-    white-space: pre-wrap;
-    line-height: 1.5;
-  }
-  .result-success {
-    color: #065f46;
-    font-size: 13px;
-    font-weight: 600;
-    margin-top: 12px;
-  }
-  .result-log {
-    display: none;
-    background: #0f172a;
-    color: #d1fae5;
-    padding: 14px;
-    border-radius: 8px;
-    font-size: 12px;
-    max-height: 280px;
-    overflow-y: auto;
-    white-space: pre-wrap;
-    margin-top: 12px;
-    line-height: 1.5;
+  /* ===================== RESPONSIVE ===================== */
+  @media (max-width:760px){
+    .sidebar{ width:100%; }
+    .detailpane__back{ display:flex; }
+    .app:not(.tool-open) .detailpane{ display:none; }
+    .app.tool-open .sidebar{ display:none; }
   }
 </style>
 </head>
 <body>
 
-<!-- ── NAVBAR ── 
-<div class="navbar">
-  <span class="navbar__title">📦 Bulk Import — Admin</span>
-  <a href="/admin/logs.html" class="navbar__btn">📥 Inbox</a>
-</div> -->
+<div class="app" id="app">
 
-<!-- ── TOKEN BAR (shared) ── -->
-<div class="tokenbar">
-  <label>Admin Token:</label>
-  <input type="password" id="globalToken" placeholder="Masukkan admin token...">
-  <a href="/admin/logs.html" class="navbar__btn">📥 Inbox</a>
-</div>
-
-<!-- ── 2 COLUMN CONTENT ── -->
-<div class="content">
-
-  <!-- ══ LEFT: ITEMS ══ -->
-  <div class="card">
-    <div class="card__title">📦 Import Items (Stok)</div>
-
-    <label class="form-label">Tenant Slug</label>
-    <input class="form-input" type="text" id="itemSlug" placeholder="contoh: kedai-maju">
-
-    <label class="form-label">Fail Excel (.xlsx)</label>
-    <input class="form-input" type="file" id="itemFile" accept=".xlsx">
-
-    <div class="dryrun-row">
-      <input type="checkbox" id="itemDryRun" checked>
-      <label for="itemDryRun">Dry Run — validate sahaja, tiada tulis ke DB</label>
+  <!-- ===================== SIDEBAR ===================== -->
+  <div class="sidebar">
+    <div class="sidebar__header">
+      <div class="sidebar__brand">
+        <div class="sidebar__brand-icon">S</div>
+        <div class="sidebar__brand-text">
+          <strong>StokBot</strong>
+          <small>Bulk Import &amp; Tools</small>
+        </div>
+      </div>
+      <div class="sidebar__actions">
+        <button class="icon-btn" id="themeToggleBtn" title="Tukar tema" onclick="toggleTheme()">
+          <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+          <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        </button>
+        <a href="/admin/logs.html" class="icon-btn" title="Inbox">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+        </a>
+        <button class="icon-btn" title="Log keluar" onclick="logout()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        </button>
+      </div>
     </div>
 
-    <button class="btn-submit" id="itemBtn" onclick="runItemImport()">
-      Jalankan Import Items
-    </button>
-
-    <div id="itemError"   class="result-error"></div>
-    <div id="itemSuccess" class="result-success"></div>
-    <pre id="itemLog"     class="result-log"></pre>
+    <div class="sidebar__list" id="sidebarList"></div>
   </div>
 
-  <!-- ══ RIGHT: USERS ══ -->
-  <div class="card">
-    <div class="card__title">👥 Import Users</div>
+  <!-- ===================== DETAIL PANE ===================== -->
+  <div class="detailpane">
 
-    <label class="form-label">Tenant Slug</label>
-    <input class="form-input" type="text" id="userSlug" placeholder="contoh: kedai-maju">
-
-    <label class="form-label">Fail Excel (.xlsx)</label>
-    <input class="form-input" type="file" id="userFile" accept=".xlsx">
-
-    <div class="dryrun-row">
-      <input type="checkbox" id="userDryRun" checked>
-      <label for="userDryRun">Dry Run — validate sahaja, tiada tulis ke DB</label>
+    <div class="detailpane__header" id="detailHeader">
+      <button class="detailpane__back" onclick="backToList()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+      </button>
+      <div class="detailpane__icon" id="detailIcon">📦</div>
+      <div class="detailpane__title" id="detailTitle"></div>
     </div>
 
-    <button class="btn-submit" id="userBtn" onclick="runUserImport()">
-      Jalankan Import Users
-    </button>
+    <div class="detailpane__empty" id="detailEmpty">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+      <p>Pilih satu tool di sebelah kiri untuk mula.</p>
+    </div>
 
-    <div id="userError"   class="result-error"></div>
-    <div id="userSuccess" class="result-success"></div>
-    <pre id="userLog"     class="result-log"></pre>
-  </div>
+    <div class="detailpane__content" id="detailContent">
 
-  <!-- ══ DIVIDER ══ -->
-  <div style="grid-column: 1 / -1; margin: 8px 0 -4px;">
-    <h2 style="font-size:15px;color:#075e54;font-weight:700;">⚙️ Other Admin Tools</h2>
-  </div>
+      <!-- ══ IMPORT ITEMS ══ -->
+      <div class="panel-section" id="panel-bulk-items">
+        <div class="card">
+          <div class="card__title">📦 Import Items (Stok)</div>
 
-  <!-- ══ UPDATE ITEM ══ -->
-  <div class="card">
-    <div class="card__title">✏️ Update Item (Cost / Min Qty)</div>
-    <label class="form-label">Tenant Slug</label>
-    <input class="form-input" type="text" id="updSlug" placeholder="contoh: kedai-maju">
-    <label class="form-label">Nama Item</label>
-    <input class="form-input" type="text" id="updItem" placeholder="contoh: ayam">
-    <label class="form-label">Outlet</label>
-    <input class="form-input" type="text" id="updOutlet" placeholder="contoh: muiz">
-    <label class="form-label">Cost Baru (RM) — biar kosong jika tak ubah</label>
-    <input class="form-input" type="number" step="0.01" id="updCost" placeholder="3.50">
-    <label class="form-label">Min Qty Baru — biar kosong jika tak ubah</label>
-    <input class="form-input" type="number" id="updMinQty" placeholder="5">
-    <button class="btn-submit" id="updBtn" onclick="runUpdateItem()">Update Item</button>
-    <div id="updError" class="result-error"></div>
-    <div id="updSuccess" class="result-success"></div>
-  </div>
+          <label class="form-label">Tenant Slug</label>
+          <input class="form-input" type="text" id="itemSlug" placeholder="contoh: kedai-maju">
 
-  <!-- ══ ADD ITEM (SINGLE) ══ -->
-  <div class="card">
-    <div class="card__title">➕ Add Item (Single)</div>
-    <label class="form-label">Tenant Slug</label>
-    <input class="form-input" type="text" id="addiSlug" placeholder="contoh: kedai-maju">
-    <label class="form-label">Nama Item</label>
-    <input class="form-input" type="text" id="addiItem" placeholder="contoh: minyak bijan">
-    <label class="form-label">Category</label>
-    <input class="form-input" type="text" id="addiCategory" placeholder="contoh: bahan basah">
-    <label class="form-label">Min Qty</label>
-    <input class="form-input" type="number" id="addiMinQty" placeholder="2">
-    <label class="form-label">Cost (RM)</label>
-    <input class="form-input" type="number" step="0.01" id="addiCost" placeholder="9.00">
-    <label class="form-label">UOM</label>
-    <input class="form-input" type="text" id="addiUom" placeholder="contoh: botol">
-    <label class="form-label">Outlet</label>
-    <input class="form-input" type="text" id="addiOutlet" placeholder="contoh: bta">
-    <button class="btn-submit" id="addiBtn" onclick="runAddItem()">Add Item</button>
-    <div id="addiError" class="result-error"></div>
-    <div id="addiSuccess" class="result-success"></div>
-  </div>
+          <label class="form-label">Fail Excel (.xlsx)</label>
+          <input class="form-input" type="file" id="itemFile" accept=".xlsx">
 
-  <!-- ══ REMOVE ITEM (SINGLE) ══ -->
-  <div class="card">
-    <div class="card__title">🗑 Remove Item (Single)</div>
-    <label class="form-label">Tenant Slug</label>
-    <input class="form-input" type="text" id="remiSlug" placeholder="contoh: kedai-maju">
-    <label class="form-label">Nama Item</label>
-    <input class="form-input" type="text" id="remiItem" placeholder="contoh: ayam">
-    <label class="form-label">Outlet</label>
-    <input class="form-input" type="text" id="remiOutlet" placeholder="contoh: muiz">
-    <button class="btn-submit" id="remiBtn" onclick="runRemoveItem()">Remove Item</button>
-    <div id="remiError" class="result-error"></div>
-    <div id="remiSuccess" class="result-success"></div>
-  </div>
+          <div class="dryrun-row">
+            <input type="checkbox" id="itemDryRun" checked>
+            <label for="itemDryRun">Dry Run — validate sahaja, tiada tulis ke DB</label>
+          </div>
 
-  <!-- ══ SET ROLE ══ -->
-  <div class="card">
-    <div class="card__title">🛠 Set Role (Assign Role + Outlet)</div>
-    <label class="form-label">Tenant Slug</label>
-    <input class="form-input" type="text" id="setrSlug" placeholder="contoh: kedai-maju">
-    <label class="form-label">Phone</label>
-    <input class="form-input" type="text" id="setrPhone" placeholder="60123456789">
-    <label class="form-label">Role</label>
-    <select class="form-input" id="setrRole">
-      <option value="staff">staff</option>
-      <option value="supervisor">supervisor</option>
-      <option value="manager">manager</option>
-      <option value="admin">admin</option>
-      <option value="owner">owner</option>
-    </select>
-    <label class="form-label">Nickname</label>
-    <input class="form-input" type="text" id="setrNickname" placeholder="contoh: Ali">
-    <label class="form-label">Outlet(s) — koma-separated utk manager</label>
-    <input class="form-input" type="text" id="setrOutlets" placeholder="outlet1,outlet2">
-    <button class="btn-submit" id="setrBtn" onclick="runSetRole()">Set Role</button>
-    <div id="setrError" class="result-error"></div>
-    <div id="setrSuccess" class="result-success"></div>
-  </div>
+          <button class="btn-submit" id="itemBtn" onclick="runItemImport()">
+            Jalankan Import Items
+          </button>
 
-  <!-- ══ REMOVE ROLE ══ -->
-  <div class="card">
-    <div class="card__title">⛔ Remove Role (Deactivate User)</div>
-    <label class="form-label">Tenant Slug</label>
-    <input class="form-input" type="text" id="remrSlug" placeholder="contoh: kedai-maju">
-    <label class="form-label">Phone</label>
-    <input class="form-input" type="text" id="remrPhone" placeholder="60123456789">
-    <button class="btn-submit" id="remrBtn" onclick="runRemoveRole()">Remove Role</button>
-    <div id="remrError" class="result-error"></div>
-    <div id="remrSuccess" class="result-success"></div>
-  </div>
+          <div id="itemError"   class="result-error"></div>
+          <div id="itemSuccess" class="result-success"></div>
+          <pre id="itemLog"     class="result-log"></pre>
+        </div>
+      </div>
 
-  <!-- ══ REACTIVATE USER ══ -->
-  <div class="card">
-    <div class="card__title">♻️ Reactivate User</div>
-    <label class="form-label">Tenant Slug</label>
-    <input class="form-input" type="text" id="reactSlug" placeholder="contoh: kedai-maju">
-    <label class="form-label">Phone</label>
-    <input class="form-input" type="text" id="reactPhone" placeholder="60123456789">
-    <button class="btn-submit" id="reactBtn" onclick="runReactivateUser()">Reactivate User</button>
-    <div id="reactError" class="result-error"></div>
-    <div id="reactSuccess" class="result-success"></div>
-  </div>
+      <!-- ══ IMPORT USERS ══ -->
+      <div class="panel-section" id="panel-bulk-users">
+        <div class="card">
+          <div class="card__title">👥 Import Users</div>
 
-  <!-- ══ ADD OUTLET ══ -->
-  <div class="card">
-    <div class="card__title">🏪 Add Outlet Baru</div>
-    <label class="form-label">Tenant Slug</label>
-    <input class="form-input" type="text" id="addoSlug" placeholder="contoh: kedai-maju">
-    <label class="form-label">Nama Outlet</label>
-    <input class="form-input" type="text" id="addoOutlet" placeholder="contoh: outlet-baru">
-    <button class="btn-submit" id="addoBtn" onclick="runAddOutlet()">Add Outlet</button>
-    <div id="addoError" class="result-error"></div>
-    <div id="addoSuccess" class="result-success"></div>
-  </div>
+          <label class="form-label">Tenant Slug</label>
+          <input class="form-input" type="text" id="userSlug" placeholder="contoh: kedai-maju">
 
-  <!-- ══ REMOVE OUTLET ACCESS ══ -->
-  <div class="card">
-    <div class="card__title">🚫 Remove Outlet Access (User)</div>
-    <label class="form-label">Tenant Slug</label>
-    <input class="form-input" type="text" id="remoSlug" placeholder="contoh: kedai-maju">
-    <label class="form-label">Phone</label>
-    <input class="form-input" type="text" id="remoPhone" placeholder="60123456789">
-    <label class="form-label">Outlet</label>
-    <input class="form-input" type="text" id="remoOutlet" placeholder="contoh: outlet1">
-    <button class="btn-submit" id="remoBtn" onclick="runRemoveOutletAccess()">Remove Outlet Access</button>
-    <div id="remoError" class="result-error"></div>
-    <div id="remoSuccess" class="result-success"></div>
-  </div>
+          <label class="form-label">Fail Excel (.xlsx)</label>
+          <input class="form-input" type="file" id="userFile" accept=".xlsx">
 
-</div>
+          <div class="dryrun-row">
+            <input type="checkbox" id="userDryRun" checked>
+            <label for="userDryRun">Dry Run — validate sahaja, tiada tulis ke DB</label>
+          </div>
+
+          <button class="btn-submit" id="userBtn" onclick="runUserImport()">
+            Jalankan Import Users
+          </button>
+
+          <div id="userError"   class="result-error"></div>
+          <div id="userSuccess" class="result-success"></div>
+          <pre id="userLog"     class="result-log"></pre>
+        </div>
+      </div>
+
+      <!-- ══ UPDATE ITEM ══ -->
+      <div class="panel-section" id="panel-update-item">
+        <div class="card">
+          <div class="card__title">✏️ Update Item (Cost / Min Qty)</div>
+          <label class="form-label">Tenant Slug</label>
+          <input class="form-input" type="text" id="updSlug" placeholder="contoh: kedai-maju">
+          <label class="form-label">Nama Item</label>
+          <input class="form-input" type="text" id="updItem" placeholder="contoh: ayam">
+          <label class="form-label">Outlet</label>
+          <input class="form-input" type="text" id="updOutlet" placeholder="contoh: muiz">
+          <label class="form-label">Cost Baru (RM) — biar kosong jika tak ubah</label>
+          <input class="form-input" type="number" step="0.01" id="updCost" placeholder="3.50">
+          <label class="form-label">Min Qty Baru — biar kosong jika tak ubah</label>
+          <input class="form-input" type="number" id="updMinQty" placeholder="5">
+          <button class="btn-submit" id="updBtn" onclick="runUpdateItem()">Update Item</button>
+          <div id="updError" class="result-error"></div>
+          <div id="updSuccess" class="result-success"></div>
+        </div>
+      </div>
+
+      <!-- ══ ADD ITEM (SINGLE) ══ -->
+      <div class="panel-section" id="panel-add-item">
+        <div class="card">
+          <div class="card__title">➕ Add Item (Single)</div>
+          <label class="form-label">Tenant Slug</label>
+          <input class="form-input" type="text" id="addiSlug" placeholder="contoh: kedai-maju">
+          <label class="form-label">Nama Item</label>
+          <input class="form-input" type="text" id="addiItem" placeholder="contoh: minyak bijan">
+          <label class="form-label">Category</label>
+          <input class="form-input" type="text" id="addiCategory" placeholder="contoh: bahan basah">
+          <label class="form-label">Min Qty</label>
+          <input class="form-input" type="number" id="addiMinQty" placeholder="2">
+          <label class="form-label">Cost (RM)</label>
+          <input class="form-input" type="number" step="0.01" id="addiCost" placeholder="9.00">
+          <label class="form-label">UOM</label>
+          <input class="form-input" type="text" id="addiUom" placeholder="contoh: botol">
+          <label class="form-label">Outlet</label>
+          <input class="form-input" type="text" id="addiOutlet" placeholder="contoh: bta">
+          <button class="btn-submit" id="addiBtn" onclick="runAddItem()">Add Item</button>
+          <div id="addiError" class="result-error"></div>
+          <div id="addiSuccess" class="result-success"></div>
+        </div>
+      </div>
+
+      <!-- ══ REMOVE ITEM (SINGLE) ══ -->
+      <div class="panel-section" id="panel-remove-item">
+        <div class="card">
+          <div class="card__title">🗑 Remove Item (Single)</div>
+          <label class="form-label">Tenant Slug</label>
+          <input class="form-input" type="text" id="remiSlug" placeholder="contoh: kedai-maju">
+          <label class="form-label">Nama Item</label>
+          <input class="form-input" type="text" id="remiItem" placeholder="contoh: ayam">
+          <label class="form-label">Outlet</label>
+          <input class="form-input" type="text" id="remiOutlet" placeholder="contoh: muiz">
+          <button class="btn-submit" id="remiBtn" onclick="runRemoveItem()">Remove Item</button>
+          <div id="remiError" class="result-error"></div>
+          <div id="remiSuccess" class="result-success"></div>
+        </div>
+      </div>
+
+      <!-- ══ SET ROLE ══ -->
+      <div class="panel-section" id="panel-set-role">
+        <div class="card">
+          <div class="card__title">🛠 Set Role (Assign Role + Outlet)</div>
+          <label class="form-label">Tenant Slug</label>
+          <input class="form-input" type="text" id="setrSlug" placeholder="contoh: kedai-maju">
+          <label class="form-label">Phone</label>
+          <input class="form-input" type="text" id="setrPhone" placeholder="60123456789">
+          <label class="form-label">Role</label>
+          <select class="form-input" id="setrRole">
+            <option value="staff">staff</option>
+            <option value="supervisor">supervisor</option>
+            <option value="manager">manager</option>
+            <option value="admin">admin</option>
+            <option value="owner">owner</option>
+          </select>
+          <label class="form-label">Nickname</label>
+          <input class="form-input" type="text" id="setrNickname" placeholder="contoh: Ali">
+          <label class="form-label">Outlet(s) — koma-separated utk manager</label>
+          <input class="form-input" type="text" id="setrOutlets" placeholder="outlet1,outlet2">
+          <button class="btn-submit" id="setrBtn" onclick="runSetRole()">Set Role</button>
+          <div id="setrError" class="result-error"></div>
+          <div id="setrSuccess" class="result-success"></div>
+        </div>
+      </div>
+
+      <!-- ══ REMOVE ROLE ══ -->
+      <div class="panel-section" id="panel-remove-role">
+        <div class="card">
+          <div class="card__title">⛔ Remove Role (Deactivate User)</div>
+          <label class="form-label">Tenant Slug</label>
+          <input class="form-input" type="text" id="remrSlug" placeholder="contoh: kedai-maju">
+          <label class="form-label">Phone</label>
+          <input class="form-input" type="text" id="remrPhone" placeholder="60123456789">
+          <button class="btn-submit" id="remrBtn" onclick="runRemoveRole()">Remove Role</button>
+          <div id="remrError" class="result-error"></div>
+          <div id="remrSuccess" class="result-success"></div>
+        </div>
+      </div>
+
+      <!-- ══ REACTIVATE USER ══ -->
+      <div class="panel-section" id="panel-reactivate-user">
+        <div class="card">
+          <div class="card__title">♻️ Reactivate User</div>
+          <label class="form-label">Tenant Slug</label>
+          <input class="form-input" type="text" id="reactSlug" placeholder="contoh: kedai-maju">
+          <label class="form-label">Phone</label>
+          <input class="form-input" type="text" id="reactPhone" placeholder="60123456789">
+          <button class="btn-submit" id="reactBtn" onclick="runReactivateUser()">Reactivate User</button>
+          <div id="reactError" class="result-error"></div>
+          <div id="reactSuccess" class="result-success"></div>
+        </div>
+      </div>
+
+      <!-- ══ ADD OUTLET ══ -->
+      <div class="panel-section" id="panel-add-outlet">
+        <div class="card">
+          <div class="card__title">🏪 Add Outlet Baru</div>
+          <label class="form-label">Tenant Slug</label>
+          <input class="form-input" type="text" id="addoSlug" placeholder="contoh: kedai-maju">
+          <label class="form-label">Nama Outlet</label>
+          <input class="form-input" type="text" id="addoOutlet" placeholder="contoh: outlet-baru">
+          <button class="btn-submit" id="addoBtn" onclick="runAddOutlet()">Add Outlet</button>
+          <div id="addoError" class="result-error"></div>
+          <div id="addoSuccess" class="result-success"></div>
+        </div>
+      </div>
+
+      <!-- ══ REMOVE OUTLET ACCESS ══ -->
+      <div class="panel-section" id="panel-remove-outlet-access">
+        <div class="card">
+          <div class="card__title">🚫 Remove Outlet Access (User)</div>
+          <label class="form-label">Tenant Slug</label>
+          <input class="form-input" type="text" id="remoSlug" placeholder="contoh: kedai-maju">
+          <label class="form-label">Phone</label>
+          <input class="form-input" type="text" id="remoPhone" placeholder="60123456789">
+          <label class="form-label">Outlet</label>
+          <input class="form-input" type="text" id="remoOutlet" placeholder="contoh: outlet1">
+          <button class="btn-submit" id="remoBtn" onclick="runRemoveOutletAccess()">Remove Outlet Access</button>
+          <div id="remoError" class="result-error"></div>
+          <div id="remoSuccess" class="result-success"></div>
+        </div>
+      </div>
+
+    </div><!-- /detailpane__content -->
+  </div><!-- /detailpane -->
+
+</div><!-- /app -->
 
 <script>
-  // Auth guard — redirect ke login kalau tiada cookie
-  (function () {
+  // ======================
+  // AUTH (cookie-based)
+  // ======================
+  const COOKIE_NAME = 'stokbot_admin_token';
+  const THEME_COOKIE = 'stokbot_admin_theme';
+
+  function getToken() {
     const m = document.cookie.match(/(?:^|; )stokbot_admin_token=([^;]*)/);
-    if (!m) window.location.replace('/admin/login.html');
-  })();
-    
-    function getToken() {
-    // Baca dari cookie, bukan input field
-    const match = document.cookie.match(/(?:^|; )stokbot_admin_token=([^;]*)/);
-    return match ? decodeURIComponent(match[1]) : '';
+    return m ? decodeURIComponent(m[1]) : '';
+  }
+  function clearCookie(name) {
+    document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+  }
+  function logout() {
+    clearCookie(COOKIE_NAME);
+    window.location.href = '/admin/login.html';
+  }
+  // Token dah tak sah (revoked/expired) — balik ke login
+  function handleAuthError(status) {
+    if (status === 403) {
+      clearCookie(COOKIE_NAME);
+      window.location.replace('/admin/login.html');
+      return true;
+    }
+    return false;
   }
 
+  // ======================
+  // THEME (cookie-based — sama mekanisme dgn token)
+  // ======================
+  function setThemeCookie(theme) {
+    const expires = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toUTCString();
+    const secure  = location.protocol === 'https:' ? '; Secure' : '';
+    document.cookie = `${THEME_COOKIE}=${theme}; expires=${expires}; path=/; SameSite=Lax${secure}`;
+  }
+  function toggleTheme() {
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const next = isDark ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    setThemeCookie(next);
+  }
+
+  // ======================
+  // SIDEBAR — tool registry (grouped)
+  // ======================
+  const TOOL_GROUPS = [
+    {
+      label: '📦 BULK IMPORT',
+      tools: [
+        { key:'bulk-items', icon:'📦', title:'Import Items', desc:'Upload Excel — tambah stok ramai outlet sekali gus' },
+        { key:'bulk-users', icon:'👥', title:'Import Users', desc:'Upload Excel — daftar staff/manager ramai sekali gus' }
+      ]
+    },
+    {
+      label: '⚙️ SINGLE ACTIONS',
+      tools: [
+        { key:'update-item',           icon:'✏️', title:'Update Item',            desc:'Ubah cost atau min qty satu item' },
+        { key:'add-item',              icon:'➕', title:'Add Item',               desc:'Tambah satu item baru ke outlet' },
+        { key:'remove-item',           icon:'🗑', title:'Remove Item',            desc:'Buang satu item dari outlet' },
+        { key:'set-role',              icon:'🛠', title:'Set Role',               desc:'Assign role + outlet kepada user' },
+        { key:'remove-role',           icon:'⛔', title:'Remove Role',            desc:'Nyahaktifkan akses user' },
+        { key:'reactivate-user',       icon:'♻️', title:'Reactivate User',        desc:'Aktifkan semula user yang dinyahaktifkan' },
+        { key:'add-outlet',            icon:'🏪', title:'Add Outlet',             desc:'Daftar outlet baru' },
+        { key:'remove-outlet-access',  icon:'🚫', title:'Remove Outlet Access',   desc:'Buang akses outlet dari user' }
+      ]
+    }
+  ];
+
+  const TOOL_MAP = {};
+  TOOL_GROUPS.forEach(g => g.tools.forEach(t => { TOOL_MAP[t.key] = t; }));
+
+  function renderSidebar() {
+    const list = document.getElementById('sidebarList');
+    list.innerHTML = '';
+
+    TOOL_GROUPS.forEach(group => {
+      const label = document.createElement('div');
+      label.className = 'tool-group__label';
+      label.textContent = group.label;
+      list.appendChild(label);
+
+      group.tools.forEach(tool => {
+        const row = document.createElement('div');
+        row.className = 'tool-row';
+        row.dataset.key = tool.key;
+        row.onclick = () => selectTool(tool.key);
+
+        const icon = document.createElement('div');
+        icon.className = 'tool-row__icon';
+        icon.textContent = tool.icon;
+
+        const body = document.createElement('div');
+        body.className = 'tool-row__body';
+
+        const title = document.createElement('div');
+        title.className = 'tool-row__title';
+        title.textContent = tool.title;
+
+        const desc = document.createElement('div');
+        desc.className = 'tool-row__desc';
+        desc.textContent = tool.desc;
+
+        body.appendChild(title);
+        body.appendChild(desc);
+        row.appendChild(icon);
+        row.appendChild(body);
+        list.appendChild(row);
+      });
+    });
+  }
+
+  function selectTool(key) {
+    const tool = TOOL_MAP[key];
+    if (!tool) return;
+
+    document.querySelectorAll('.tool-row').forEach(el => {
+      el.classList.toggle('active', el.dataset.key === key);
+    });
+
+    document.querySelectorAll('.panel-section').forEach(el => {
+      el.style.display = (el.id === 'panel-' + key) ? 'block' : 'none';
+    });
+
+    document.getElementById('detailIcon').textContent  = tool.icon;
+    document.getElementById('detailTitle').textContent = tool.title;
+    document.getElementById('detailHeader').style.display  = 'flex';
+    document.getElementById('detailEmpty').style.display   = 'none';
+    document.getElementById('detailContent').style.display = 'block';
+
+    document.getElementById('app').classList.add('tool-open'); // mobile
+  }
+
+  function backToList() {
+    document.getElementById('app').classList.remove('tool-open');
+  }
+
+  // ======================
+  // SHARED HELPERS (result panels)
+  // ======================
   function resetPanel(prefix) {
     document.getElementById(prefix + 'Error').textContent   = '';
     document.getElementById(prefix + 'Success').textContent = '';
-    document.getElementById(prefix + 'Log').style.display   = 'none';
-    document.getElementById(prefix + 'Log').textContent     = '';
+    const log = document.getElementById(prefix + 'Log');
+    if (log) { log.style.display = 'none'; log.textContent = ''; }
   }
 
   function showResult(prefix, data, dryRun, successTemplate) {
@@ -411,16 +615,6 @@
     }
   }
 
-  // Tambah function ni dalam script import.html
-  function handleAuthError(status) {
-    if (status === 403) {
-      document.cookie = 'stokbot_admin_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-      window.location.replace('/admin/login.html');
-      return true;
-    }
-    return false;
-  }
-
   // ── ITEMS IMPORT ──
   async function runItemImport() {
     const token  = getToken();
@@ -431,7 +625,6 @@
 
     resetPanel('item');
 
-    if (!token) return document.getElementById('itemError').textContent = '⚠️ Masukkan admin token dulu.';
     if (!slug)  return document.getElementById('itemError').textContent = '⚠️ Masukkan tenant slug.';
     if (!fileEl.files.length) return document.getElementById('itemError').textContent = '⚠️ Pilih fail .xlsx dulu.';
 
@@ -471,7 +664,6 @@
 
     resetPanel('user');
 
-    if (!token) return document.getElementById('userError').textContent = '⚠️ Masukkan admin token dulu.';
     if (!slug)  return document.getElementById('userError').textContent = '⚠️ Masukkan tenant slug.';
     if (!fileEl.files.length) return document.getElementById('userError').textContent = '⚠️ Pilih fail .xlsx dulu.';
 
@@ -513,17 +705,12 @@
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     });
-    if (handleAuthError(res.status)) return null; // ← tambah ni
+    if (handleAuthError(res.status)) return null;
     return res.json();
   }
 
   async function runSimpleAction(prefix, url, payload, successFn) {
     resetSimplePanel(prefix);
-
-    if (!getToken()) {
-      document.getElementById(prefix + 'Error').textContent = '⚠️ Masukkan admin token dulu.';
-      return;
-    }
 
     const btn = document.getElementById(prefix + 'Btn');
     const originalLabel = btn.textContent;
@@ -532,7 +719,6 @@
 
     try {
       const data = await postAdminAction(url, payload);
-      if (handleAuthError(data.status)) return;
       if (!data) return;
       if (data.error) {
         document.getElementById(prefix + 'Error').textContent = data.error;
@@ -692,6 +878,12 @@
     runSimpleAction('remo', '/admin/remove-outlet-access', { slug, phone, outlet },
       d => `✅ Outlet ${d.outlet} dibuang dari ${d.phone}`);
   }
+
+  // ======================
+  // INIT
+  // ======================
+  renderSidebar();
 </script>
+
 </body>
 </html>
