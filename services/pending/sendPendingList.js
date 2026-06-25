@@ -6,11 +6,7 @@ const { buildStockRequestMessage } = require("../../utils/messages/buildStockReq
 // SEND PENDING
 // ======================
 
-async function sendPendingList({
-  chatId,
-  rows,
-  channel = "botcommerce"
-}) {
+async function sendPendingList({ chatId, rows, channel = "botcommerce" }) {
 
   // ======================
   // GROUP OUTLET
@@ -20,14 +16,10 @@ async function sendPendingList({
 
   rows.forEach(r => {
 
-    const outlet =
-      r.outlets?.name ||
-      "Outlet";
-
+    const outlet = r.outlets?.name || "Outlet";
     if (!map[outlet]) {
       map[outlet] = [];
     }
-
     map[outlet].push(r);
   });
 
@@ -35,28 +27,12 @@ async function sendPendingList({
   // SEND PER OUTLET
   // ======================
 
-  for (
-    const [outletName, list]
-    of Object.entries(map)
-  ) {
-
-    const text =
-      buildStockRequestMessage({
-        rows: list,
-        outletName
-      });
-
-    const buttons =
-      buildPendingButtons(
-        outletName
-      );
-
-    await sendButtonsRouter(
-      chatId,
-      text,
-      buttons,
-      channel
-    );
+  // NEW — get outletId from first row in the group
+  for (const [outletName, list] of Object.entries(map)) {
+    const outletId = list[0].outlet_id; // all rows in group share same outlet_id
+    const text     = buildStockRequestMessage({ rows: list, outletName });
+    const buttons  = buildPendingButtons(outletName, outletId);
+    await sendButtonsRouter(chatId, text, buttons, channel);
   }
 }
 

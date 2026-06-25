@@ -82,6 +82,7 @@
     <div class="footnote">Token disimpan dalam browser anda selama 12 jam.</div>
   </div>
 
+<!-- Replace the script block in login.html -->
 <script>
   const COOKIE_NAME = 'stokbot_admin_token';
 
@@ -95,8 +96,23 @@
     return match ? decodeURIComponent(match[1]) : null;
   }
 
-  // Dah ada token tersimpan — terus masuk logs.html, tak payah login semula
-  if (getCookie(COOKIE_NAME)) {
+  function deleteCookie(name) {
+    document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+  }
+
+  // Handle ?logout=1 — clear cookie then stay on login
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('logout') === '1') {
+    deleteCookie(COOKIE_NAME);
+    // show flash msg
+    const errEl = document.getElementById('err');
+    errEl.style.color = '#065f46';
+    errEl.style.background = '#d1fae5';
+    errEl.style.border = '1px solid #6ee7b7';
+    errEl.textContent = '✅ Anda telah log keluar.';
+    errEl.style.display = 'block';
+  } else if (getCookie(COOKIE_NAME)) {
+    // Already logged in — go straight to inbox
     window.location.href = '/admin/logs.html';
   }
 
@@ -114,26 +130,33 @@
     btn.textContent = 'Menyambung...';
 
     try {
-      // Validate token guna endpoint sedia ada (ringan + memang akan dipanggil
-      // sejurus selepas login) — tiada endpoint /admin/validate baru diperlukan
       const res = await fetch(`/admin/conversations?token=${encodeURIComponent(token)}&channel=meta`);
 
       if (res.status === 403) {
+        errEl.style.color = '#b91c1c';
+        errEl.style.background = '#fef2f2';
+        errEl.style.border = '1px solid #fee2e2';
         errEl.textContent = '❌ Token tidak sah.';
         errEl.style.display = 'block';
         return;
       }
 
       if (!res.ok) {
+        errEl.style.color = '#b91c1c';
+        errEl.style.background = '#fef2f2';
+        errEl.style.border = '1px solid #fee2e2';
         errEl.textContent = '⚠️ Ralat server. Sila cuba lagi.';
         errEl.style.display = 'block';
         return;
       }
 
-      setCookie(COOKIE_NAME, token, 12); // 12 jam
+      setCookie(COOKIE_NAME, token, 12);
       window.location.href = '/admin/logs.html';
 
     } catch (err) {
+      errEl.style.color = '#b91c1c';
+      errEl.style.background = '#fef2f2';
+      errEl.style.border = '1px solid #fee2e2';
       errEl.textContent = '⚠️ Gagal sambung ke server. Semak sambungan internet.';
       errEl.style.display = 'block';
     } finally {

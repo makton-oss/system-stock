@@ -17,7 +17,7 @@ const { removeUserOutletLink } = require("../db/users/removeUserOutletLink");
 const { getUserOutletIds, insertUserOutlets, clearUserOutlets } = require("../db/users/manageUserOutlets");
 const { checkUserLimit }     = require("../services/tenants/checkUserLimit");
 
-//router.use(requireAdminToken);
+router.use(requireAdminToken);
 
 const WEB_ASSIGNABLE_ROLES = ["staff", "supervisor", "manager", "admin", "owner"]; // superadmin sengaja exclude
 

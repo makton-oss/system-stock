@@ -1,10 +1,11 @@
 const supabase = require("../db");
-const { applyTenant } = require("../../utils/applyTenant");
 
 async function approveRequest(rows, chatId, tenantId) {
 
-  let summary = {};
-  let logDetails = [];
+  let summary      = {};
+  let logDetails   = [];
+  let lowStockItems = [];
+  let processedCount = 0;
 
   for (const row of rows) {
 
@@ -14,7 +15,7 @@ async function approveRequest(rows, chatId, tenantId) {
     const { data: updated } = await supabase
       .from("requests")
       .update({
-        status: "approved",
+        status:       "approved",
         processed_by: chatId,
         processed_at: new Date().toISOString()
       })
@@ -28,7 +29,7 @@ async function approveRequest(rows, chatId, tenantId) {
     // GET STOCK BEFORE
     // ======================
     const { data: before } = await supabase
-      .from("item_stock")     // ✅ fix: stock → item_stock
+      .from("item_stock")
       .select("qty, min_qty, cost_price")
       .eq("item_id", row.item_id)
       .eq("outlet_id", row.outlet_id)
@@ -37,7 +38,7 @@ async function approveRequest(rows, chatId, tenantId) {
 
     if (!before) {
       console.log("STOCK INACTIVE OR NOT FOUND — SKIP:", row.item_id, row.outlet_id);
-      logDetails.push(`ID${row.id} ${row.item} ⚠️ ITEM INACTIVE`);
+      // Sengaja tak push ke logDetails — inactive stock bukan success
       continue;
     }
 
@@ -48,14 +49,14 @@ async function approveRequest(rows, chatId, tenantId) {
 
     if (row.type === "out" || row.type === "wastage") {
       rpcRes = await supabase.rpc("decrease_stock", {
-        p_item_id: row.item_id,
-        p_qty: row.qty,
+        p_item_id:  row.item_id,
+        p_qty:      row.qty,
         p_outlet_id: row.outlet_id
       });
     } else {
       rpcRes = await supabase.rpc("increase_stock", {
-        p_item_id: row.item_id,
-        p_qty: row.qty,
+        p_item_id:  row.item_id,
+        p_qty:      row.qty,
         p_outlet_id: row.outlet_id
       });
     }
@@ -68,7 +69,7 @@ async function approveRequest(rows, chatId, tenantId) {
     // ======================
     // INSERT MOVEMENT
     // ======================
-    await supabase.from("movements").insert({   // ✅ fix: stock_movements → movements
+    await supabase.from("movements").insert({
       outlet_id:  row.outlet_id,
       item_id:    row.item_id,
       request_id: row.id,
@@ -83,9 +84,8 @@ async function approveRequest(rows, chatId, tenantId) {
     // ======================
     // GET STOCK AFTER
     // ======================
-    // ⚠️ item_stock tiada tenant_id
     const { data: after } = await supabase
-      .from("item_stock")     // ✅ fix: stock → item_stock
+      .from("item_stock")
       .select("qty, min_qty, cost_price")
       .eq("item_id", row.item_id)
       .eq("outlet_id", row.outlet_id)
@@ -101,6 +101,7 @@ async function approveRequest(rows, chatId, tenantId) {
         min: 0
       };
       logDetails.push(`ID${row.id} ${row.item}`);
+      processedCount++;
       continue;
     }
 
@@ -119,22 +120,23 @@ async function approveRequest(rows, chatId, tenantId) {
       qty: (summary[row.item]?.qty || 0) +
         (row.type === "out" || row.type === "wastage" ? -row.qty : row.qty),
       balance: after.qty,
-      min: after.min_qty
+      min:     after.min_qty
     };
 
     logDetails.push(`ID${row.id} ${row.item}`);
+    processedCount++;
 
     if (isLow) {
-      row._lowStock = {
+      lowStockItems.push({
         item:      row.item,
         qty:       after.qty,
         min:       after.min_qty,
         outlet_id: row.outlet_id
-      };
+      });
     }
   }
 
-  return { summary, logDetails, rows, skipped: rows.length - logDetails.length };
+  return { summary, logDetails, rows, lowStockItems, processedCount };
 }
 
 module.exports = { approveRequest };

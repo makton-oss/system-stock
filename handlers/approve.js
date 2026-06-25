@@ -19,28 +19,27 @@ async function handleApproval(rows, ctx) {
     summary,
     logDetails,
     rows: processed,
-    skipped
-  } = await approveRequest(
-    rows,
-    chatId,
-    user.tenant_id || null
-  );
+    lowStockItems,
+    processedCount
+  } = await approveRequest(rows, chatId, user.tenant_id || null);
 
-  if (!logDetails.length) {
-  await reply(chatId, "Request sudah diproses atau tiada request untuk diluluskan.");
-  return res.end();
-}
+  // ======================
+  // NOTHING PROCESSED
+  // ======================
+  if (!processedCount) {
+    await reply(chatId, "Request sudah diproses atau tiada request untuk diluluskan.");
+    return res.end();
+  }
 
   // ======================
   // LOW STOCK ALERT (CONSOLIDATED)
   // ======================
   const lowStockByOutlet = {};
 
-  for (const r of processed) {
-    if (!r._lowStock) continue;
-    const outletId = r._lowStock.outlet_id;
+  for (const item of lowStockItems) {
+    const outletId = item.outlet_id;
     if (!lowStockByOutlet[outletId]) lowStockByOutlet[outletId] = [];
-    lowStockByOutlet[outletId].push(r._lowStock);
+    lowStockByOutlet[outletId].push(item);
   }
 
   for (const [outletId, items] of Object.entries(lowStockByOutlet)) {
@@ -56,10 +55,10 @@ async function handleApproval(rows, ctx) {
   // ======================
   // LOG
   // ======================
-  await writeLog(chatId, "manager", "APPROVE", logDetails.join(" | "));
+  await writeLog(chatId, user.role, "APPROVE", logDetails.join(" | "), user.tenant_id || null);
 
   await emitEvent("stock.approved", {
-    by: chatId,
+    by:   chatId,
     rows: processed
   });
 
@@ -75,12 +74,11 @@ module.exports = withRole(["supervisor", "manager"], async (ctx) => {
 
   const { chatId, parts, user, reply, res } = ctx;
 
-  const raw = parts.join(" ");
+  const raw    = parts.join(" ");
   const parsed = parseRequestAction(raw);
 
   // ======================
   // SINGLE APPROVE — no lock needed
-  // row-level atomic lock in approveRequest() cukup
   // ======================
   if (!parsed?.isAll) {
 
@@ -112,7 +110,6 @@ module.exports = withRole(["supervisor", "manager"], async (ctx) => {
   try {
 
     rows = await withOutletLock(outletId, async () => {
-
       return await processRequestAction({
         raw,
         user,

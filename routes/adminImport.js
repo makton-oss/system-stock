@@ -26,7 +26,7 @@ const upload = multer({
 
 // requireAdminToken DULU sebelum multer — kalau token salah, fail tak
 // sampai ditulis ke disk langsung (sebelum ni kena tulis dulu baru padam)
-//router.use(requireAdminToken);
+router.use(requireAdminToken);
 
 router.post("/items", upload.single("file"), async (req, res) => {
   if (!req.file) {

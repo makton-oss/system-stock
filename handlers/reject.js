@@ -31,7 +31,7 @@ async function handleRejection(rows, ctx) {
   // ======================
   // LOG
   // ======================
-  await writeLog(chatId, "manager", "REJECT", logDetails.join(" | "));
+  await writeLog(chatId, user.role, "REJECT", logDetails.join(" | "), user.tenant_id || null);
 
   await emitEvent("stock.rejected", {
     by: chatId,

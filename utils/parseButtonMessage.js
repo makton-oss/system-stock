@@ -17,18 +17,13 @@ async function parseButtonMessage({ raw, chatId, body, user }) {
   // ======================
   // APPROVE / REJECT
   // ======================
-  if (
-    upperClean.startsWith("APPROVE ") ||
-    upperClean.startsWith("REJECT ")
-  ) {
+  // This block in parseButtonMessage already handles it correctly:
+  if (upperClean.startsWith("APPROVE ") || upperClean.startsWith("REJECT ")) {
     const [action, value] = upperClean.split(" ");
-
-    if (/^\d+$/.test(value)) return upperClean;
-
+    if (/^\d+$/.test(value)) return upperClean; // single approve by ID
     const outlet = await getOutletByCode(value, tenantId);
     if (!outlet) return upperClean;
-
-    return `${action}_ALL_${outlet.id}`;
+    return `${action}_ALL_${outlet.id}`; // ← this still works
   }
 
   // ======================
