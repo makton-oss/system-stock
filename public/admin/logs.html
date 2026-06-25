@@ -287,7 +287,11 @@
   const TOKEN = getCookie(COOKIE_NAME);
   if (!TOKEN) window.location.replace('/admin/login.html');
 
-  function getToken() { return TOKEN; }
+  function getToken() {
+  // Baca dari cookie, bukan input field
+  const match = document.cookie.match(/(?:^|; )stokbot_admin_token=([^;]*)/);
+  return match ? decodeURIComponent(match[1]) : '';
+}
 
   function logout() {
     clearCookie(COOKIE_NAME);

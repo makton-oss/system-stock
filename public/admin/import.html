@@ -379,8 +379,10 @@
 <script>
   // ── SHARED ──
   function getToken() {
-    return document.getElementById('globalToken').value;
-  }
+  // Baca dari cookie, bukan input field
+  const match = document.cookie.match(/(?:^|; )stokbot_admin_token=([^;]*)/);
+  return match ? decodeURIComponent(match[1]) : '';
+}
 
   function resetPanel(prefix) {
     document.getElementById(prefix + 'Error').textContent   = '';
