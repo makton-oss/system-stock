@@ -15,7 +15,7 @@ function normalizeItem(text = "") {
 // SAFE INTEGER
 // ======================
 function safeQty(value) {
-  const qty = parseInt(value);
+  const qty = parseFloat(value);
   if (isNaN(qty) || qty <= 0) return null;
   return qty;
 }
