@@ -6,11 +6,11 @@ function buildPendingButtons(outletName, outletId) {
   // APPROVE_ALL_<id> and REJECT_ALL_<id> are parsed directly without DB lookup
   return [
     {
-      id:    `APPROVE_ALL_${outletId.toUpperCase()}`,
+      id:    `APPROVE_ALL_${outletId}`,
       title: `APPROVE ${outletName.toUpperCase()}`
     },
     {
-      id:    `REJECT_ALL_${outletId.toUpperCase()}`,
+      id:    `REJECT_ALL_${outletId}`,
       title: `REJECT ${outletName.toUpperCase()}`
     }
   ];
