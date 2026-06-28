@@ -9,6 +9,7 @@ const { checkUserRateLimit } = require("../utils/userRateLimit");
 const { checkTenantRateLimit } = require("../utils/tenantRateLimit");
 const { parseButtonMessage } = require("../utils/parseButtonMessage");
 const { replyMeta } = require("../services/notification/reply");
+const { sendPushNotification } = require("../services/notification/sendPushNotification");
 const { Sentry } = require("../services/sentry");
 
 // ======================
@@ -82,6 +83,18 @@ router.post("/", async (req, res) => {
     console.log(`[META_IN] ${chatId} | type:${msg.type} | ${userMessage}`);
     const { logMessage } = require("../services/logging/messageLogger");
     await logMessage({ channel: "meta", direction: "in", chatId, message: userMessage, msgType: msg.type });
+
+    // ======================
+    // PUSH NOTIFICATION — bagitahu superadmin (Android PWA) setiap kali
+    // ada inbound message. Sengaja letak sebelum getUserByChatId() supaya
+    // cover SEMUA sender (termasuk nombor yang belum register dalam sistem) —
+    // ni "inbox" dia, nombor Meta ni tak ada WhatsApp UI consumer langsung.
+    // ======================
+    await sendPushNotification({
+      title: chatId,
+      body:  userMessage.length > 120 ? userMessage.slice(0, 120) + "…" : userMessage,
+      url:   "/admin/logs.html"
+    });
 
     const user = await getUserByChatId(chatId);
     if (!user) return;

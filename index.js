@@ -68,6 +68,7 @@ app.use(express.static("public"));
 app.use("/admin", require("./routes/adminInbox"));
 app.use("/admin/import", require("./routes/adminImport"));
 app.use("/admin", require("./routes/adminTools"));
+app.use("/admin/push", require("./routes/adminPush"));
 
 // ======================
 // CRON JOBS

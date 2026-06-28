@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Inbox — StokBot Admin</title>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#1D9E75">
 
 <!-- ============================================================
      AUTH GUARD — jalan sebelum apa-apa render, elak "flash" UI
@@ -110,6 +112,8 @@
   #themeToggleBtn .icon-moon{ display:none; }
   [data-theme="dark"] #themeToggleBtn .icon-sun{ display:none; }
   [data-theme="dark"] #themeToggleBtn .icon-moon{ display:block; }
+
+  #pushBtn.active{ color:var(--green); }
 
   .sidebar__search{ padding:10px 14px; flex-shrink:0; }
   .search-box{
@@ -233,6 +237,8 @@
     .chatpane__back{ display:flex; }
     .app:not(.chat-open) .chatpane{ display:none; }
     .app.chat-open .sidebar{ display:none; }
+    /* elak iOS Safari auto-zoom bila focus input (kena >=16px) */
+    .composer textarea, .search-box input{ font-size:16px; }
   }
 </style>
 </head>
@@ -251,6 +257,9 @@
         </div>
       </div>
       <div class="sidebar__actions">
+        <button class="icon-btn" id="pushBtn" title="Enable notification" onclick="enablePush()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        </button>
         <button class="icon-btn" id="themeToggleBtn" title="Tukar tema" onclick="toggleTheme()">
           <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
           <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
@@ -340,6 +349,70 @@
     document.documentElement.setAttribute('data-theme', next);
     setThemeCookie(next);
   }
+
+  // ======================
+  // PUSH NOTIFICATION (PWA)
+  // ======================
+  // ⚠️ Ganti VAPID_PUBLIC_KEY ni dengan punya hg sendiri kalau generate baru.
+  const VAPID_PUBLIC_KEY = 'BMTZ2mxyQsYOWi1JKVxLTCmF3zjwg93InG1qgLZictac4jqD0Z-VOmNRE9jhrKvcNOr1BTZUTBFObGJFWa7waJU';
+
+  function urlBase64ToUint8Array(base64String) {
+    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+    const rawData = atob(base64);
+    return Uint8Array.from([...rawData].map(c => c.charCodeAt(0)));
+  }
+
+  async function registerServiceWorker() {
+    if (!('serviceWorker' in navigator)) return null;
+    try {
+      return await navigator.serviceWorker.register('/sw.js', { scope: '/admin/' });
+    } catch (err) {
+      console.log('SW REGISTER ERROR:', err);
+      return null;
+    }
+  }
+
+  async function refreshPushButtonState() {
+    const reg = await navigator.serviceWorker?.getRegistration('/admin/');
+    const sub = await reg?.pushManager.getSubscription();
+    document.getElementById('pushBtn')?.classList.toggle('active', !!sub);
+  }
+
+  async function enablePush() {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+      alert('Browser/device ni tak support push notification.');
+      return;
+    }
+
+    const permission = await Notification.requestPermission();
+    if (permission !== 'granted') {
+      alert('Notification permission ditolak. Enable manual dalam browser settings kalau nak guna.');
+      return;
+    }
+
+    const reg = await registerServiceWorker();
+    if (!reg) return;
+
+    let sub = await reg.pushManager.getSubscription();
+    if (!sub) {
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+      });
+    }
+
+    await fetch(`/admin/push/subscribe?token=${encodeURIComponent(getToken())}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(sub.toJSON())
+    });
+
+    document.getElementById('pushBtn').classList.add('active');
+  }
+
+  // auto-register SW bila page load (subscribe sendiri tetap perlu klik — browser policy)
+  registerServiceWorker().then(() => refreshPushButtonState());
 
   const TOKEN = getCookie(COOKIE_NAME);
   if (!TOKEN) window.location.replace('/admin/login.html');
