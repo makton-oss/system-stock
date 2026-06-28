@@ -44,7 +44,7 @@ async function handleApproval(rows, ctx) {
 
   for (const [outletId, items] of Object.entries(lowStockByOutlet)) {
     const alertText = formatLowStockAlertGroup(items);
-    await notifyManagers(alertText, Number(outletId), chatId);
+    await notifyManagers(alertText, Number(outletId), chatId, user.tenant_id || null, ctx.channel || "botcommerce");
   }
 
   // ======================

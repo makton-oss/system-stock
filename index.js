@@ -81,6 +81,7 @@ startCronJobs();
 // ======================
 app.use("/webhook/meta", require("./routes/webhookMeta"));
 app.use("/webhook", require("./routes/webhookBotcommerce"));
+app.use("/webhook/telegram", require("./routes/webhookTelegram"));
 
 // ======================
 // SERVER START

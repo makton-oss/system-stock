@@ -9,7 +9,7 @@ async function getManagersByOutlet(outletId, tenantId = null) {
     .from("outlet_access")
     .select(`
       user_chat_id,
-      users!inner(chat_id, role, is_active, tenant_id)
+      users!inner(chat_id, telegram_chat_id, role, is_active, tenant_id)
     `)
     .eq("outlet_id", outletId)
     .eq("users.role", "manager")
@@ -30,7 +30,7 @@ async function getManagersByOutlet(outletId, tenantId = null) {
   // ======================
   let svQ = supabase
     .from("users")
-    .select("chat_id")
+    .select("chat_id, telegram_chat_id")
     .eq("outlet_id", outletId)
     .eq("role", "supervisor")
     .eq("is_active", true);
@@ -45,8 +45,15 @@ async function getManagersByOutlet(outletId, tenantId = null) {
     console.log("GET_SUPERVISORS ERROR:", svError);
   }
 
-  const managers = (managerLinks || []).map(l => ({ chat_id: l.user_chat_id }));
-  const svList   = (supervisors  || []).map(u => ({ chat_id: u.chat_id }));
+  const managers = (managerLinks || []).map(l => ({
+    chat_id:          l.user_chat_id,
+    telegram_chat_id: l.users.telegram_chat_id || null
+  }));
+
+  const svList = (supervisors || []).map(u => ({
+    chat_id:          u.chat_id,
+    telegram_chat_id: u.telegram_chat_id || null
+  }));
 
   // dedupe
   const seen = new Set();
