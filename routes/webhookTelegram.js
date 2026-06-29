@@ -212,7 +212,8 @@ async function processMessage({ telegramId, user, rawMessage }) {
     raw: rawMessage,
     chatId: telegramId,
     body: { reply_message_id: null },
-    user
+    user,
+    channel: "telegram"
   });
 
   if (!message) return;

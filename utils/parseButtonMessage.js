@@ -1,29 +1,30 @@
 const { getOutletByCode } = require("../db/outlets/getOutletByCode");
 const reportModeStore = require("./reportModeStore");
 
-async function parseButtonMessage({ raw, chatId, body, user }) {
+async function parseButtonMessage({ raw, chatId, body, user, channel = "botcommerce" }) {
 
   if (!raw.startsWith("#Button Reply#")) {
     return raw;
   }
 
-  const tenantId  = user?.tenant_id || null;
-  const clean     = raw.replace("#Button Reply#", "").trim();
+  const tenantId   = user?.tenant_id || null;
+  const clean      = raw.replace("#Button Reply#", "").trim();
   const upperClean = clean.toUpperCase();
-  const hasReplyId = !!body.reply_message_id;
+
+  // Telegram inline buttons tak ada reply_message_id — treat semua button press sebagai hasReplyId true
+  const hasReplyId = channel === "telegram" ? true : !!body.reply_message_id;
 
   console.log("BUTTON CLICK:", clean);
 
   // ======================
   // APPROVE / REJECT
   // ======================
-  // This block in parseButtonMessage already handles it correctly:
   if (upperClean.startsWith("APPROVE ") || upperClean.startsWith("REJECT ")) {
     const [action, value] = upperClean.split(" ");
-    if (/^\d+$/.test(value)) return upperClean; // single approve by ID
+    if (/^\d+$/.test(value)) return upperClean;
     const outlet = await getOutletByCode(value, tenantId);
     if (!outlet) return upperClean;
-    return `${action}_ALL_${outlet.id}`; // ← this still works
+    return `${action}_ALL_${outlet.id}`;
   }
 
   // ======================
@@ -41,7 +42,6 @@ async function parseButtonMessage({ raw, chatId, body, user }) {
   // MONTH SELECTION
   // ======================
   if (hasReplyId) {
-
     const mode = reportModeStore.get(chatId);
 
     if (upperClean === "CURRENT" || /^[A-Z]{3}-\d{2}$/i.test(clean)) {
