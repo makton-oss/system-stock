@@ -9,7 +9,26 @@ const { checkUserRateLimit } = require("../utils/userRateLimit");
 const { checkTenantRateLimit } = require("../utils/tenantRateLimit");
 const { parseButtonMessage } = require("../utils/parseButtonMessage");
 const { sendTelegram, requestContact, answerCallbackQuery } = require("../services/notification/telegramService");
+const { isDuplicate } = require("../services/notification/telegramDedup");
 const { Sentry } = require("../services/sentry");
+const supabase = require("../services/db");
+
+// ======================
+// NORMALIZE PHONE — pastikan format 60xxxxxxxxx
+// ======================
+function normalizePhone(raw = "") {
+  let phone = raw.replace(/[\s+\-]/g, "");
+
+  // buang semua non-digit
+  phone = phone.replace(/[^\d]/g, "");
+
+  // 0123456789 → 60123456789
+  if (phone.startsWith("0")) {
+    phone = "60" + phone.slice(1);
+  }
+
+  return phone;
+}
 
 // ======================
 // VERIFY TELEGRAM WEBHOOK
@@ -25,6 +44,14 @@ router.post("/", async (req, res) => {
 
   try {
     const body = req.body;
+
+    // ======================
+    // DEDUP — ignore duplicate updates
+    // ======================
+    if (!body.update_id || isDuplicate(body.update_id)) {
+      console.log("TELEGRAM DEDUP HIT:", body.update_id);
+      return;
+    }
 
     // ======================
     // CALLBACK QUERY (button press)
@@ -63,6 +90,17 @@ router.post("/", async (req, res) => {
     // HANDLE /start
     // ======================
     if (msg.text === "/start") {
+
+      const existingUser = await getUserByTelegramId(telegramId);
+
+      if (existingUser) {
+        await sendTelegram(
+          telegramId,
+          `✅ Anda sudah didaftarkan sebagai ${existingUser.nickname}.\n\nTaip HELP untuk senarai arahan.`
+        );
+        return;
+      }
+
       await savePendingLink(telegramId);
       await requestContact(telegramId);
       return;
@@ -72,7 +110,7 @@ router.post("/", async (req, res) => {
     // HANDLE CONTACT SHARE (self-register)
     // ======================
     if (msg.contact) {
-      const phone = msg.contact.phone_number.replace(/[^\d]/g, "");
+      const phone = normalizePhone(msg.contact.phone_number);
 
       const existingUser = await getUserByChatId(phone);
 
@@ -91,6 +129,40 @@ router.post("/", async (req, res) => {
       await deletePendingLink(telegramId);
       await sendTelegram(telegramId, `✅ Berjaya didaftarkan sebagai ${existingUser.nickname}!\n\nTaip HELP untuk senarai arahan.`);
       return;
+    }
+
+    // ======================
+    // HANDLE MANUAL PHONE NUMBER INPUT
+    // ======================
+    if (msg.text && /^[0-9]{10,15}$/.test(normalizePhone(msg.text))) {
+
+      const { data: pending } = await supabase
+        .from("telegram_pending_links")
+        .select("telegram_chat_id")
+        .eq("telegram_chat_id", telegramId)
+        .maybeSingle();
+
+      if (pending) {
+        const phone = normalizePhone(msg.text);
+
+        const existingUser = await getUserByChatId(phone);
+
+        if (!existingUser) {
+          await sendTelegram(telegramId, "❌ Nombor telefon tidak dijumpai dalam sistem. Hubungi admin anda.");
+          return;
+        }
+
+        const { error } = await linkTelegramId(phone, telegramId);
+
+        if (error) {
+          await sendTelegram(telegramId, "❌ Gagal mendaftar. Sila cuba lagi atau hubungi admin.");
+          return;
+        }
+
+        await deletePendingLink(telegramId);
+        await sendTelegram(telegramId, `✅ Berjaya didaftarkan sebagai ${existingUser.nickname}!\n\nTaip HELP untuk senarai arahan.`);
+        return;
+      }
     }
 
     // ======================

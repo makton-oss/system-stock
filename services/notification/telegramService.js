@@ -89,7 +89,8 @@ async function requestContact(chatId) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         chat_id: chatId,
-        text: "👋 Sila kongsikan nombor telefon anda untuk mendaftar.",
+        text: "👋 Sila kongsikan nombor telefon anda untuk mendaftar.\n\nContoh: <code>60135835253</code>\n\nTekan butang di bawah atau taip nombor telefon anda.",
+        parse_mode: "HTML",
         reply_markup: {
           keyboard: [[{
             text: "📱 Kongsi Nombor Telefon",
