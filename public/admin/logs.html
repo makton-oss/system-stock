@@ -560,8 +560,9 @@
       previewEl.textContent = (c.last_direction === 'out' ? 'Anda: ' : '') + (c.last_message || '');
       bottom.appendChild(previewEl);
 
-      // badge hijau = mesej terakhir dari customer (belum dibalas)
-      if (c.last_direction === 'in') {
+      // badge hijau = ada mesej masuk yang belum DIBUKA oleh admin
+      // (unread dikira di server: get_conversations() banding last_at vs admin_chat_read_state.last_read_at)
+      if (c.unread) {
         const badge = document.createElement('div');
         badge.className = 'convo__badge';
         bottom.appendChild(badge);
@@ -602,9 +603,22 @@
     document.getElementById('composer').style.display = 'flex';
     document.getElementById('scrollLatestBtn').style.display = 'none';
 
+    // optimistic — clear badge serta-merta dalam UI, tak payah tunggu round-trip
+    const convo = lastConversations.find(c => c.chat_id === chatId);
+    if (convo) convo.unread = false;
+
     renderSidebar();
+    markChatAsRead(chatId);
     loadUserInfo(chatId);
     loadMessages(chatId, true);
+  }
+
+  function markChatAsRead(chatId) {
+    fetch(`/admin/mark-read?token=${encodeURIComponent(getToken())}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: chatId, channel: 'meta' })
+    }).catch(err => console.log('MARK READ ERROR:', err));
   }
 
   function loadUserInfo(chatId) {

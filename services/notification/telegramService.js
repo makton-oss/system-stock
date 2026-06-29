@@ -110,9 +110,33 @@ async function requestContact(chatId) {
   }
 }
 
+async function removeKeyboard(chatId, text) {
+  try {
+    const response = await fetch(`${BASE_URL}/sendMessage`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        chat_id: chatId,
+        text,
+        parse_mode: "HTML",
+        reply_markup: {
+          remove_keyboard: true
+        }
+      })
+    });
+
+    const json = await response.json();
+    if (!json.ok) console.log("❌ REMOVE KEYBOARD ERROR:", json);
+
+  } catch (err) {
+    console.log("❌ REMOVE KEYBOARD FAIL:", err);
+  }
+}
+
 module.exports = {
   sendTelegram,
   sendButtonsTelegram,
   answerCallbackQuery,
-  requestContact
+  requestContact,
+  removeKeyboard
 };

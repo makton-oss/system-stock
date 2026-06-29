@@ -8,7 +8,7 @@ const { getUserByChatId } = require("../db/users/getUserByChatId");
 const { checkUserRateLimit } = require("../utils/userRateLimit");
 const { checkTenantRateLimit } = require("../utils/tenantRateLimit");
 const { parseButtonMessage } = require("../utils/parseButtonMessage");
-const { sendTelegram, requestContact, answerCallbackQuery } = require("../services/notification/telegramService");
+const { sendTelegram, requestContact, answerCallbackQuery, removeKeyboard } = require("../services/notification/telegramService");
 const { isDuplicate } = require("../services/notification/telegramDedup");
 const { Sentry } = require("../services/sentry");
 const supabase = require("../services/db");
@@ -94,7 +94,7 @@ router.post("/", async (req, res) => {
       const existingUser = await getUserByTelegramId(telegramId);
 
       if (existingUser) {
-        await sendTelegram(
+        await removeKeyboard(
           telegramId,
           `✅ Anda sudah didaftarkan sebagai ${existingUser.nickname}.\n\nTaip HELP untuk senarai arahan.`
         );
@@ -127,7 +127,7 @@ router.post("/", async (req, res) => {
       }
 
       await deletePendingLink(telegramId);
-      await sendTelegram(telegramId, `✅ Berjaya didaftarkan sebagai ${existingUser.nickname}!\n\nTaip HELP untuk senarai arahan.`);
+      await removeKeyboard(telegramId, `✅ Berjaya didaftarkan sebagai ${existingUser.nickname}!\n\nTaip HELP untuk senarai arahan.`);
       return;
     }
 
@@ -160,7 +160,7 @@ router.post("/", async (req, res) => {
         }
 
         await deletePendingLink(telegramId);
-        await sendTelegram(telegramId, `✅ Berjaya didaftarkan sebagai ${existingUser.nickname}!\n\nTaip HELP untuk senarai arahan.`);
+        await removeKeyboard(telegramId, `✅ Berjaya didaftarkan sebagai ${existingUser.nickname}!\n\nTaip HELP untuk senarai arahan.`);
         return;
       }
     }

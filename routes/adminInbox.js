@@ -87,6 +87,31 @@ router.get("/user-info", async (req, res) => {
 });
 
 // ======================
+// MARK READ
+// ======================
+router.post("/mark-read", async (req, res) => {
+  const { chat_id, channel } = req.body;
+
+  if (!chat_id) {
+    return res.status(400).json({ error: "chat_id diperlukan" });
+  }
+
+  const { error } = await supabase
+    .from("admin_chat_read_state")
+    .upsert(
+      { chat_id, channel: channel || "meta", last_read_at: new Date().toISOString() },
+      { onConflict: "chat_id,channel" }
+    );
+
+  if (error) {
+    console.log("MARK_READ ERROR:", error);
+    return res.status(500).json({ error: error.message });
+  }
+
+  res.json({ ok: true });
+});
+
+// ======================
 // MANUAL SEND
 // ======================
 router.post("/send", async (req, res) => {
