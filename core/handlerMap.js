@@ -25,5 +25,6 @@ module.exports = {
   PENDING: require("../handlers/pending"),
   UPDATEITEM: require("../handlers/updateItem"),
   WASTAGE: require("../handlers/wastage"),
+  EXPORT: require("../handlers/export"),
   TRY: require("../handlers/try")
 };
