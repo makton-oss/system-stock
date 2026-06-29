@@ -81,8 +81,8 @@ startCronJobs();
 //   untuk kenapa rate limiter di-scope kat route-level, bukan router.use)
 // ======================
 app.use("/webhook/meta", require("./routes/webhookMeta"));
-app.use("/webhook", require("./routes/webhookBotcommerce"));
 app.use("/webhook/telegram", require("./routes/webhookTelegram"));
+app.use("/webhook", require("./routes/webhookBotcommerce"));
 
 // ======================
 // SERVER START
