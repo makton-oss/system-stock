@@ -1,26 +1,12 @@
 const ExcelJS = require("exceljs");
-const { DateTime } = require("luxon");
-const supabase = require("../db");
-const { ensureExportsBucket } = require("./storage");
 const { getInventoryDetailByOutlet } = require("../reports/inventoryDetail");
+const { getOutletById } = require("../../db/outlets/getOutletById");
 const { toProperCase } = require("../../utils/helpers");
+const { ensureExportsBucket, uploadAndSign, getLastMonthWindow, sanitizeSheetName } = require("./storage");
 
+// Layout: 3 blocks per row, each block = 5 cols + 1 gap col
 const BLOCKS_PER_ROW = 3;
-const BLOCK_WIDTH    = 6; // 5 data col + 1 gap col
-const START_COL      = 2; // column B
-
-// ======================
-// LAST MONTH WINDOW (selalu hardcoded — bukan ikut input user)
-// ======================
-function getLastMonthWindow() {
-  const lastMonth = DateTime.now().setZone("Asia/Kuala_Lumpur").minus({ months: 1 });
-  return {
-    snapshotDate: lastMonth.endOf("month").toFormat("yyyy-MM-dd"),
-    monthLabel:   lastMonth.toFormat("LLLL yyyy").toUpperCase(), // "MAY 2026"
-    monthName:    lastMonth.toFormat("LLLL"),                    // "May"
-    sheetName:    lastMonth.toFormat("LLLL").toUpperCase()
-  };
-}
+const BLOCK_STEP     = 6; // 5 data + 1 gap
 
 function groupByCategory(items) {
   const map = new Map();
@@ -28,135 +14,137 @@ function groupByCategory(items) {
     if (!map.has(i.category)) map.set(i.category, []);
     map.get(i.category).push(i);
   });
-  // alphabetical — sama pattern macam formatStockByCategory.js
   return [...map.keys()].sort().map(cat => [cat, map.get(cat)]);
 }
 
 function writeBlock(sheet, startRow, startCol, categoryName, items) {
-
   sheet.getCell(startRow, startCol).value = toProperCase(categoryName);
   sheet.getCell(startRow, startCol).font  = { bold: true };
 
-  const headerRow = startRow + 1;
+  const hRow = startRow + 1;
   ["UOM", "PRICE (RM)", "QTY", "TOTAL (RM)"].forEach((label, i) => {
-    const cell = sheet.getCell(headerRow, startCol + 1 + i);
-    cell.value = label;
-    cell.font  = { bold: true };
+    const c = sheet.getCell(hRow, startCol + 1 + i);
+    c.value = label;
+    c.font  = { bold: true };
   });
 
-  let row = headerRow + 1;
+  let row = hRow + 1;
   let subtotal = 0;
 
   items.forEach(item => {
-    sheet.getCell(row, startCol).value      = toProperCase(item.name);
-    sheet.getCell(row, startCol + 1).value  = item.uom;
-    sheet.getCell(row, startCol + 2).value  = item.price;
-    sheet.getCell(row, startCol + 2).numFmt = "#,##0.00";
-    sheet.getCell(row, startCol + 3).value  = item.qty;
-    sheet.getCell(row, startCol + 4).value  = item.total;
-    sheet.getCell(row, startCol + 4).numFmt = "#,##0.00";
+    sheet.getCell(row, startCol).value          = toProperCase(item.name);
+    sheet.getCell(row, startCol + 1).value      = item.uom;
+    sheet.getCell(row, startCol + 2).value      = item.price;
+    sheet.getCell(row, startCol + 2).numFmt     = "#,##0.00";
+    sheet.getCell(row, startCol + 3).value      = item.qty;
+    sheet.getCell(row, startCol + 4).value      = item.total;
+    sheet.getCell(row, startCol + 4).numFmt     = "#,##0.00";
     subtotal += item.total;
     row++;
   });
 
-  sheet.getCell(row, startCol).value      = "TOTAL (RM)";
-  sheet.getCell(row, startCol).font       = { bold: true };
-  sheet.getCell(row, startCol + 4).value  = subtotal;
-  sheet.getCell(row, startCol + 4).numFmt = "#,##0.00";
-  sheet.getCell(row, startCol + 4).font   = { bold: true };
+  sheet.getCell(row, startCol).value          = "TOTAL (RM)";
+  sheet.getCell(row, startCol).font           = { bold: true };
+  sheet.getCell(row, startCol + 4).value      = subtotal;
+  sheet.getCell(row, startCol + 4).numFmt     = "#,##0.00";
+  sheet.getCell(row, startCol + 4).font       = { bold: true };
 
   return { endRow: row, subtotal };
 }
 
-function buildInventoryWorkbook({ outlet, items, monthLabel, sheetName }) {
+function addInventorySheet(workbook, { outletName, items, monthLabel, sheetMonth }) {
+  const sheet = workbook.addWorksheet(sanitizeSheetName(outletName));
+  const B     = 2;
 
-  const workbook = new ExcelJS.Workbook();
-  const sheet = workbook.addWorksheet(sheetName);
+  sheet.getCell(2, B).value       = "INVENTORY REPORT";
+  sheet.getCell(2, B).font        = { bold: true, size: 12 };
+  sheet.getCell(2, B + 2).value   = monthLabel;
+  sheet.getCell(3, B).value       = toProperCase(outletName);
 
-  sheet.getCell(2, START_COL).value     = "INVENTORY REPORT";
-  sheet.getCell(2, START_COL).font      = { bold: true, size: 12 };
-  sheet.getCell(2, START_COL + 2).value = monthLabel;
-  sheet.getCell(3, START_COL).value     = toProperCase(outlet.name);
-
-  const grouped = groupByCategory(items);
-
-  let grandTotal    = 0;
-  let sectionTopRow = 5;
+  const grouped  = groupByCategory(items);
+  let sectionTop = 5;
+  let grandTotal = 0;
 
   for (let i = 0; i < grouped.length; i += BLOCKS_PER_ROW) {
-
     const rowBlocks = grouped.slice(i, i + BLOCKS_PER_ROW);
-    let tallestEndRow = sectionTopRow;
+    let maxEndRow   = sectionTop;
 
     rowBlocks.forEach(([category, catItems], idx) => {
-      const col = START_COL + idx * BLOCK_WIDTH;
-      const { endRow, subtotal } = writeBlock(sheet, sectionTopRow, col, category, catItems);
+      const col = B + idx * BLOCK_STEP;
+      const { endRow, subtotal } = writeBlock(sheet, sectionTop, col, category, catItems);
       grandTotal += subtotal;
-      tallestEndRow = Math.max(tallestEndRow, endRow);
+      if (endRow > maxEndRow) maxEndRow = endRow;
     });
 
-    sectionTopRow = tallestEndRow + 2; // gap row sebelum section seterusnya
+    sectionTop = maxEndRow + 2;
   }
 
-  sheet.getCell(sectionTopRow, START_COL).value      = "TOTAL AMOUNT (ALL):";
-  sheet.getCell(sectionTopRow, START_COL).font       = { bold: true };
-  sheet.getCell(sectionTopRow, START_COL + 1).value  = grandTotal;
-  sheet.getCell(sectionTopRow, START_COL + 1).numFmt = "#,##0.00";
-  sheet.getCell(sectionTopRow, START_COL + 1).font   = { bold: true };
+  sheet.getCell(sectionTop, B).value          = "TOTAL AMOUNT (ALL):";
+  sheet.getCell(sectionTop, B).font           = { bold: true };
+  sheet.getCell(sectionTop, B + 1).value      = grandTotal;
+  sheet.getCell(sectionTop, B + 1).numFmt     = "#,##0.00";
+  sheet.getCell(sectionTop, B + 1).font       = { bold: true };
 
-  sheet.columns.forEach(col => { col.width = 16; });
-
-  return workbook;
+  // col widths: A, B(name), C(uom), D(price), E(qty), F(total), G(gap), repeat x3
+  sheet.columns = [
+    { width: 5  },
+    { width: 22 }, { width: 8 }, { width: 12 }, { width: 8 }, { width: 14 }, { width: 3 },
+    { width: 22 }, { width: 8 }, { width: 12 }, { width: 8 }, { width: 14 }, { width: 3 },
+    { width: 22 }, { width: 8 }, { width: 12 }, { width: 8 }, { width: 14 }
+  ];
 }
 
-async function exportInventoryForOutlet({ outlet, tenantId }) {
-
-  const { snapshotDate, monthLabel, monthName, sheetName } = getLastMonthWindow();
-
-  const { items, error } = await getInventoryDetailByOutlet({
-    outletId: outlet.id,
-    snapshotDate,
-    tenantId
-  });
-
-  if (error) return { error: "DB_ERROR", outletName: outlet.name };
-  if (!items?.length) return { error: "NO_SNAPSHOT", outletName: outlet.name };
-
-  const workbook = buildInventoryWorkbook({ outlet, items, monthLabel, sheetName });
+async function exportInventory({ outletIds, tenantId, chatId }) {
+  const win = getLastMonthWindow();
 
   const bucketReady = await ensureExportsBucket();
-  if (!bucketReady) return { error: "BUCKET_ERROR", outletName: outlet.name };
+  if (!bucketReady) return { error: "BUCKET_ERROR" };
 
-  const buffer = await workbook.xlsx.writeBuffer();
+  const workbook      = new ExcelJS.Workbook();
+  const noDataOutlets = [];
 
-  // filename ikut format yang diminta: "Inventory Report May NTP"
-  const fileLabel  = `Inventory Report ${monthName} ${outlet.name}`.trim();
-  const safeFile   = fileLabel.replace(/[^a-zA-Z0-9 _-]/g, "");
-  const fileName   = `${safeFile}.xlsx`;
-  const storagePath = `${tenantId || "global"}/${snapshotDate.slice(0, 7)}/${fileName}`;
+  for (const outletId of outletIds) {
+    const outlet = await getOutletById(outletId, tenantId);
+    if (!outlet) continue;
 
-  const { error: uploadError } = await supabase.storage
-    .from("exports")
-    .upload(storagePath, buffer, {
-      contentType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      upsert: true
+    const { items, error } = await getInventoryDetailByOutlet({
+      outletId,
+      snapshotDate: win.snapshotDate,
+      tenantId
     });
 
-  if (uploadError) {
-    console.log("EXPORT UPLOAD ERROR:", uploadError);
-    return { error: "UPLOAD_ERROR", outletName: outlet.name };
+    if (error || !items?.length) {
+      noDataOutlets.push(outlet.name);
+      continue;
+    }
+
+    addInventorySheet(workbook, {
+      outletName: outlet.name,
+      items,
+      monthLabel: win.monthLabel,
+      sheetMonth: win.sheetMonth
+    });
   }
 
-  const { data: signed, error: signError } = await supabase.storage
-    .from("exports")
-    .createSignedUrl(storagePath, 3600); // 1 jam
+  if (!workbook.worksheets.length) return { error: "NO_SNAPSHOT", noDataOutlets };
 
-  if (signError) {
-    console.log("EXPORT SIGN URL ERROR:", signError);
-    return { error: "SIGN_ERROR", outletName: outlet.name };
-  }
+  const result = await uploadAndSign(workbook, {
+    tenantId, chatId,
+    reportType: "INVENTORY",
+    monthSlug:  win.monthSlug
+  });
 
-  return { ok: true, outletName: outlet.name, monthName, url: signed.signedUrl };
+  if (result.error) return result;
+
+  return {
+    ok: true,
+    url:          result.url,
+    monthName:    win.monthName,
+    monthLabel:   win.monthLabel,
+    fileName:     result.fileName,
+    sheetCount:   workbook.worksheets.length,
+    noDataOutlets
+  };
 }
 
-module.exports = { exportInventoryForOutlet };
+module.exports = { exportInventory };

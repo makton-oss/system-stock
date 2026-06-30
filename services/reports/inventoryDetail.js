@@ -1,10 +1,6 @@
 const supabase = require("../db");
 const { applyTenant } = require("../../utils/applyTenant");
 
-// ======================
-// FLAT ITEM LIST — per outlet, satu snapshot date
-// Termasuk item qty 0 (snapshot dah capture semua active item_stock)
-// ======================
 async function getInventoryDetailByOutlet({ outletId, snapshotDate, tenantId }) {
 
   let snapQ = supabase
@@ -21,18 +17,21 @@ async function getInventoryDetailByOutlet({ outletId, snapshotDate, tenantId }) 
 
   const itemIds = [...new Set(snaps.map(s => s.item_id))];
 
-  // category — master table "items"
-  const { data: items, error: itemError } = await supabase
+  // ✅ FIX: applyTenant pada items query
+  let itemsQ = supabase
     .from("items")
     .select("id, category")
     .in("id", itemIds);
 
+  itemsQ = applyTenant(itemsQ, tenantId);
+
+  const { data: items, error: itemError } = await itemsQ;
   if (itemError) return { error: itemError };
 
   const categoryMap = {};
   items.forEach(i => { categoryMap[i.id] = i.category || "Lain-lain"; });
 
-  // uom — "item_stock" tak disimpan dalam snapshot, kena fetch current value
+  // item_stock — scoped by outlet_id (item_stock tiada tenant_id col)
   const { data: stocks, error: stockError } = await supabase
     .from("item_stock")
     .select("item_id, uom")
@@ -53,7 +52,7 @@ async function getInventoryDetailByOutlet({ outletId, snapshotDate, tenantId }) 
       uom:      uomMap[s.item_id] || "-",
       price,
       qty,
-      total: s.inventory_value != null ? Number(s.inventory_value) : qty * price
+      total:    s.inventory_value != null ? Number(s.inventory_value) : qty * price
     };
   });
 
