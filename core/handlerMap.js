@@ -24,6 +24,7 @@ module.exports = {
   REPORT_MONTH: require("../handlers/reportMonth"),
   PENDING: require("../handlers/pending"),
   UPDATEITEM: require("../handlers/updateItem"),
+  WATCHLIST: require("../handlers/watchlist"),
   WASTAGE: require("../handlers/wastage"),
   EXPORT: require("../handlers/export"),
   TRY: require("../handlers/try")
