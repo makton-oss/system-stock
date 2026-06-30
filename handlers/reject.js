@@ -32,12 +32,7 @@ async function handleRejection(rows, ctx) {
   // LOG
   // ======================
   await writeLog(chatId, user.role, "REJECT", logDetails.join(" | "), user.tenant_id || null);
-
-  await emitEvent("stock.rejected", {
-    by: chatId,
-    rows: processed
-  });
-
+  await emitEvent("stock.rejected", { by: chatId, rows: processed, channel: ctx.channel || "botcommerce" });
   await reply(chatId, text);
 
   return res.end();

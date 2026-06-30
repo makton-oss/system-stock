@@ -3,6 +3,7 @@ const supabase = require("../db");
 async function rejectRequest(rows, chatId, tenantId) {
 
   let logDetails = [];
+  let processedRows = [];
 
   for (const row of rows) {
 
@@ -23,9 +24,10 @@ async function rejectRequest(rows, chatId, tenantId) {
     if (!updated?.length) continue;
 
     logDetails.push(`ID${row.id} ${row.item}`);
+    processedRows.push(row);
   }
 
-  return { logDetails, rows };
+  return { logDetails, rows: processedRows };
 }
 
 module.exports = { rejectRequest };
