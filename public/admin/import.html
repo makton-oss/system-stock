@@ -304,6 +304,51 @@
         </div>
       </div>
 
+      <!-- ══ SINGLE: ADD ITEM ══ -->
+      <div class="card" style="grid-column: 1 / -1;">
+        <div class="card__title">➕ Tambah Item (Single)</div>
+
+        <label class="form-label">Tenant Slug</label>
+        <select class="form-input" id="singleSlug" onchange="onSingleSlugChange()">
+          <option value="">-- pilih tenant --</option>
+        </select>
+
+        <label class="form-label">Outlet</label>
+        <select class="form-input" id="singleOutlet">
+          <option value="">-- pilih slug dulu --</option>
+        </select>
+
+        <label class="form-label">Nama Item</label>
+        <input class="form-input" id="singleItemName" list="singleItemList"
+              placeholder="Taip nama baru ATAU pilih item sedia ada">
+        <datalist id="singleItemList"></datalist>
+
+        <label class="form-label">Category</label>
+        <input class="form-input" id="singleCategory" placeholder="contoh: Daging">
+
+        <div style="display:flex; gap:10px; margin-top:14px;">
+          <div style="flex:1;">
+            <label class="form-label" style="margin-top:0;">Min Qty</label>
+            <input class="form-input" id="singleMinQty" type="number" min="0">
+          </div>
+          <div style="flex:1;">
+            <label class="form-label" style="margin-top:0;">Cost (RM)</label>
+            <input class="form-input" id="singleCost" type="number" min="0" step="0.01">
+          </div>
+          <div style="flex:1;">
+            <label class="form-label" style="margin-top:0;">UOM</label>
+            <input class="form-input" id="singleUom" placeholder="kg / botol / pek">
+          </div>
+        </div>
+
+        <button class="btn-submit" id="singleAddBtn" onclick="runSingleAddItem()">
+          Tambah Item
+        </button>
+
+        <div id="singleError"   class="result-error"></div>
+        <div id="singleSuccess" class="result-success"></div>
+      </div>
+
       <!-- ══ UPDATE ITEM ══ -->
       <div class="panel-section" id="panel-update-item">
         <div class="card">
@@ -878,6 +923,123 @@
     runSimpleAction('remo', '/admin/remove-outlet-access', { slug, phone, outlet },
       d => `✅ Outlet ${d.outlet} dibuang dari ${d.phone}`);
   }
+
+  // ── SINGLE ADD ITEM ──
+  async function loadTenantsForSingle() {
+    const token = getToken();
+    if (!token) return;
+
+    try {
+      const res  = await fetch(`/admin/tenants?token=${encodeURIComponent(token)}`);
+      const data = await res.json();
+      if (!data.ok) return;
+
+      const sel = document.getElementById('singleSlug');
+      sel.innerHTML = '<option value="">-- pilih tenant --</option>';
+      data.tenants.forEach(t => {
+        const opt = document.createElement('option');
+        opt.value = t.slug;
+        opt.textContent = `${t.slug} (${t.name})`;
+        sel.appendChild(opt);
+      });
+    } catch (err) {
+      console.log('Gagal load tenants:', err);
+    }
+  }
+
+  async function onSingleSlugChange() {
+    const slug  = document.getElementById('singleSlug').value;
+    const token = getToken();
+
+    const outletSel = document.getElementById('singleOutlet');
+    const itemList  = document.getElementById('singleItemList');
+    outletSel.innerHTML = '<option value="">-- loading... --</option>';
+    itemList.innerHTML  = '';
+
+    if (!slug) {
+      outletSel.innerHTML = '<option value="">-- pilih slug dulu --</option>';
+      return;
+    }
+
+    try {
+      const [outletRes, itemRes] = await Promise.all([
+        fetch(`/admin/outlets?token=${encodeURIComponent(token)}&slug=${encodeURIComponent(slug)}`),
+        fetch(`/admin/items?token=${encodeURIComponent(token)}&slug=${encodeURIComponent(slug)}`)
+      ]);
+      const outletData = await outletRes.json();
+      const itemData    = await itemRes.json();
+
+      outletSel.innerHTML = '<option value="">-- pilih outlet --</option>';
+      (outletData.outlets || []).forEach(o => {
+        const opt = document.createElement('option');
+        opt.value = o.name;
+        opt.textContent = o.name;
+        outletSel.appendChild(opt);
+      });
+
+      (itemData.items || []).forEach(i => {
+        const opt = document.createElement('option');
+        opt.value = i.name;
+        itemList.appendChild(opt);
+      });
+    } catch (err) {
+      console.log('Gagal load outlet/item:', err);
+      outletSel.innerHTML = '<option value="">-- gagal load --</option>';
+    }
+  }
+
+  async function runSingleAddItem() {
+    const token    = getToken();
+    const slug     = document.getElementById('singleSlug').value;
+    const outlet   = document.getElementById('singleOutlet').value;
+    const item     = document.getElementById('singleItemName').value.trim();
+    const category = document.getElementById('singleCategory').value.trim();
+    const minQty   = document.getElementById('singleMinQty').value;
+    const cost     = document.getElementById('singleCost').value;
+    const uom      = document.getElementById('singleUom').value.trim();
+    const btn      = document.getElementById('singleAddBtn');
+
+    document.getElementById('singleError').textContent   = '';
+    document.getElementById('singleSuccess').textContent = '';
+
+    if (!token)  return document.getElementById('singleError').textContent = '⚠️ Masukkan admin token dulu.';
+    if (!slug)   return document.getElementById('singleError').textContent = '⚠️ Pilih tenant slug.';
+    if (!outlet) return document.getElementById('singleError').textContent = '⚠️ Pilih outlet.';
+    if (!item || !category || !uom || minQty === '' || cost === '') {
+      return document.getElementById('singleError').textContent = '⚠️ Semua field wajib diisi.';
+    }
+
+    btn.disabled    = true;
+    btn.textContent = '⏳ Memproses...';
+
+    try {
+      const res  = await fetch(`/admin/add-item?token=${encodeURIComponent(token)}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slug, item, category, minQty, cost, uom, outlet })
+      });
+      const data = await res.json();
+
+      if (data.error) {
+        document.getElementById('singleError').textContent = data.error;
+      } else {
+        document.getElementById('singleSuccess').textContent = `✅ Item ditambah: ${data.item} @ ${data.outlet}`;
+        document.getElementById('singleItemName').value = '';
+        document.getElementById('singleCategory').value = '';
+        document.getElementById('singleMinQty').value   = '';
+        document.getElementById('singleCost').value     = '';
+        document.getElementById('singleUom').value      = '';
+        onSingleSlugChange(); // refresh item datalist to include the new item
+      }
+    } catch (err) {
+      document.getElementById('singleError').textContent = 'Network error: ' + err.message;
+    } finally {
+      btn.disabled    = false;
+      btn.textContent = 'Tambah Item';
+    }
+  }
+
+  document.getElementById('globalToken').addEventListener('blur', loadTenantsForSingle);
 
   // ======================
   // INIT

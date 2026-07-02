@@ -16,6 +16,8 @@ const { upsertUser }         = require("../db/users/upsertUser");
 const { removeUserOutletLink } = require("../db/users/removeUserOutletLink");
 const { getUserOutletIds, insertUserOutlets, clearUserOutlets } = require("../db/users/manageUserOutlets");
 const { checkUserLimit }     = require("../services/tenants/checkUserLimit");
+const { getAllTenants }        = require("../db/tenants/getAllTenants");
+const { getAllItemsByTenant }  = require("../db/stock/getAllItemsByTenant");
 
 router.use(requireAdminToken);
 
@@ -261,6 +263,38 @@ router.post("/remove-outlet-access", async (req, res) => {
   if (error) return res.status(400).json({ error: error.message ? `❌ ${error.message}` : "❌ ERROR REMOVE OUTLET" });
 
   res.json({ ok: true, phone: cleanPhone, outlet: outletRow.name });
+});
+
+// ── GET TENANTS (dropdown source — single-add-item form) ──
+router.get("/tenants", async (req, res) => {
+  const tenants = await getAllTenants();
+  res.json({ ok: true, tenants });
+});
+
+// ── GET OUTLETS BY SLUG (dropdown source) ──
+router.get("/outlets", async (req, res) => {
+  const { slug } = req.query;
+  if (!slug) return res.status(400).json({ error: "❌ slug diperlukan" });
+
+  const tenant = await getTenantBySlug(slug);
+  if (!tenant) return res.status(400).json({ error: `❌ TENANT TAK WUJUD: ${slug}` });
+
+  const { data, error } = await getAllOutlets(tenant.id);
+  if (error) return res.status(500).json({ error: "❌ ERROR OUTLET" });
+
+  res.json({ ok: true, outlets: data });
+});
+
+// ── GET ITEMS BY SLUG (combobox source — item master) ──
+router.get("/items", async (req, res) => {
+  const { slug } = req.query;
+  if (!slug) return res.status(400).json({ error: "❌ slug diperlukan" });
+
+  const tenant = await getTenantBySlug(slug);
+  if (!tenant) return res.status(400).json({ error: `❌ TENANT TAK WUJUD: ${slug}` });
+
+  const items = await getAllItemsByTenant(tenant.id);
+  res.json({ ok: true, items });
 });
 
 module.exports = router;
