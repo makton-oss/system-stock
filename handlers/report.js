@@ -100,9 +100,9 @@ module.exports = withRole(["manager", "owner", "admin"], async (ctx) => {
       const target  = endKL.hasSame(todayKL, "day") ? todayKL.minus({ days: 1 }) : endKL;
       snapshotDate = target.toFormat("yyyy-MM-dd");
     } else {
-      const endDate = new Date(range.end);
-      endDate.setDate(endDate.getDate() - 1);
-      snapshotDate = endDate.toISOString().split("T")[0];
+      // range.end = awal bulan seterusnya (KL). Snapshot penutup bulan = end - 1 hari, dikira dalam KL zone
+      const endKL = DateTime.fromJSDate(range.end).setZone("Asia/Kuala_Lumpur").minus({ days: 1 });
+      snapshotDate = endKL.toFormat("yyyy-MM-dd");
     }
 
     const monthLabel = formatMonthLabel(invMonthInput, range.start.toISOString());

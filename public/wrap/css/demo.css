@@ -314,8 +314,24 @@
   gap: 12px;
 }
 
+.after-demo__risk {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.82rem;
+  margin-top: 0.75rem;
+}
+
 /* ── RESPONSIVE ── */
-@media (max-width: 900px) {
-  .panels { grid-template-columns: 1fr; max-width: 420px; }
+@media (max-width: 1024px) {
+  .panels { grid-template-columns: 1fr; max-width: 700px; width: 100%; margin: 0 auto; padding: 0 1rem 3rem; }
   .chat { min-height: 360px; max-height: 360px; }
+  .hint-bar { flex-direction: column; padding: 1rem; font-size: 0.9rem; }
+  .panel__input { font-size: 0.9rem; }
+}
+
+@media (max-width: 640px) {
+  .page-header { padding: 2rem 1rem 1rem; }
+  .panel__header { padding: 0.75rem; }
+  .chat { height: 320px }
+  .panel__inout-wrap { padding: 0.5rem; }
+  .bubble { font-size: 92%; }
 }

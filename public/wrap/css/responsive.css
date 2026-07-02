@@ -2,15 +2,23 @@
    RESPONSIVE — mobile first adjustments
    ============================================= */
 
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
   .section { padding: 3rem 5%; }
 
   .hero { padding: 3rem 5% 2.5rem; }
-  .hero h1 { font-size: 1.85rem; }
+  .hero h1 { font-size: clamp(1.8rem, 4vw, 2.4rem); }
+  .hero__button { flex-direction: column; }
 
-  .trust-bar { gap: 1.5rem; }
+  .mockup { max-width: 480px; width: 100%; height: auto; }
+
+  .trust-bar { gap: 1.5rem; justify-content: center; flex-wrap: wrap; text-align: center; }
   .trust-bar__num { font-size: 1.5rem; }
 
+  .features-grid,
+  .steps-list,
+  .roles-grid,
+  .cmd-grid,
+  .testimonials-grid { grid-template-columns: repeat(2, 1fr); }
   .pricing-grid { grid-template-columns: 1fr; }
 
   .hero__mockups { gap: 1rem; }
@@ -35,11 +43,13 @@
   .reveal { opacity: 1; transform: none; }
 }
 
-@media (max-width: 480px) {
+@media (max-width: 640px) {
   .nav { padding: 1rem 4%; }
 
   .hero__btns { flex-direction: column; align-items: center; }
   .btn { width: 100%; justify-content: center; max-width: 320px; }
+
+  .mockup { max-width: 100%; height: auto; }
 
   .trust-bar { gap: 1rem; padding: 2rem 5%; }
 

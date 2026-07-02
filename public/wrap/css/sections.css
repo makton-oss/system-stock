@@ -62,6 +62,7 @@
 
 .mockup {
   width: 480px;
+  max-width: 100%;
   height: calc(100% - 0px);
 }
 
