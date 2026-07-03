@@ -14,10 +14,12 @@ const { verifyUserInTenant } = require("../db/users/verifyUserInTenant");
 const { setUserActive }      = require("../db/users/setUserActive");
 const { upsertUser }         = require("../db/users/upsertUser");
 const { removeUserOutletLink } = require("../db/users/removeUserOutletLink");
-const { getUserOutletIds, insertUserOutlets, clearUserOutlets } = require("../db/users/manageUserOutlets");
+const { getUserOutletIds, insertUserOutlets, clearUserOutlets, getUserOutletsDetailed } = require("../db/users/manageUserOutlets");
 const { checkUserLimit }     = require("../services/tenants/checkUserLimit");
 const { getAllTenants }        = require("../db/tenants/getAllTenants");
 const { getAllItemsByTenant }  = require("../db/stock/getAllItemsByTenant");
+const { getUsersByTenant }     = require("../db/users/getUsersByTenant");
+const { getStockNameList }     = require("../db/stock/getStockItems");
 
 router.use(requireAdminToken);
 
@@ -265,7 +267,7 @@ router.post("/remove-outlet-access", async (req, res) => {
   res.json({ ok: true, phone: cleanPhone, outlet: outletRow.name });
 });
 
-// ── GET TENANTS (dropdown source — single-add-item form) ──
+// ── GET TENANTS (dropdown source — reused by all forms below) ──
 router.get("/tenants", async (req, res) => {
   const tenants = await getAllTenants();
   res.json({ ok: true, tenants });
@@ -285,7 +287,7 @@ router.get("/outlets", async (req, res) => {
   res.json({ ok: true, outlets: data });
 });
 
-// ── GET ITEMS BY SLUG (combobox source — item master) ──
+// ── GET ITEMS BY SLUG (combobox source — item master, semua outlet) ──
 router.get("/items", async (req, res) => {
   const { slug } = req.query;
   if (!slug) return res.status(400).json({ error: "❌ slug diperlukan" });
@@ -295,6 +297,51 @@ router.get("/items", async (req, res) => {
 
   const items = await getAllItemsByTenant(tenant.id);
   res.json({ ok: true, items });
+});
+
+// ── GET USERS BY SLUG + STATUS (dropdown source — remove-role / reactivate / remove-outlet-access) ──
+router.get("/users", async (req, res) => {
+  const { slug, active } = req.query;
+  if (!slug) return res.status(400).json({ error: "❌ slug diperlukan" });
+
+  const tenant = await getTenantBySlug(slug);
+  if (!tenant) return res.status(400).json({ error: `❌ TENANT TAK WUJUD: ${slug}` });
+
+  const isActive = active !== "false"; // default true kalau tak specify
+  const users = await getUsersByTenant(tenant.id, isActive);
+
+  res.json({ ok: true, users });
+});
+
+// ── GET OUTLET ITEMS (dropdown source — remove-item, scoped ke stock outlet tu sahaja) ──
+router.get("/outlet-items", async (req, res) => {
+  const { slug, outlet } = req.query;
+  if (!slug || !outlet) return res.status(400).json({ error: "❌ slug dan outlet diperlukan" });
+
+  const tenant = await getTenantBySlug(slug);
+  if (!tenant) return res.status(400).json({ error: `❌ TENANT TAK WUJUD: ${slug}` });
+
+  const outletRow = await getOutletByCode(outlet, tenant.id);
+  if (!outletRow) return res.status(400).json({ error: `❌ OUTLET TAK WUJUD: ${outlet}` });
+
+  const items = await getStockNameList(outletRow.id, tenant.id);
+  res.json({ ok: true, items });
+});
+
+// ── GET USER'S CURRENT OUTLETS (dropdown source — remove-outlet-access, scoped ke user tu je) ──
+router.get("/user-outlets", async (req, res) => {
+  const { slug, phone } = req.query;
+  if (!slug || !phone) return res.status(400).json({ error: "❌ slug dan phone diperlukan" });
+
+  const tenant = await getTenantBySlug(slug);
+  if (!tenant) return res.status(400).json({ error: `❌ TENANT TAK WUJUD: ${slug}` });
+
+  const cleanPhone = String(phone).replace(/[^\d]/g, "");
+  const targetUser = await verifyUserInTenant(cleanPhone, tenant.id);
+  if (!targetUser) return res.status(400).json({ error: "❌ USER TAK WUJUD DALAM TENANT" });
+
+  const outlets = await getUserOutletsDetailed(cleanPhone);
+  res.json({ ok: true, outlets });
 });
 
 module.exports = router;
