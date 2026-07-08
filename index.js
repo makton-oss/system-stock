@@ -61,6 +61,7 @@ app.get("/health", async (req, res) => {
 // STATIC FILES
 // ======================
 app.use(express.static("public"));
+app.use("/voidapi", require("./routes/adminVoidDashboard"));
 
 // ======================
 // ADMIN ROUTES
@@ -69,8 +70,6 @@ app.use("/admin", require("./routes/adminInbox"));
 app.use("/admin/import", require("./routes/adminImport"));
 app.use("/admin", require("./routes/adminTools"));
 app.use("/admin/push", require("./routes/adminPush"));
-
-app.use("/voidapi", require("./routes/adminVoidDashboard"));
 
 // ======================
 // CRON JOBS
