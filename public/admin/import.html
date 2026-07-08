@@ -258,9 +258,7 @@
           <div class="card__title">📦 Import Items (Stok)</div>
 
           <label class="form-label">Tenant Slug</label>
-          <select class="form-input" id="itemSlug">
-            <option value="">-- pilih tenant --</option>
-          </select>
+          <input class="form-input" type="text" id="itemSlug" placeholder="contoh: kedai-maju">
 
           <label class="form-label">Fail Excel (.xlsx)</label>
           <input class="form-input" type="file" id="itemFile" accept=".xlsx">
@@ -286,9 +284,7 @@
           <div class="card__title">👥 Import Users</div>
 
           <label class="form-label">Tenant Slug</label>
-          <select class="form-input" id="userSlug">
-            <option value="">-- pilih tenant --</option>
-          </select>
+          <input class="form-input" type="text" id="userSlug" placeholder="contoh: kedai-maju">
 
           <label class="form-label">Fail Excel (.xlsx)</label>
           <input class="form-input" type="file" id="userFile" accept=".xlsx">
@@ -375,22 +371,16 @@
         </div>
       </div>
 
-      <!-- ══ REMOVE ITEM (SINGLE) - dropdown cascading ══ -->
+      <!-- ══ REMOVE ITEM (SINGLE) ══ -->
       <div class="panel-section" id="panel-remove-item">
         <div class="card">
           <div class="card__title">🗑 Remove Item (Single)</div>
           <label class="form-label">Tenant Slug</label>
-          <select class="form-input" id="remiSlug" onchange="onRemiSlugChange()">
-            <option value="">-- pilih tenant --</option>
-          </select>
-          <label class="form-label">Outlet</label>
-          <select class="form-input" id="remiOutlet" onchange="onRemiOutletChange()">
-            <option value="">-- pilih tenant dulu --</option>
-          </select>
+          <input class="form-input" type="text" id="remiSlug" placeholder="contoh: kedai-maju">
           <label class="form-label">Nama Item</label>
-          <select class="form-input" id="remiItem">
-            <option value="">-- pilih outlet dulu --</option>
-          </select>
+          <input class="form-input" type="text" id="remiItem" placeholder="contoh: ayam">
+          <label class="form-label">Outlet</label>
+          <input class="form-input" type="text" id="remiOutlet" placeholder="contoh: muiz">
           <button class="btn-submit" id="remiBtn" onclick="runRemoveItem()">Remove Item</button>
           <div id="remiError" class="result-error"></div>
           <div id="remiSuccess" class="result-success"></div>
@@ -423,36 +413,28 @@
         </div>
       </div>
 
-      <!-- ══ REMOVE ROLE - dropdown ══ -->
+      <!-- ══ REMOVE ROLE ══ -->
       <div class="panel-section" id="panel-remove-role">
         <div class="card">
           <div class="card__title">⛔ Remove Role (Deactivate User)</div>
           <label class="form-label">Tenant Slug</label>
-          <select class="form-input" id="remrSlug" onchange="onRemrSlugChange()">
-            <option value="">-- pilih tenant --</option>
-          </select>
+          <input class="form-input" type="text" id="remrSlug" placeholder="contoh: kedai-maju">
           <label class="form-label">Phone</label>
-          <select class="form-input" id="remrPhone">
-            <option value="">-- pilih tenant dulu --</option>
-          </select>
+          <input class="form-input" type="text" id="remrPhone" placeholder="60123456789">
           <button class="btn-submit" id="remrBtn" onclick="runRemoveRole()">Remove Role</button>
           <div id="remrError" class="result-error"></div>
           <div id="remrSuccess" class="result-success"></div>
         </div>
       </div>
 
-      <!-- ══ REACTIVATE USER - dropdown ══ -->
+      <!-- ══ REACTIVATE USER ══ -->
       <div class="panel-section" id="panel-reactivate-user">
         <div class="card">
           <div class="card__title">♻️ Reactivate User</div>
           <label class="form-label">Tenant Slug</label>
-          <select class="form-input" id="reactSlug" onchange="onReactSlugChange()">
-            <option value="">-- pilih tenant --</option>
-          </select>
+          <input class="form-input" type="text" id="reactSlug" placeholder="contoh: kedai-maju">
           <label class="form-label">Phone</label>
-          <select class="form-input" id="reactPhone">
-            <option value="">-- pilih tenant dulu --</option>
-          </select>
+          <input class="form-input" type="text" id="reactPhone" placeholder="60123456789">
           <button class="btn-submit" id="reactBtn" onclick="runReactivateUser()">Reactivate User</button>
           <div id="reactError" class="result-error"></div>
           <div id="reactSuccess" class="result-success"></div>
@@ -473,22 +455,16 @@
         </div>
       </div>
 
-      <!-- ══ REMOVE OUTLET ACCESS - dropdown cascading ══ -->
+      <!-- ══ REMOVE OUTLET ACCESS ══ -->
       <div class="panel-section" id="panel-remove-outlet-access">
         <div class="card">
           <div class="card__title">🚫 Remove Outlet Access (User)</div>
           <label class="form-label">Tenant Slug</label>
-          <select class="form-input" id="remoSlug" onchange="onRemoSlugChange()">
-            <option value="">-- pilih tenant --</option>
-          </select>
+          <input class="form-input" type="text" id="remoSlug" placeholder="contoh: kedai-maju">
           <label class="form-label">Phone</label>
-          <select class="form-input" id="remoPhone" onchange="onRemoPhoneChange()">
-            <option value="">-- pilih tenant dulu --</option>
-          </select>
+          <input class="form-input" type="text" id="remoPhone" placeholder="60123456789">
           <label class="form-label">Outlet</label>
-          <select class="form-input" id="remoOutlet">
-            <option value="">-- pilih user dulu --</option>
-          </select>
+          <input class="form-input" type="text" id="remoOutlet" placeholder="contoh: outlet1">
           <button class="btn-submit" id="remoBtn" onclick="runRemoveOutletAccess()">Remove Outlet Access</button>
           <div id="remoError" class="result-error"></div>
           <div id="remoSuccess" class="result-success"></div>
@@ -672,7 +648,7 @@
 
     resetPanel('item');
 
-    if (!slug)  return document.getElementById('itemError').textContent = '⚠️ Pilih tenant slug.';
+    if (!slug)  return document.getElementById('itemError').textContent = '⚠️ Masukkan tenant slug.';
     if (!fileEl.files.length) return document.getElementById('itemError').textContent = '⚠️ Pilih fail .xlsx dulu.';
 
     const fd = new FormData();
@@ -711,7 +687,7 @@
 
     resetPanel('user');
 
-    if (!slug)  return document.getElementById('userError').textContent = '⚠️ Pilih tenant slug.';
+    if (!slug)  return document.getElementById('userError').textContent = '⚠️ Masukkan tenant slug.';
     if (!fileEl.files.length) return document.getElementById('userError').textContent = '⚠️ Pilih fail .xlsx dulu.';
 
     const fd = new FormData();
@@ -906,102 +882,27 @@
       d => `✅ Outlet ${d.outlet} dibuang dari ${d.phone}`);
   }
 
-  // ======================
-  // SHARED: populate any <select> dari GET endpoint
-  // ======================
-  async function populateSelect(selectEl, url, dataKey, valueFn, labelFn, placeholder) {
-    selectEl.innerHTML = '<option value="">-- loading... --</option>';
-    selectEl.disabled = true;
-    try {
-      const sep = url.includes('?') ? '&' : '?';
-      const res = await fetch(`${url}${sep}token=${encodeURIComponent(getToken())}`);
-      if (handleAuthError(res.status)) return;
-      const data = await res.json();
-      const list = data[dataKey] || [];
-
-      selectEl.innerHTML = '';
-      const ph = document.createElement('option');
-      ph.value = ''; ph.textContent = placeholder;
-      selectEl.appendChild(ph);
-
-      list.forEach(item => {
-        const opt = document.createElement('option');
-        opt.value = valueFn(item);
-        opt.textContent = labelFn(item);
-        selectEl.appendChild(opt);
-      });
-    } catch (err) {
-      selectEl.innerHTML = '<option value="">-- gagal load --</option>';
-      console.log('populateSelect error:', url, err);
-    } finally {
-      selectEl.disabled = false;
-    }
-  }
-
-  function loadTenantDropdown(selectEl) {
-    return populateSelect(selectEl, '/admin/tenants', 'tenants',
-      t => t.slug, t => `${t.slug} (${t.name})`, '-- pilih tenant --');
-  }
-
-  // ── REMOVE ITEM: slug → outlet → item (scoped ke stock outlet tu) ──
-  async function onRemiSlugChange() {
-    const slug = document.getElementById('remiSlug').value;
-    const outletSel = document.getElementById('remiOutlet');
-    document.getElementById('remiItem').innerHTML = '<option value="">-- pilih outlet dulu --</option>';
-    if (!slug) { outletSel.innerHTML = '<option value="">-- pilih tenant dulu --</option>'; return; }
-    await populateSelect(outletSel, `/admin/outlets?slug=${encodeURIComponent(slug)}`, 'outlets',
-      o => o.name, o => o.name, '-- pilih outlet --');
-  }
-
-  async function onRemiOutletChange() {
-    const slug   = document.getElementById('remiSlug').value;
-    const outlet = document.getElementById('remiOutlet').value;
-    const itemSel = document.getElementById('remiItem');
-    if (!slug || !outlet) { itemSel.innerHTML = '<option value="">-- pilih outlet dulu --</option>'; return; }
-    await populateSelect(itemSel, `/admin/outlet-items?slug=${encodeURIComponent(slug)}&outlet=${encodeURIComponent(outlet)}`,
-      'items', i => i.item, i => `${i.item} (${i.uom || '-'})`, '-- pilih item --');
-  }
-
-  // ── REMOVE ROLE: slug → active users ──
-  async function onRemrSlugChange() {
-    const slug = document.getElementById('remrSlug').value;
-    const phoneSel = document.getElementById('remrPhone');
-    if (!slug) { phoneSel.innerHTML = '<option value="">-- pilih tenant dulu --</option>'; return; }
-    await populateSelect(phoneSel, `/admin/users?slug=${encodeURIComponent(slug)}&active=true`, 'users',
-      u => u.chat_id, u => `${u.nickname} (${u.chat_id}) — ${u.role}`, '-- pilih user --');
-  }
-
-  // ── REACTIVATE: slug → inactive users ──
-  async function onReactSlugChange() {
-    const slug = document.getElementById('reactSlug').value;
-    const phoneSel = document.getElementById('reactPhone');
-    if (!slug) { phoneSel.innerHTML = '<option value="">-- pilih tenant dulu --</option>'; return; }
-    await populateSelect(phoneSel, `/admin/users?slug=${encodeURIComponent(slug)}&active=false`, 'users',
-      u => u.chat_id, u => `${u.nickname} (${u.chat_id}) — ${u.role}`, '-- pilih user (inactive) --');
-  }
-
-  // ── REMOVE OUTLET ACCESS: slug → active users → user's current outlets ──
-  async function onRemoSlugChange() {
-    const slug = document.getElementById('remoSlug').value;
-    const phoneSel  = document.getElementById('remoPhone');
-    document.getElementById('remoOutlet').innerHTML = '<option value="">-- pilih user dulu --</option>';
-    if (!slug) { phoneSel.innerHTML = '<option value="">-- pilih tenant dulu --</option>'; return; }
-    await populateSelect(phoneSel, `/admin/users?slug=${encodeURIComponent(slug)}&active=true`, 'users',
-      u => u.chat_id, u => `${u.nickname} (${u.chat_id}) — ${u.role}`, '-- pilih user --');
-  }
-
-  async function onRemoPhoneChange() {
-    const slug  = document.getElementById('remoSlug').value;
-    const phone = document.getElementById('remoPhone').value;
-    const outletSel = document.getElementById('remoOutlet');
-    if (!slug || !phone) { outletSel.innerHTML = '<option value="">-- pilih user dulu --</option>'; return; }
-    await populateSelect(outletSel, `/admin/user-outlets?slug=${encodeURIComponent(slug)}&phone=${encodeURIComponent(phone)}`,
-      'outlets', o => o.outlets?.name || '', o => o.outlets?.name || `Outlet #${o.outlet_id}`, '-- pilih outlet --');
-  }
-
   // ── SINGLE ADD ITEM ──
   async function loadTenantsForSingle() {
-    return loadTenantDropdown(document.getElementById('singleSlug'));
+    const token = getToken();
+    if (!token) return;
+
+    try {
+      const res  = await fetch(`/admin/tenants?token=${encodeURIComponent(token)}`);
+      const data = await res.json();
+      if (!data.ok) return;
+
+      const sel = document.getElementById('singleSlug');
+      sel.innerHTML = '<option value="">-- pilih tenant --</option>';
+      data.tenants.forEach(t => {
+        const opt = document.createElement('option');
+        opt.value = t.slug;
+        opt.textContent = `${t.slug} (${t.name})`;
+        sel.appendChild(opt);
+      });
+    } catch (err) {
+      console.log('Gagal load tenants:', err);
+    }
   }
 
   async function onSingleSlugChange() {
@@ -1096,24 +997,11 @@
     }
   }
 
-  // ── init semua dropdown slug (bulk import + remove tools) ──
-  async function initAllDropdowns() {
-    await Promise.all([
-      loadTenantDropdown(document.getElementById('itemSlug')),
-      loadTenantDropdown(document.getElementById('userSlug')),
-      loadTenantDropdown(document.getElementById('singleSlug')),
-      loadTenantDropdown(document.getElementById('remiSlug')),
-      loadTenantDropdown(document.getElementById('remrSlug')),
-      loadTenantDropdown(document.getElementById('reactSlug')),
-      loadTenantDropdown(document.getElementById('remoSlug'))
-    ]);
-  }
-
   // ======================
   // INIT
   // ======================
   renderSidebar();
-  initAllDropdowns();
+  loadTenantsForSingle();
 </script>
 
 </body>
