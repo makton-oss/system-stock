@@ -69,7 +69,8 @@ app.use("/admin", require("./routes/adminInbox"));
 app.use("/admin/import", require("./routes/adminImport"));
 app.use("/admin", require("./routes/adminTools"));
 app.use("/admin/push", require("./routes/adminPush"));
-app.use("/admin/void-api", require("./routes/adminVoidDashboard"));
+
+app.use("/voidapi", require("./routes/adminVoidDashboard"));
 
 // ======================
 // CRON JOBS

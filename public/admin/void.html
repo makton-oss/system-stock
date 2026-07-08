@@ -87,7 +87,7 @@
   let SELECTED_TENANT_SLUG = null;
 
   async function api(path, opts = {}) {
-    const url = new URL(`/admin/void-api${path}`, location.origin);
+    const url = new URL(`/admin/voidapi${path}`, location.origin);
     if (!opts.method || opts.method === 'GET') {
       url.searchParams.set('chat_id', CHAT_ID);
     }
