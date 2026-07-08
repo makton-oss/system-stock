@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Void Request — StokBot</title>
+<style>
+  :root{
+    --green:#1D9E75; --green-dark:#0F6E56; --green-light:#E1F5EE;
+    --border:#e5e7eb; --text:#1a1a1a; --text-muted:#6b7280; --section-bg:#f9fafb;
+    --red:#dc2626; --red-light:#fef2f2;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Segoe UI',sans-serif;background:var(--section-bg);color:var(--text);padding:2rem 1rem;}
+  .wrap{max-width:640px;margin:0 auto;}
+  h1{font-size:1.3rem;margin-bottom:1.2rem;}
+  .card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:1.5rem;margin-bottom:1.2rem;}
+  label{display:block;font-size:0.8rem;font-weight:600;color:var(--text-muted);margin:0.8rem 0 0.3rem;}
+  input,select{width:100%;padding:0.6rem 0.8rem;border:1px solid var(--border);border-radius:8px;font-size:0.9rem;}
+  button{margin-top:1rem;padding:0.65rem 1.2rem;border:none;border-radius:8px;background:var(--green);color:#fff;font-weight:700;cursor:pointer;font-size:0.9rem;}
+  button:hover{background:var(--green-dark);}
+  button.danger{background:var(--red);}
+  button.danger:hover{background:#b91c1c;}
+  button:disabled{background:#ccc;cursor:not-allowed;}
+  .hidden{display:none;}
+  .error{color:var(--red);font-size:0.85rem;margin-top:0.6rem;white-space:pre-wrap;}
+  .success{color:var(--green-dark);font-size:0.85rem;margin-top:0.6rem;white-space:pre-wrap;}
+  .detail-row{display:flex;justify-content:space-between;padding:0.4rem 0;border-bottom:1px solid var(--section-bg);font-size:0.88rem;}
+  .detail-row b{color:var(--text-muted);font-weight:600;}
+  .badge{display:inline-block;padding:2px 8px;border-radius:100px;font-size:0.72rem;font-weight:700;}
+  .badge--approved{background:var(--green-light);color:var(--green-dark);}
+  .badge--voided{background:var(--red-light);color:var(--red);}
+  .warn-banner{background:#fef3c7;border:1px solid #fcd34d;color:#92400e;padding:0.8rem 1rem;border-radius:8px;font-size:0.82rem;margin-bottom:1.2rem;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🔄 Void Request Dashboard</h1>
+  <div class="warn-banner">⚠️ Testing mode — login guna chat_id sahaja, tiada password. Jangan share link ni.</div>
+
+  <!-- LOGIN -->
+  <div class="card" id="loginCard">
+    <label>Chat ID (nombor telefon admin/owner/superadmin)</label>
+    <input type="text" id="chatIdInput" placeholder="60123456789">
+    <button onclick="login()">Login</button>
+    <div class="error" id="loginError"></div>
+  </div>
+
+  <!-- MAIN (hidden until login) -->
+  <div id="mainSection" class="hidden">
+
+    <div class="card">
+      <div id="userInfo" style="font-size:0.85rem;color:var(--text-muted);margin-bottom:0.8rem;"></div>
+
+      <div id="tenantWrap" class="hidden">
+        <label>Tenant</label>
+        <select id="tenantSelect" onchange="onTenantChange()">
+          <option value="">-- pilih tenant --</option>
+        </select>
+      </div>
+
+      <label>Outlet</label>
+      <select id="outletSelect" onchange="onOutletChange()">
+        <option value="">-- pilih outlet --</option>
+      </select>
+
+      <label>Request ID</label>
+      <select id="requestSelect" onchange="onRequestChange()">
+        <option value="">-- pilih request --</option>
+      </select>
+    </div>
+
+    <div class="card hidden" id="detailCard">
+      <h3 style="margin-bottom:0.8rem;">Detail Request</h3>
+      <div id="detailBody"></div>
+      <button class="danger" id="voidBtn" onclick="confirmVoid()">🔄 VOID REQUEST INI</button>
+      <div class="error" id="voidError"></div>
+      <div class="success" id="voidSuccess"></div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  let CHAT_ID = null;
+  let CURRENT_USER = null;
+  let SELECTED_TENANT_SLUG = null;
+
+  async function api(path, opts = {}) {
+    const url = new URL(`/admin/void-api${path}`, location.origin);
+    if (!opts.method || opts.method === 'GET') {
+      url.searchParams.set('chat_id', CHAT_ID);
+    }
+    const res = await fetch(url, {
+      method: opts.method || 'GET',
+      headers: { 'Content-Type': 'application/json' },
+      body: opts.body ? JSON.stringify({ ...opts.body, chat_id: CHAT_ID }) : undefined
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'ERROR');
+    return data;
+  }
+
+  async function login() {
+    const chatId = document.getElementById('chatIdInput').value.trim();
+    document.getElementById('loginError').textContent = '';
+    if (!chatId) return;
+
+    CHAT_ID = chatId;
+
+    try {
+      const data = await api('/tenants');
+      // login validated via requireDashboardUser — if we got here, ok
+      document.getElementById('loginCard').classList.add('hidden');
+      document.getElementById('mainSection').classList.remove('hidden');
+
+      if (data.tenants.length) {
+        // superadmin
+        document.getElementById('tenantWrap').classList.remove('hidden');
+        const sel = document.getElementById('tenantSelect');
+        data.tenants.forEach(t => {
+          const opt = document.createElement('option');
+          opt.value = t.slug;
+          opt.textContent = `${t.slug} (${t.name})`;
+          sel.appendChild(opt);
+        });
+        document.getElementById('userInfo').textContent = `Logged in sebagai SUPERADMIN`;
+      } else {
+        document.getElementById('userInfo').textContent = `Logged in — ${chatId}`;
+        loadOutlets();
+      }
+    } catch (err) {
+      document.getElementById('loginError').textContent = '❌ ' + err.message;
+      CHAT_ID = null;
+    }
+  }
+
+  async function onTenantChange() {
+    SELECTED_TENANT_SLUG = document.getElementById('tenantSelect').value;
+    if (SELECTED_TENANT_SLUG) loadOutlets();
+  }
+
+  async function loadOutlets() {
+    const outletSel = document.getElementById('outletSelect');
+    outletSel.innerHTML = '<option value="">-- loading... --</option>';
+    try {
+      const qs = SELECTED_TENANT_SLUG ? `?slug=${encodeURIComponent(SELECTED_TENANT_SLUG)}` : '';
+      const data = await api(`/outlets${qs}`);
+      outletSel.innerHTML = '<option value="">-- pilih outlet --</option>';
+      data.outlets.forEach(o => {
+        const opt = document.createElement('option');
+        opt.value = o.id;
+        opt.textContent = o.name;
+        outletSel.appendChild(opt);
+      });
+    } catch (err) {
+      outletSel.innerHTML = '<option value="">-- gagal load --</option>';
+    }
+  }
+
+  async function onOutletChange() {
+    const outletId = document.getElementById('outletSelect').value;
+    const reqSel = document.getElementById('requestSelect');
+    document.getElementById('detailCard').classList.add('hidden');
+    reqSel.innerHTML = '<option value="">-- loading... --</option>';
+    if (!outletId) return;
+
+    try {
+      const data = await api(`/requests?outlet_id=${outletId}`);
+      reqSel.innerHTML = '<option value="">-- pilih request --</option>';
+      data.requests.forEach(r => {
+        const opt = document.createElement('option');
+        opt.value = r.id;
+        opt.textContent = `#${r.id} — ${r.type.toUpperCase()} ${r.item} x${r.qty} [${r.status}]`;
+        reqSel.appendChild(opt);
+      });
+    } catch (err) {
+      reqSel.innerHTML = '<option value="">-- gagal load --</option>';
+    }
+  }
+
+  async function onRequestChange() {
+    const id = document.getElementById('requestSelect').value;
+    const detailCard = document.getElementById('detailCard');
+    if (!id) { detailCard.classList.add('hidden'); return; }
+
+    try {
+      const data = await api(`/requests/${id}`);
+      const r = data.request;
+      const isVoided = r.status === 'voided';
+
+      document.getElementById('detailBody').innerHTML = `
+        <div class="detail-row"><b>ID</b><span>#${r.id}</span></div>
+        <div class="detail-row"><b>Item</b><span>${r.item}</span></div>
+        <div class="detail-row"><b>Qty</b><span>${r.qty}</span></div>
+        <div class="detail-row"><b>Type</b><span>${r.type.toUpperCase()}</span></div>
+        <div class="detail-row"><b>Outlet</b><span>${r.outlets?.name || '-'}</span></div>
+        <div class="detail-row"><b>Status</b><span class="badge badge--${isVoided ? 'voided' : 'approved'}">${r.status.toUpperCase()}</span></div>
+        <div class="detail-row"><b>Requested By</b><span>${r.users?.nickname || '-'} (${r.requested_by})</span></div>
+        <div class="detail-row"><b>Requested At</b><span>${new Date(r.created_at).toLocaleString('ms-MY')}</span></div>
+        <div class="detail-row"><b>Processed By</b><span>${r.processed_by || '-'}</span></div>
+        <div class="detail-row"><b>Processed At</b><span>${r.processed_at ? new Date(r.processed_at).toLocaleString('ms-MY') : '-'}</span></div>
+        ${isVoided ? `
+        <div class="detail-row"><b>Voided By</b><span>${r.voided_by || '-'}</span></div>
+        <div class="detail-row"><b>Voided At</b><span>${r.voided_at ? new Date(r.voided_at).toLocaleString('ms-MY') : '-'}</span></div>
+        ` : ''}
+      `;
+
+      document.getElementById('voidBtn').disabled = isVoided;
+      document.getElementById('voidBtn').textContent = isVoided ? '✅ SUDAH DI-VOID' : '🔄 VOID REQUEST INI';
+      document.getElementById('voidError').textContent = '';
+      document.getElementById('voidSuccess').textContent = '';
+      detailCard.dataset.requestId = id;
+      detailCard.classList.remove('hidden');
+
+    } catch (err) {
+      alert('Gagal load detail: ' + err.message);
+    }
+  }
+
+  async function confirmVoid() {
+    const id = document.getElementById('detailCard').dataset.requestId;
+    if (!confirm(`Confirm VOID request #${id}? Tindakan ini akan reverse balik stok yang telah berubah.`)) return;
+
+    const btn = document.getElementById('voidBtn');
+    btn.disabled = true;
+    btn.textContent = '⏳ Memproses...';
+    document.getElementById('voidError').textContent = '';
+    document.getElementById('voidSuccess').textContent = '';
+
+    try {
+      const data = await api('/void', { method: 'POST', body: { request_id: Number(id) } });
+      const lines = (data.result.results || []).map(r =>
+        r.reverted
+          ? `✅ ${r.item}: ${r.beforeQty} → ${r.afterQty}`
+          : `⚠️ ${r.item}: TAK DIREVERT (${r.reason})`
+      ).join('\n');
+      document.getElementById('voidSuccess').textContent = `✅ Request #${id} berjaya di-void.\n\n${lines || 'Tiada movement untuk direvert.'}`;
+      btn.textContent = '✅ SUDAH DI-VOID';
+      onOutletChange(); // refresh dropdown request list
+    } catch (err) {
+      document.getElementById('voidError').textContent = '❌ ' + err.message;
+      btn.disabled = false;
+      btn.textContent = '🔄 VOID REQUEST INI';
+    }
+  }
+</script>
+</body>
+</html>
