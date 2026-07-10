@@ -5,6 +5,7 @@ const { upsertUser } = require("../db/users/upsertUser");
 const { getUserOutletIds, insertUserOutlets, clearUserOutlets } = require("../db/users/manageUserOutlets");
 const { getTenantBySlug } = require("../db/tenants/getTenantBySlug");
 const { checkUserLimit } = require("../services/tenants/checkUserLimit");
+const supabase = require("../services/db");
 const ASSIGNABLE_ROLES = ["staff", "supervisor", "manager", "admin", "owner"];
 
 // ======================
@@ -143,13 +144,26 @@ module.exports = withRole(["admin"], async (ctx) => {
   // ======================
   // UPSERT USER
   // ======================
-  const { error: upsertError } = await upsertUser({
-    phone,
-    role,
-    nickname,
-    outletId: outletIds[0],
-    tenantId
-  });
+  // auto-set PIN untuk admin/owner baru
+  let pinUpdate = {};
+  if (role === "admin" || role === "owner") {
+    const bcrypt = require("bcrypt");
+    const hash   = await bcrypt.hash("123456", 10);
+    pinUpdate    = { dashboard_pin_hash: hash, pin_must_change: true };
+  }
+
+  // upsert terus guna supabase sebab upsertUser() tak support extra fields
+  const { error: upsertError } = await supabase
+    .from("users")
+    .upsert({
+      chat_id:   phone,
+      role,
+      nickname,
+      outlet_id: (role === "staff" || role === "supervisor") ? outletIds[0] : null,
+      is_active: true,
+      tenant_id: tenantId,
+      ...pinUpdate
+    }, { onConflict: "chat_id" });
 
   if (upsertError) {
     await reply(chatId, "❌ ERROR SET ROLE");

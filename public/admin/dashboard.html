@@ -1,0 +1,1164 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard — StokBot Admin</title>
+<style>
+:root{
+  --green:#1D9E75;--green-dark:#0F6E56;--green-light:#E1F5EE;
+  --border:#e5e7eb;--text:#1a1a1a;--text-muted:#6b7280;
+  --section-bg:#f9fafb;--red:#dc2626;--red-light:#fef2f2;
+  --amber:#EF9F27;--amber-light:#FAEEDA;
+  --nav-h:56px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--section-bg);color:var(--text);min-height:100vh;}
+
+/* ── NAV ── */
+.nav{
+  position:fixed;top:0;left:0;right:0;height:var(--nav-h);
+  background:#fff;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;padding:0 1.5rem;gap:1rem;z-index:100;
+}
+.nav__brand{
+  font-weight:800;font-size:1.05rem;color:var(--green-dark);
+  display:flex;align-items:center;gap:8px;margin-right:1rem;
+}
+.nav__brand-icon{
+  width:28px;height:28px;border-radius:7px;background:var(--green);
+  color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:0.85rem;
+}
+.nav__links{display:flex;gap:4px;flex:1;}
+.nav__link{
+  padding:6px 14px;border-radius:8px;font-size:0.875rem;font-weight:600;
+  cursor:pointer;border:none;background:none;color:var(--text-muted);transition:all .15s;
+}
+.nav__link:hover{background:var(--section-bg);color:var(--text);}
+.nav__link.active{background:var(--green-light);color:var(--green-dark);}
+.nav__right{margin-left:auto;position:relative;}
+.nav__user-btn{
+  display:flex;align-items:center;gap:8px;padding:6px 12px;border-radius:8px;
+  border:1px solid var(--border);background:#fff;cursor:pointer;font-size:0.85rem;font-weight:600;
+  transition:border-color .15s;
+}
+.nav__user-btn:hover{border-color:var(--green);}
+.nav__avatar{
+  width:28px;height:28px;border-radius:50%;background:var(--green-light);
+  color:var(--green-dark);display:flex;align-items:center;justify-content:center;
+  font-weight:700;font-size:0.75rem;
+}
+.dropdown{
+  position:absolute;right:0;top:calc(100% + 6px);background:#fff;
+  border:1px solid var(--border);border-radius:10px;min-width:200px;
+  box-shadow:0 4px 20px rgba(0,0,0,.1);display:none;z-index:200;overflow:hidden;
+}
+.dropdown.open{display:block;}
+.dropdown__header{padding:12px 14px;border-bottom:1px solid var(--border);font-size:0.8rem;}
+.dropdown__header strong{display:block;font-size:0.9rem;}
+.dropdown__header span{color:var(--text-muted);}
+.dropdown__item{
+  display:flex;align-items:center;gap:8px;padding:10px 14px;
+  font-size:0.875rem;cursor:pointer;transition:background .12s;border:none;
+  background:none;width:100%;text-align:left;
+}
+.dropdown__item:hover{background:var(--section-bg);}
+.dropdown__item.danger{color:var(--red);}
+.dropdown__divider{height:1px;background:var(--border);}
+
+/* ── MAIN CONTENT ── */
+.main{padding-top:calc(var(--nav-h) + 1.5rem);padding-bottom:2rem;}
+.section-wrap{max-width:700px;margin:0 auto;padding:0 1.5rem;}
+.section-content{display:none;}
+.section-content.active{display:block;}
+
+/* ── CARD ── */
+.card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:1.5rem;margin-bottom:1.25rem;}
+.card__title{font-size:1rem;font-weight:700;margin-bottom:1rem;padding-bottom:0.75rem;border-bottom:1px solid var(--section-bg);}
+label{display:block;font-size:0.8rem;font-weight:600;color:var(--text-muted);margin:0.85rem 0 0.3rem;}
+label:first-child{margin-top:0;}
+input,select{width:100%;padding:0.6rem 0.8rem;border:1px solid var(--border);border-radius:8px;font-size:0.9rem;background:#fff;color:var(--text);}
+input:focus,select:focus{outline:2px solid var(--green);border-color:transparent;}
+input[type=file]{padding:6px;}
+.btn{padding:0.65rem 1.25rem;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:0.875rem;transition:background .15s;}
+.btn--primary{background:var(--green);color:#fff;}
+.btn--primary:hover{background:var(--green-dark);}
+.btn--danger{background:var(--red);color:#fff;}
+.btn--danger:hover{background:#b91c1c;}
+.btn--secondary{background:var(--section-bg);color:var(--text);border:1px solid var(--border);}
+.btn--secondary:hover{border-color:var(--green);color:var(--green-dark);}
+.btn:disabled{background:#ccc;cursor:not-allowed;}
+.btn-row{display:flex;gap:8px;margin-top:1rem;flex-wrap:wrap;}
+.error{color:var(--red);font-size:0.82rem;margin-top:0.5rem;white-space:pre-wrap;}
+.success-msg{color:var(--green-dark);font-size:0.82rem;margin-top:0.5rem;white-space:pre-wrap;}
+.hidden{display:none;}
+.warn-banner{background:var(--amber-light);border:1px solid var(--amber);color:#92400e;padding:0.75rem 1rem;border-radius:8px;font-size:0.82rem;margin-bottom:1.25rem;}
+
+/* ── DETAIL TABLE ── */
+.detail-row{display:flex;justify-content:space-between;padding:0.4rem 0;border-bottom:1px solid var(--section-bg);font-size:0.875rem;gap:1rem;}
+.detail-row b{color:var(--text-muted);font-weight:600;white-space:nowrap;}
+.detail-row span{text-align:right;}
+.badge{display:inline-block;padding:2px 10px;border-radius:100px;font-size:0.72rem;font-weight:700;}
+.badge--approved{background:var(--green-light);color:var(--green-dark);}
+.badge--voided{background:var(--red-light);color:var(--red);}
+.badge--pending{background:var(--amber-light);color:#92400e;}
+.badge--rejected{background:#f3f4f6;color:var(--text-muted);}
+
+/* ── RESULT LOG ── */
+.result-log{
+  background:#0f172a;color:#d1fae5;padding:12px;border-radius:8px;
+  font-size:0.78rem;max-height:240px;overflow-y:auto;
+  white-space:pre-wrap;margin-top:12px;display:none;line-height:1.5;
+}
+
+/* ── MODAL ── */
+.modal-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:300;
+  display:none;align-items:center;justify-content:center;padding:1rem;
+}
+.modal-overlay.open{display:flex;}
+.modal{background:#fff;border-radius:14px;padding:2rem;max-width:400px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.2);}
+.modal h2{font-size:1.1rem;margin-bottom:0.5rem;}
+.modal p{font-size:0.875rem;color:var(--text-muted);margin-bottom:1.25rem;}
+
+/* ── LOGIN / CHANGE PIN SCREEN ── */
+.auth-screen{
+  min-height:100vh;display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(180deg,#f0fdf8 0%,#fff 100%);padding:1rem;
+}
+.auth-card{background:#fff;border:1px solid var(--border);border-radius:16px;padding:2rem;width:100%;max-width:380px;box-shadow:0 10px 40px rgba(0,0,0,.07);}
+.auth-card__icon{width:48px;height:48px;border-radius:12px;background:var(--green);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1.3rem;margin-bottom:1rem;}
+.auth-card h1{font-size:1.2rem;font-weight:800;margin-bottom:0.35rem;}
+.auth-card p{font-size:0.82rem;color:var(--text-muted);margin-bottom:1.25rem;}
+.role-hint{font-size:0.75rem;color:var(--text-muted);margin-top:0.5rem;}
+
+/* ── MANAGE USERS TABLE ── */
+.users-table{width:100%;border-collapse:collapse;font-size:0.85rem;}
+.users-table th,.users-table td{padding:8px 10px;text-align:left;border-bottom:1px solid var(--border);}
+.users-table th{font-size:0.75rem;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em;}
+.users-table tr:last-child td{border-bottom:none;}
+.users-table td button{padding:4px 10px;font-size:0.75rem;border-radius:6px;border:1px solid var(--border);background:#fff;cursor:pointer;}
+.users-table td button:hover{border-color:var(--red);color:var(--red);}
+
+/* ── DRYRUN CHECKBOX ── */
+.check-row{display:flex;align-items:center;gap:8px;margin-top:0.85rem;}
+.check-row input[type=checkbox]{width:16px;height:16px;}
+.check-row label{margin:0;font-size:0.82rem;color:var(--text-muted);}
+
+/* ── RESPONSIVE ── */
+@media(max-width:600px){
+  .nav{padding:0 1rem;}
+  .nav__link span{display:none;}
+  .section-wrap{padding:0 1rem;}
+}
+</style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════
+     LOGIN SCREEN
+════════════════════════════════════════ -->
+<div id="loginScreen" class="auth-screen">
+  <div class="auth-card">
+    <div class="auth-card__icon">S</div>
+    <h1>StokBot Dashboard</h1>
+    <p>Log masuk untuk akses void, import dan pengurusan sistem.</p>
+    <label>Chat ID</label>
+    <input type="text" id="loginChatId" placeholder="60123456789" autocomplete="off">
+    <div id="credentialWrap">
+      <label id="credentialLabel">PIN (6 digit)</label>
+      <input type="password" id="loginCredential" placeholder="••••••" maxlength="20">
+      <div class="role-hint" id="roleHint"></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn--primary" style="flex:1" onclick="doLogin()">Log Masuk</button>
+    </div>
+    <div class="error" id="loginError"></div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════
+     CHANGE PIN SCREEN (first login)
+════════════════════════════════════════ -->
+<div id="changePinScreen" class="auth-screen hidden">
+  <div class="auth-card">
+    <div class="auth-card__icon">🔑</div>
+    <h1>Tetapkan PIN Baru</h1>
+    <p>Ini adalah log masuk pertama anda. Sila tukar PIN default kepada PIN baru (6 digit, tidak boleh 123456).</p>
+    <label>PIN Semasa</label>
+    <input type="password" id="cpCurrentPin" placeholder="123456" maxlength="6">
+    <label>PIN Baru</label>
+    <input type="password" id="cpNewPin" placeholder="6 digit baru" maxlength="6">
+    <label>Sahkan PIN Baru</label>
+    <input type="password" id="cpConfirmPin" placeholder="6 digit baru" maxlength="6">
+    <div class="btn-row">
+      <button class="btn btn--primary" style="flex:1" onclick="doChangePin()">Simpan PIN</button>
+    </div>
+    <div class="error" id="cpError"></div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════
+     MAIN DASHBOARD
+════════════════════════════════════════ -->
+<div id="dashboardMain" class="hidden">
+
+  <!-- NAV -->
+  <nav class="nav">
+    <div class="nav__brand">
+      <div class="nav__brand-icon">S</div>
+      StokBot
+    </div>
+    <div class="nav__links">
+      <button class="nav__link active" onclick="switchSection('void', this)">🔄 Void</button>
+      <button class="nav__link" onclick="switchSection('import', this)">📦 Import</button>
+      <button class="nav__link" id="manageNavBtn" onclick="switchSection('manage', this)" style="display:none">👥 Manage</button>
+    </div>
+    <div class="nav__right">
+      <button class="nav__user-btn" onclick="toggleDropdown()">
+        <div class="nav__avatar" id="navAvatar">?</div>
+        <span id="navName">-</span>
+        <span>▾</span>
+      </button>
+      <div class="dropdown" id="userDropdown">
+        <div class="dropdown__header">
+          <strong id="ddName">-</strong>
+          <span id="ddRole">-</span>
+        </div>
+        <div class="dropdown__divider"></div>
+        <button class="dropdown__item" id="changePinBtn" onclick="showChangePinFromDashboard()">🔑 Tukar PIN</button>
+        <div class="dropdown__divider"></div>
+        <button class="dropdown__item danger" onclick="doLogout()">🚪 Log Keluar</button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- CONTENT -->
+  <div class="main">
+
+    <!-- ══ VOID SECTION ══ -->
+    <div class="section-content active section-wrap" id="sec-void">
+      <div class="card">
+        <div class="card__title">🔄 Void Request</div>
+        <div id="voidTenantWrap" class="hidden">
+          <label>Tenant</label>
+          <select id="vTenantSelect" onchange="onVoidTenantChange()">
+            <option value="">-- pilih tenant --</option>
+          </select>
+        </div>
+        <label>Outlet</label>
+        <select id="vOutletSelect" onchange="onVoidOutletChange()">
+          <option value="">-- pilih outlet --</option>
+        </select>
+        <label>Request ID</label>
+        <select id="vRequestSelect" onchange="onVoidRequestChange()">
+          <option value="">-- pilih request --</option>
+        </select>
+      </div>
+
+      <div class="card hidden" id="vDetailCard">
+        <div class="card__title">Detail Request</div>
+        <div id="vDetailBody"></div>
+        <div class="btn-row">
+          <button class="btn btn--danger" id="vVoidBtn" onclick="confirmVoid()">🔄 VOID REQUEST INI</button>
+        </div>
+        <div class="error" id="vError"></div>
+        <div class="success-msg" id="vSuccess"></div>
+      </div>
+    </div>
+
+    <!-- ══ IMPORT SECTION ══ -->
+    <div class="section-content section-wrap" id="sec-import">
+
+      <!-- BULK ITEMS -->
+      <div class="card">
+        <div class="card__title">📦 Bulk Import Items</div>
+        <label>Tenant Slug</label>
+        <input type="text" id="biSlug" placeholder="insara">
+        <label>Fail Excel (.xlsx)</label>
+        <input type="file" id="biFile" accept=".xlsx">
+        <div class="check-row">
+          <input type="checkbox" id="biDry" checked>
+          <label for="biDry">Dry Run — validate sahaja</label>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn--primary" onclick="runBulkItems()">Jalankan</button>
+        </div>
+        <div class="error" id="biError"></div>
+        <div class="success-msg" id="biSuccess"></div>
+        <pre class="result-log" id="biLog"></pre>
+      </div>
+
+      <!-- BULK USERS -->
+      <div class="card">
+        <div class="card__title">👥 Bulk Import Users</div>
+        <label>Tenant Slug</label>
+        <input type="text" id="buSlug" placeholder="insara">
+        <label>Fail Excel (.xlsx)</label>
+        <input type="file" id="buFile" accept=".xlsx">
+        <div class="check-row">
+          <input type="checkbox" id="buDry" checked>
+          <label for="buDry">Dry Run — validate sahaja</label>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn--primary" onclick="runBulkUsers()">Jalankan</button>
+        </div>
+        <div class="error" id="buError"></div>
+        <div class="success-msg" id="buSuccess"></div>
+        <pre class="result-log" id="buLog"></pre>
+      </div>
+
+      <!-- SINGLE ADD ITEM -->
+      <div class="card">
+        <div class="card__title">➕ Add Item (Single)</div>
+        <label>Tenant Slug</label>
+        <select id="siSlug" onchange="onSiSlugChange()">
+          <option value="">-- pilih tenant --</option>
+        </select>
+        <label>Outlet</label>
+        <select id="siOutlet"><option value="">-- pilih slug dulu --</option></select>
+        <label>Nama Item</label>
+        <input type="text" id="siItem" list="siItemList" placeholder="Nama item">
+        <datalist id="siItemList"></datalist>
+        <label>Category</label>
+        <input type="text" id="siCat" placeholder="Daging">
+        <div style="display:flex;gap:8px;margin-top:4px;">
+          <div style="flex:1"><label>Min Qty</label><input type="number" id="siMin" min="0"></div>
+          <div style="flex:1"><label>Cost (RM)</label><input type="number" id="siCost" min="0" step="0.01"></div>
+          <div style="flex:1"><label>UOM</label><input type="text" id="siUom" placeholder="kg"></div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn--primary" onclick="runAddItem()">Tambah Item</button>
+        </div>
+        <div class="error" id="siError"></div>
+        <div class="success-msg" id="siSuccess"></div>
+      </div>
+
+      <!-- UPDATE ITEM -->
+      <div class="card">
+        <div class="card__title">✏️ Update Item</div>
+        <label>Tenant Slug</label>
+        <input type="text" id="uiSlug" placeholder="insara">
+        <label>Nama Item</label>
+        <input type="text" id="uiItem" placeholder="ayam">
+        <label>Outlet</label>
+        <input type="text" id="uiOutlet" placeholder="outlet a">
+        <label>Cost Baru (RM)</label>
+        <input type="number" id="uiCost" step="0.01" placeholder="biarkan kosong jika tak tukar">
+        <label>Min Qty Baru</label>
+        <input type="number" id="uiMin" placeholder="biarkan kosong jika tak tukar">
+        <div class="btn-row">
+          <button class="btn btn--primary" onclick="runUpdateItem()">Update</button>
+        </div>
+        <div class="error" id="uiError"></div>
+        <div class="success-msg" id="uiSuccess"></div>
+      </div>
+
+      <!-- REMOVE ITEM -->
+      <div class="card">
+        <div class="card__title">🗑 Remove Item</div>
+        <label>Tenant Slug</label><input type="text" id="riSlug" placeholder="insara">
+        <label>Nama Item</label><input type="text" id="riItem" placeholder="ayam">
+        <label>Outlet</label><input type="text" id="riOutlet" placeholder="outlet a">
+        <div class="btn-row">
+          <button class="btn btn--danger" onclick="runRemoveItem()">Remove</button>
+        </div>
+        <div class="error" id="riError"></div>
+        <div class="success-msg" id="riSuccess"></div>
+      </div>
+
+      <!-- SET ROLE -->
+      <div class="card">
+        <div class="card__title">🛠 Set Role</div>
+        <label>Tenant Slug</label><input type="text" id="srSlug" placeholder="insara">
+        <label>Phone</label><input type="text" id="srPhone" placeholder="60123456789">
+        <label>Role</label>
+        <select id="srRole">
+          <option value="staff">staff</option>
+          <option value="supervisor">supervisor</option>
+          <option value="manager">manager</option>
+          <option value="admin">admin</option>
+          <option value="owner">owner</option>
+        </select>
+        <label>Nickname</label><input type="text" id="srNickname" placeholder="Ali">
+        <label>Outlet(s) — koma-separated</label><input type="text" id="srOutlets" placeholder="outlet1,outlet2">
+        <div class="btn-row">
+          <button class="btn btn--primary" onclick="runSetRole()">Set Role</button>
+        </div>
+        <div class="error" id="srError"></div>
+        <div class="success-msg" id="srSuccess"></div>
+      </div>
+
+      <!-- REMOVE ROLE -->
+      <div class="card">
+        <div class="card__title">⛔ Remove Role</div>
+        <label>Tenant Slug</label><input type="text" id="rrSlug">
+        <label>Phone</label><input type="text" id="rrPhone" placeholder="60123456789">
+        <div class="btn-row">
+          <button class="btn btn--danger" onclick="runRemoveRole()">Remove Role</button>
+        </div>
+        <div class="error" id="rrError"></div>
+        <div class="success-msg" id="rrSuccess"></div>
+      </div>
+
+      <!-- REACTIVATE -->
+      <div class="card">
+        <div class="card__title">♻️ Reactivate User</div>
+        <label>Tenant Slug</label><input type="text" id="raSlug">
+        <label>Phone</label><input type="text" id="raPhone" placeholder="60123456789">
+        <div class="btn-row">
+          <button class="btn btn--primary" onclick="runReactivate()">Reactivate</button>
+        </div>
+        <div class="error" id="raError"></div>
+        <div class="success-msg" id="raSuccess"></div>
+      </div>
+
+      <!-- ADD OUTLET -->
+      <div class="card">
+        <div class="card__title">🏪 Add Outlet</div>
+        <label>Tenant Slug</label><input type="text" id="aoSlug">
+        <label>Nama Outlet</label><input type="text" id="aoName" placeholder="outlet-baru">
+        <div class="btn-row">
+          <button class="btn btn--primary" onclick="runAddOutlet()">Add Outlet</button>
+        </div>
+        <div class="error" id="aoError"></div>
+        <div class="success-msg" id="aoSuccess"></div>
+      </div>
+
+      <!-- REMOVE OUTLET ACCESS -->
+      <div class="card">
+        <div class="card__title">🚫 Remove Outlet Access</div>
+        <label>Tenant Slug</label><input type="text" id="roSlug">
+        <label>Phone</label><input type="text" id="roPhone" placeholder="60123456789">
+        <label>Outlet</label><input type="text" id="roOutlet">
+        <div class="btn-row">
+          <button class="btn btn--danger" onclick="runRemoveOutlet()">Remove Access</button>
+        </div>
+        <div class="error" id="roError"></div>
+        <div class="success-msg" id="roSuccess"></div>
+      </div>
+
+    </div><!-- /sec-import -->
+
+    <!-- ══ MANAGE SECTION (superadmin only) ══ -->
+    <div class="section-content section-wrap" id="sec-manage">
+      <div class="card">
+        <div class="card__title">👥 Reset PIN Admin/Owner</div>
+        <label>Tenant</label>
+        <select id="mgTenantSelect" onchange="loadManageUsers()">
+          <option value="">-- pilih tenant --</option>
+        </select>
+        <div id="mgUsersWrap" class="hidden" style="margin-top:1rem;">
+          <table class="users-table">
+            <thead>
+              <tr><th>Nickname</th><th>Chat ID</th><th>Role</th><th>PIN Status</th><th>Tindakan</th></tr>
+            </thead>
+            <tbody id="mgUsersBody"></tbody>
+          </table>
+        </div>
+        <div class="error" id="mgError"></div>
+        <div class="success-msg" id="mgSuccess"></div>
+      </div>
+    </div>
+
+  </div><!-- /main -->
+</div><!-- /dashboardMain -->
+
+<!-- CHANGE PIN MODAL (from dashboard) -->
+<div class="modal-overlay" id="changePinModal">
+  <div class="modal">
+    <h2>🔑 Tukar PIN</h2>
+    <p>Masukkan PIN semasa dan PIN baru anda.</p>
+    <label>PIN Semasa</label>
+    <input type="password" id="mpCurrentPin" placeholder="••••••" maxlength="6">
+    <label>PIN Baru (6 digit)</label>
+    <input type="password" id="mpNewPin" placeholder="••••••" maxlength="6">
+    <label>Sahkan PIN Baru</label>
+    <input type="password" id="mpConfirmPin" placeholder="••••••" maxlength="6">
+    <div class="btn-row">
+      <button class="btn btn--primary" onclick="submitChangePinModal()">Simpan</button>
+      <button class="btn btn--secondary" onclick="closeChangePinModal()">Batal</button>
+    </div>
+    <div class="error" id="mpError"></div>
+    <div class="success-msg" id="mpSuccess"></div>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════
+let SESSION = null; // { chat_id, nickname, role, tenant_id }
+let VOID_TENANT_SLUG = null;
+
+// ════════════════════════════════════════
+// COOKIE HELPERS
+// ════════════════════════════════════════
+function getCookie(name) {
+  const m = document.cookie.match(new RegExp('(?:^|; )' + name + '=([^;]*)'));
+  return m ? decodeURIComponent(m[1]) : null;
+}
+function clearCookie(name) {
+  document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+}
+
+// ════════════════════════════════════════
+// API HELPER
+// ════════════════════════════════════════
+async function api(path, opts = {}) {
+  const chatId = SESSION?.chat_id || getCookie('stokbot_dash_chatid');
+  const isFormData = opts.body instanceof FormData;
+  const url = new URL(`/voidapi${path}`, location.origin);
+
+  if (!opts.method || opts.method === 'GET') {
+    url.searchParams.set('chat_id', chatId || '');
+  }
+
+  const fetchOpts = {
+    method: opts.method || 'GET',
+    credentials: 'include'
+  };
+
+  if (opts.body) {
+    if (isFormData) {
+      opts.body.append('chat_id', chatId || '');
+      fetchOpts.body = opts.body;
+    } else {
+      fetchOpts.headers = { 'Content-Type': 'application/json' };
+      fetchOpts.body    = JSON.stringify({ ...opts.body, chat_id: chatId });
+    }
+  }
+
+  const res  = await fetch(url, fetchOpts);
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'ERROR');
+  return data;
+}
+
+// ════════════════════════════════════════
+// LOGIN
+// ════════════════════════════════════════
+async function detectRole() {
+  const chatId = document.getElementById('loginChatId').value.trim();
+  if (!chatId) return;
+  // hint: try fetch users row to detect role (just visual hint)
+  document.getElementById('roleHint').textContent = '';
+  document.getElementById('credentialLabel').textContent = 'PIN / Token';
+}
+
+document.getElementById('loginChatId').addEventListener('blur', detectRole);
+
+async function doLogin() {
+  const chatId     = document.getElementById('loginChatId').value.trim();
+  const credential = document.getElementById('loginCredential').value.trim();
+  const errEl      = document.getElementById('loginError');
+  errEl.textContent = '';
+
+  if (!chatId || !credential) {
+    errEl.textContent = '❌ Isikan Chat ID dan PIN/Token';
+    return;
+  }
+
+  try {
+    const data = await fetch('/voidapi/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ chat_id: chatId, credential })
+    }).then(async r => {
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error || 'ERROR');
+      return d;
+    });
+
+    SESSION = data.user;
+
+    if (data.mustChangePin) {
+      document.getElementById('loginScreen').classList.add('hidden');
+      document.getElementById('changePinScreen').classList.remove('hidden');
+      return;
+    }
+
+    enterDashboard();
+  } catch (err) {
+    errEl.textContent = '❌ ' + err.message;
+  }
+}
+
+// Enter key support for login
+document.getElementById('loginCredential').addEventListener('keydown', e => {
+  if (e.key === 'Enter') doLogin();
+});
+
+// ════════════════════════════════════════
+// CHANGE PIN (first login screen)
+// ════════════════════════════════════════
+async function doChangePin() {
+  const chatId  = document.getElementById('loginChatId').value.trim() || SESSION?.chat_id;
+  const current = document.getElementById('cpCurrentPin').value.trim();
+  const newPin  = document.getElementById('cpNewPin').value.trim();
+  const confirm = document.getElementById('cpConfirmPin').value.trim();
+  const errEl   = document.getElementById('cpError');
+  errEl.textContent = '';
+
+  if (!/^\d{6}$/.test(newPin)) { errEl.textContent = '❌ PIN mesti 6 digit nombor'; return; }
+  if (newPin !== confirm)       { errEl.textContent = '❌ PIN baru tidak sepadan'; return; }
+  if (newPin === '123456')      { errEl.textContent = '❌ PIN tidak boleh 123456'; return; }
+
+  try {
+    await fetch('/voidapi/change-pin', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ chat_id: chatId, current_pin: current, new_pin: newPin })
+    }).then(async r => {
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error);
+      return d;
+    });
+
+    document.getElementById('changePinScreen').classList.add('hidden');
+    enterDashboard();
+  } catch (err) {
+    errEl.textContent = '❌ ' + err.message;
+  }
+}
+
+// ════════════════════════════════════════
+// ENTER DASHBOARD
+// ════════════════════════════════════════
+async function enterDashboard() {
+  if (!SESSION) {
+    // restore from cookie
+    const chatId = getCookie('stokbot_dash_chatid');
+    if (!chatId) { showLogin(); return; }
+    try {
+      const data = await api('/me');
+      SESSION = data.user;
+    } catch (e) { showLogin(); return; }
+  }
+
+  // update nav
+  document.getElementById('navAvatar').textContent = SESSION.nickname?.[0]?.toUpperCase() || '?';
+  document.getElementById('navName').textContent   = SESSION.nickname || SESSION.chat_id;
+  document.getElementById('ddName').textContent    = SESSION.nickname || SESSION.chat_id;
+  document.getElementById('ddRole').textContent    = SESSION.role?.toUpperCase();
+
+  // hide "Tukar PIN" for superadmin (superadmin guna token bukan PIN)
+  if (SESSION.role === 'superadmin') {
+    document.getElementById('changePinBtn').style.display = 'none';
+    document.getElementById('manageNavBtn').style.display = '';
+  }
+
+  document.getElementById('loginScreen').classList.add('hidden');
+  document.getElementById('changePinScreen').classList.add('hidden');
+  document.getElementById('dashboardMain').classList.remove('hidden');
+
+  initVoidSection();
+  initImportSlugs();
+}
+
+function showLogin() {
+  document.getElementById('dashboardMain').classList.add('hidden');
+  document.getElementById('loginScreen').classList.remove('hidden');
+}
+
+// ════════════════════════════════════════
+// NAV
+// ════════════════════════════════════════
+function switchSection(name, btn) {
+  document.querySelectorAll('.section-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.nav__link').forEach(el => el.classList.remove('active'));
+  document.getElementById('sec-' + name).classList.add('active');
+  btn.classList.add('active');
+  closeDropdown();
+}
+
+function toggleDropdown() {
+  document.getElementById('userDropdown').classList.toggle('open');
+}
+function closeDropdown() {
+  document.getElementById('userDropdown').classList.remove('open');
+}
+document.addEventListener('click', e => {
+  if (!e.target.closest('.nav__right')) closeDropdown();
+});
+
+async function doLogout() {
+  try { await api('/logout', { method: 'POST', body: {} }); } catch(e) {}
+  clearCookie('stokbot_dash_chatid');
+  SESSION = null;
+  location.reload();
+}
+
+// ════════════════════════════════════════
+// VOID SECTION
+// ════════════════════════════════════════
+async function initVoidSection() {
+  if (SESSION.role === 'superadmin') {
+    document.getElementById('voidTenantWrap').classList.remove('hidden');
+    const data = await api('/tenants');
+    const sel  = document.getElementById('vTenantSelect');
+    data.tenants.forEach(t => {
+      const o = document.createElement('option');
+      o.value = t.slug; o.textContent = `${t.slug} (${t.name})`;
+      sel.appendChild(o);
+    });
+  } else {
+    loadVoidOutlets();
+  }
+}
+
+async function onVoidTenantChange() {
+  VOID_TENANT_SLUG = document.getElementById('vTenantSelect').value;
+  if (VOID_TENANT_SLUG) loadVoidOutlets();
+}
+
+async function loadVoidOutlets() {
+  const sel = document.getElementById('vOutletSelect');
+  sel.innerHTML = '<option value="">-- loading... --</option>';
+  try {
+    const qs   = VOID_TENANT_SLUG ? `?slug=${encodeURIComponent(VOID_TENANT_SLUG)}` : '';
+    const data = await api(`/outlets${qs}`);
+    sel.innerHTML = '<option value="">-- pilih outlet --</option>';
+    data.outlets.forEach(o => {
+      const opt = document.createElement('option');
+      opt.value = o.id; opt.textContent = o.name;
+      sel.appendChild(opt);
+    });
+  } catch (e) { sel.innerHTML = '<option value="">-- gagal load --</option>'; }
+}
+
+async function onVoidOutletChange() {
+  const outletId = document.getElementById('vOutletSelect').value;
+  const reqSel   = document.getElementById('vRequestSelect');
+  document.getElementById('vDetailCard').classList.add('hidden');
+  reqSel.innerHTML = '<option value="">-- loading... --</option>';
+  if (!outletId) return;
+
+  try {
+    const data = await api(`/requests?outlet_id=${outletId}`);
+    reqSel.innerHTML = '<option value="">-- pilih request --</option>';
+    data.requests.forEach(r => {
+      const opt = document.createElement('option');
+      opt.value = r.id;
+      opt.textContent = `#${r.id} — ${r.type.toUpperCase()} ${r.item} x${r.qty} [${r.status.toUpperCase()}]`;
+      reqSel.appendChild(opt);
+    });
+  } catch (e) { reqSel.innerHTML = '<option value="">-- gagal load --</option>'; }
+}
+
+async function onVoidRequestChange() {
+  const id      = document.getElementById('vRequestSelect').value;
+  const detail  = document.getElementById('vDetailCard');
+  if (!id) { detail.classList.add('hidden'); return; }
+
+  try {
+    const data = await api(`/requests/${id}`);
+    const r    = data.request;
+    const isVoided = r.status === 'voided';
+
+    document.getElementById('vDetailBody').innerHTML = `
+      <div class="detail-row"><b>ID</b><span>#${r.id}</span></div>
+      <div class="detail-row"><b>Item</b><span>${r.item}</span></div>
+      <div class="detail-row"><b>Qty</b><span>${r.qty}</span></div>
+      <div class="detail-row"><b>Type</b><span>${r.type.toUpperCase()}</span></div>
+      <div class="detail-row"><b>Outlet</b><span>${r.outlets?.name || '-'}</span></div>
+      <div class="detail-row"><b>Status</b><span class="badge badge--${r.status}">${r.status.toUpperCase()}</span></div>
+      <div class="detail-row"><b>Requested By</b><span>${r.users?.nickname || '-'} (${r.requested_by})</span></div>
+      <div class="detail-row"><b>Requested At</b><span>${new Date(r.created_at).toLocaleString('ms-MY')}</span></div>
+      <div class="detail-row"><b>Processed By</b><span>${r.processed_by || '-'}</span></div>
+      <div class="detail-row"><b>Processed At</b><span>${r.processed_at ? new Date(r.processed_at).toLocaleString('ms-MY') : '-'}</span></div>
+      ${isVoided ? `
+      <div class="detail-row"><b>Voided By</b><span>${r.voided_by || '-'}</span></div>
+      <div class="detail-row"><b>Voided At</b><span>${r.voided_at ? new Date(r.voided_at).toLocaleString('ms-MY') : '-'}</span></div>
+      ` : ''}
+    `;
+
+    const btn = document.getElementById('vVoidBtn');
+    btn.disabled    = isVoided;
+    btn.textContent = isVoided ? '✅ SUDAH DI-VOID' : '🔄 VOID REQUEST INI';
+    document.getElementById('vError').textContent   = '';
+    document.getElementById('vSuccess').textContent = '';
+    detail.dataset.requestId = id;
+    detail.classList.remove('hidden');
+  } catch (e) { alert('Gagal load detail: ' + e.message); }
+}
+
+async function confirmVoid() {
+  const id = document.getElementById('vDetailCard').dataset.requestId;
+  if (!confirm(`Confirm VOID request #${id}?\n\nStock yang berubah akan direvert.`)) return;
+
+  const btn = document.getElementById('vVoidBtn');
+  btn.disabled = true; btn.textContent = '⏳ Memproses...';
+  document.getElementById('vError').textContent   = '';
+  document.getElementById('vSuccess').textContent = '';
+
+  try {
+    const data  = await api('/void', { method: 'POST', body: { request_id: Number(id) } });
+    const lines = (data.result.results || []).map(r =>
+      r.reverted ? `✅ ${r.item}: ${r.beforeQty} → ${r.afterQty}` : `⚠️ ${r.item}: TAK DIREVERT (${r.reason})`
+    ).join('\n');
+    document.getElementById('vSuccess').textContent = `✅ Request #${id} berjaya di-void.\n\n${lines || 'Tiada movement direvert.'}`;
+    btn.textContent = '✅ SUDAH DI-VOID';
+    onVoidOutletChange();
+  } catch (e) {
+    document.getElementById('vError').textContent = '❌ ' + e.message;
+    btn.disabled = false; btn.textContent = '🔄 VOID REQUEST INI';
+  }
+}
+
+// ════════════════════════════════════════
+// IMPORT SECTION
+// ════════════════════════════════════════
+function resetImport(prefix) {
+  const errEl = document.getElementById(prefix + 'Error');
+  const sucEl = document.getElementById(prefix + 'Success');
+  const logEl = document.getElementById(prefix + 'Log');
+  if (errEl) errEl.textContent = '';
+  if (sucEl) sucEl.textContent = '';
+  if (logEl) { logEl.style.display = 'none'; logEl.textContent = ''; }
+}
+
+async function runBulkItems() {
+  resetImport('bi');
+  const slug   = document.getElementById('biSlug').value.trim();
+  const fileEl = document.getElementById('biFile');
+  const dryRun = document.getElementById('biDry').checked;
+  if (!slug || !fileEl.files.length) {
+    document.getElementById('biError').textContent = '❌ Slug dan fail diperlukan';
+    return;
+  }
+  const fd = new FormData();
+  fd.append('file', fileEl.files[0]);
+  fd.append('slug', slug);
+  fd.append('dryRun', dryRun ? 'true' : 'false');
+  try {
+    const data = await api('/import/items', { method: 'POST', body: fd });
+    showImportResult('bi', data, dryRun);
+  } catch (e) { document.getElementById('biError').textContent = '❌ ' + e.message; }
+}
+
+async function runBulkUsers() {
+  resetImport('bu');
+  const slug   = document.getElementById('buSlug').value.trim();
+  const fileEl = document.getElementById('buFile');
+  const dryRun = document.getElementById('buDry').checked;
+  if (!slug || !fileEl.files.length) {
+    document.getElementById('buError').textContent = '❌ Slug dan fail diperlukan';
+    return;
+  }
+  const fd = new FormData();
+  fd.append('file', fileEl.files[0]);
+  fd.append('slug', slug);
+  fd.append('dryRun', dryRun ? 'true' : 'false');
+  try {
+    const data = await api('/import/users', { method: 'POST', body: fd });
+    showImportResult('bu', data, dryRun);
+  } catch (e) { document.getElementById('buError').textContent = '❌ ' + e.message; }
+}
+
+function showImportResult(prefix, data, dryRun) {
+  if (data.error) {
+    let msg = data.error;
+    if (data.hardErrors?.length) msg += '\n\n' + data.hardErrors.join('\n');
+    document.getElementById(prefix + 'Error').textContent = msg;
+  } else {
+    const isDry = dryRun;
+    document.getElementById(prefix + 'Success').textContent = isDry
+      ? `✅ Dry run OK — ${data.validCount} row valid`
+      : `✅ Done — ${data.created ?? 0} created | ${data.skipped ?? 0} skipped | ${data.failed ?? 0} failed`;
+  }
+  if (data.logs?.length) {
+    const logEl = document.getElementById(prefix + 'Log');
+    if (logEl) { logEl.style.display = 'block'; logEl.textContent = data.logs.join('\n'); }
+  }
+}
+
+async function initImportSlugs() {
+  // populate tenant dropdown for "Add Item" section
+  try {
+    const data = await api('/tenants-list');
+    const sel  = document.getElementById('siSlug');
+    sel.innerHTML = '<option value="">-- pilih tenant --</option>';
+    data.tenants.forEach(t => {
+      const o = document.createElement('option');
+      o.value = t.slug; o.textContent = `${t.slug} (${t.name})`;
+      sel.appendChild(o);
+    });
+  } catch (e) {}
+}
+
+async function onSiSlugChange() {
+  const slug    = document.getElementById('siSlug').value;
+  const outSel  = document.getElementById('siOutlet');
+  const itemList = document.getElementById('siItemList');
+  outSel.innerHTML = '<option value="">-- loading... --</option>';
+  itemList.innerHTML = '';
+  if (!slug) return;
+
+  try {
+    const [outData, itemData] = await Promise.all([
+      api(`/outlets?slug=${encodeURIComponent(slug)}`),
+      api(`/items?slug=${encodeURIComponent(slug)}`)
+    ]);
+    outSel.innerHTML = '<option value="">-- pilih outlet --</option>';
+    outData.outlets.forEach(o => {
+      const opt = document.createElement('option');
+      opt.value = o.name; opt.textContent = o.name;
+      outSel.appendChild(opt);
+    });
+    itemData.items.forEach(i => {
+      const opt = document.createElement('option');
+      opt.value = i.name; itemList.appendChild(opt);
+    });
+  } catch (e) { outSel.innerHTML = '<option value="">-- gagal load --</option>'; }
+}
+
+async function runAddItem() {
+  resetImport('si');
+  const payload = {
+    slug: document.getElementById('siSlug').value,
+    outlet: document.getElementById('siOutlet').value,
+    item: document.getElementById('siItem').value.trim(),
+    category: document.getElementById('siCat').value.trim(),
+    minQty: document.getElementById('siMin').value,
+    cost: document.getElementById('siCost').value,
+    uom: document.getElementById('siUom').value.trim()
+  };
+  if (!payload.slug || !payload.outlet || !payload.item || !payload.category || !payload.uom || !payload.minQty || !payload.cost) {
+    document.getElementById('siError').textContent = '❌ Semua field wajib diisi';
+    return;
+  }
+  try {
+    const data = await api('/import/add-item', { method: 'POST', body: payload });
+    document.getElementById('siSuccess').textContent = `✅ ${data.item} ditambah @ ${data.outlet}`;
+    document.getElementById('siItem').value = '';
+    onSiSlugChange();
+  } catch (e) { document.getElementById('siError').textContent = '❌ ' + e.message; }
+}
+
+async function runUpdateItem() {
+  resetImport('ui');
+  const payload = {
+    slug: document.getElementById('uiSlug').value.trim(),
+    item: document.getElementById('uiItem').value.trim(),
+    outlet: document.getElementById('uiOutlet').value.trim(),
+    cost: document.getElementById('uiCost').value,
+    minQty: document.getElementById('uiMin').value
+  };
+  try {
+    const data = await api('/import/update-item', { method: 'POST', body: payload });
+    document.getElementById('uiSuccess').textContent = `✅ Updated — ${data.item} @ ${data.outlet}`;
+  } catch (e) { document.getElementById('uiError').textContent = '❌ ' + e.message; }
+}
+
+async function runRemoveItem() {
+  if (!confirm('Confirm remove item ni?')) return;
+  resetImport('ri');
+  const payload = {
+    slug: document.getElementById('riSlug').value.trim(),
+    item: document.getElementById('riItem').value.trim(),
+    outlet: document.getElementById('riOutlet').value.trim()
+  };
+  try {
+    const data = await api('/import/remove-item', { method: 'POST', body: payload });
+    document.getElementById('riSuccess').textContent = `✅ Removed — ${data.item} @ ${data.outlet}`;
+  } catch (e) { document.getElementById('riError').textContent = '❌ ' + e.message; }
+}
+
+async function runSetRole() {
+  resetImport('sr');
+  const payload = {
+    slug: document.getElementById('srSlug').value.trim(),
+    phone: document.getElementById('srPhone').value.trim(),
+    role: document.getElementById('srRole').value,
+    nickname: document.getElementById('srNickname').value.trim(),
+    outlets: document.getElementById('srOutlets').value.trim()
+  };
+  try {
+    const data = await api('/import/set-role', { method: 'POST', body: payload });
+    document.getElementById('srSuccess').textContent = `✅ ${data.nickname} set sebagai ${data.role}`;
+  } catch (e) { document.getElementById('srError').textContent = '❌ ' + e.message; }
+}
+
+async function runRemoveRole() {
+  if (!confirm('Confirm remove role user ni?')) return;
+  resetImport('rr');
+  try {
+    const data = await api('/import/remove-role', { method: 'POST', body: {
+      slug: document.getElementById('rrSlug').value.trim(),
+      phone: document.getElementById('rrPhone').value.trim()
+    }});
+    document.getElementById('rrSuccess').textContent = `✅ User ${data.phone} dinyahaktifkan`;
+  } catch (e) { document.getElementById('rrError').textContent = '❌ ' + e.message; }
+}
+
+async function runReactivate() {
+  resetImport('ra');
+  try {
+    const data = await api('/import/reactivate-user', { method: 'POST', body: {
+      slug: document.getElementById('raSlug').value.trim(),
+      phone: document.getElementById('raPhone').value.trim()
+    }});
+    document.getElementById('raSuccess').textContent = `✅ User ${data.phone} diaktifkan`;
+  } catch (e) { document.getElementById('raError').textContent = '❌ ' + e.message; }
+}
+
+async function runAddOutlet() {
+  resetImport('ao');
+  try {
+    const data = await api('/import/add-outlet', { method: 'POST', body: {
+      slug: document.getElementById('aoSlug').value.trim(),
+      outlet: document.getElementById('aoName').value.trim()
+    }});
+    document.getElementById('aoSuccess').textContent = `✅ Outlet created — ${data.outlet.name}`;
+  } catch (e) { document.getElementById('aoError').textContent = '❌ ' + e.message; }
+}
+
+async function runRemoveOutlet() {
+  if (!confirm('Confirm remove outlet access?')) return;
+  resetImport('ro');
+  try {
+    const data = await api('/import/remove-outlet-access', { method: 'POST', body: {
+      slug: document.getElementById('roSlug').value.trim(),
+      phone: document.getElementById('roPhone').value.trim(),
+      outlet: document.getElementById('roOutlet').value.trim()
+    }});
+    document.getElementById('roSuccess').textContent = `✅ ${data.outlet} dibuang dari ${data.phone}`;
+  } catch (e) { document.getElementById('roError').textContent = '❌ ' + e.message; }
+}
+
+// ════════════════════════════════════════
+// MANAGE SECTION (superadmin)
+// ════════════════════════════════════════
+async function loadManageUsers() {
+  const slug = document.getElementById('mgTenantSelect').value;
+  document.getElementById('mgUsersWrap').classList.add('hidden');
+  document.getElementById('mgError').textContent   = '';
+  document.getElementById('mgSuccess').textContent = '';
+  if (!slug) return;
+
+  try {
+    const data = await api(`/manage/users?slug=${encodeURIComponent(slug)}`);
+    const tbody = document.getElementById('mgUsersBody');
+    tbody.innerHTML = '';
+    data.users.forEach(u => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${u.nickname || '-'}</td>
+        <td style="font-size:0.78rem">${u.chat_id}</td>
+        <td>${u.role}</td>
+        <td>${u.pin_must_change ? '<span style="color:var(--amber)">⚠️ Perlu tukar</span>' : '✅ OK'}</td>
+        <td><button onclick="resetPin('${u.chat_id}', '${u.nickname || u.chat_id}')">Reset PIN</button></td>
+      `;
+      tbody.appendChild(tr);
+    });
+    document.getElementById('mgUsersWrap').classList.remove('hidden');
+  } catch (e) {
+    document.getElementById('mgError').textContent = '❌ ' + e.message;
+  }
+}
+
+async function resetPin(targetChatId, name) {
+  if (!confirm(`Reset PIN ${name} kepada 123456? Mereka perlu tukar PIN semula bila log masuk.`)) return;
+  document.getElementById('mgSuccess').textContent = '';
+  document.getElementById('mgError').textContent   = '';
+  try {
+    await api('/manage/reset-pin', { method: 'POST', body: { target_chat_id: targetChatId } });
+    document.getElementById('mgSuccess').textContent = `✅ PIN ${name} berjaya di-reset kepada 123456`;
+    loadManageUsers();
+  } catch (e) {
+    document.getElementById('mgError').textContent = '❌ ' + e.message;
+  }
+}
+
+// init manage tenant dropdown
+async function initManage() {
+  if (SESSION?.role !== 'superadmin') return;
+  try {
+    const data = await api('/tenants');
+    const sel  = document.getElementById('mgTenantSelect');
+    sel.innerHTML = '<option value="">-- pilih tenant --</option>';
+    data.tenants.forEach(t => {
+      const o = document.createElement('option');
+      o.value = t.slug; o.textContent = `${t.slug} (${t.name})`;
+      sel.appendChild(o);
+    });
+  } catch (e) {}
+}
+
+// ════════════════════════════════════════
+// CHANGE PIN MODAL (from dashboard nav)
+// ════════════════════════════════════════
+function showChangePinFromDashboard() {
+  closeDropdown();
+  document.getElementById('mpCurrentPin').value  = '';
+  document.getElementById('mpNewPin').value      = '';
+  document.getElementById('mpConfirmPin').value  = '';
+  document.getElementById('mpError').textContent = '';
+  document.getElementById('mpSuccess').textContent = '';
+  document.getElementById('changePinModal').classList.add('open');
+}
+
+function closeChangePinModal() {
+  document.getElementById('changePinModal').classList.remove('open');
+}
+
+async function submitChangePinModal() {
+  const current = document.getElementById('mpCurrentPin').value.trim();
+  const newPin  = document.getElementById('mpNewPin').value.trim();
+  const confirm = document.getElementById('mpConfirmPin').value.trim();
+  const errEl   = document.getElementById('mpError');
+  const sucEl   = document.getElementById('mpSuccess');
+  errEl.textContent = '';
+  sucEl.textContent = '';
+
+  if (!/^\d{6}$/.test(newPin)) { errEl.textContent = '❌ PIN mesti 6 digit nombor'; return; }
+  if (newPin !== confirm)       { errEl.textContent = '❌ PIN baru tidak sepadan'; return; }
+  if (newPin === '123456')      { errEl.textContent = '❌ PIN tidak boleh 123456'; return; }
+
+  try {
+    await fetch('/voidapi/change-pin', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ chat_id: SESSION.chat_id, current_pin: current, new_pin: newPin })
+    }).then(async r => {
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error);
+      return d;
+    });
+    sucEl.textContent = '✅ PIN berjaya ditukar';
+    setTimeout(closeChangePinModal, 1500);
+  } catch (e) {
+    errEl.textContent = '❌ ' + e.message;
+  }
+}
+
+// close modal on overlay click
+document.getElementById('changePinModal').addEventListener('click', e => {
+  if (e.target === e.currentTarget) closeChangePinModal();
+});
+
+// ════════════════════════════════════════
+// INIT — check existing session on load
+// ════════════════════════════════════════
+(async () => {
+  const chatId = getCookie('stokbot_dash_chatid');
+  if (chatId) {
+    try {
+      const data = await fetch(`/voidapi/me?chat_id=${encodeURIComponent(chatId)}`, { credentials: 'include' })
+        .then(async r => { const d = await r.json(); if (!r.ok) throw new Error(); return d; });
+      SESSION = data.user;
+      await enterDashboard();
+      if (SESSION.role === 'superadmin') initManage();
+    } catch (e) {
+      clearCookie('stokbot_dash_chatid');
+      showLogin();
+    }
+  }
+})();
+</script>
+</body>
+</html>
