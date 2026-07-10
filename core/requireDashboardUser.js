@@ -95,6 +95,13 @@ async function verifyDashboardCredential(user, credential) {
 
   // superadmin — compare against ADMIN_LOG_TOKEN env
   if (user.role === "superadmin") {
+
+    console.log("===== SUPERADMIN LOGIN =====");
+    console.log("chat_id :", user.chat_id);
+    console.log("credential :", credential);
+    console.log("ADMIN_LOG_TOKEN :", process.env.ADMIN_LOG_TOKEN);
+    console.log("match :", credential === process.env.ADMIN_LOG_TOKEN);
+
     const valid = credential === process.env.ADMIN_LOG_TOKEN;
     if (!valid) {
       recordFailedAttempt(user.chat_id);
