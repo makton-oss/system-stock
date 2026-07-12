@@ -3,29 +3,96 @@ const { getAccessibleOutletIds } = require("../db/outlets/getAccessibleOutletIds
 const { getInventoryReport, getFlowReport, getDeadReport, getDetailReport } = require("../services/reportService");
 const { getSummaryReport } = require("../services/reports/summaryReport");
 const { getOwnerReport } = require("../services/reports/ownerSummary");
+const { getTenantBySlug } = require("../db/tenants/getTenantBySlug");
 const { formatSummaryReport, formatInventoryReport, formatDetailReport, formatDeadReport, formatFlowReport, parseMonthInput, formatMonthLabel } = require("../utils/formatter");
 const { formatOwnerReport } = require("../utils/formatters/ownerFormat");
+const { formatMonthlyOwnerReport } = require("../utils/formatters/monthlyReportFormat");
+const { getMonthlyOwnerReport } = require("../services/reports/monthlyOwnerReport");
 const { DateTime } = require("luxon");
 
 module.exports = withRole(["manager", "owner", "admin"], async (ctx) => {
 
   const { chatId, parts, user, reply, res } = ctx;
 
-  const isAdmin     = user.role === "admin" || user.role === "superadmin";
-  const tenantId    = user.tenant_id || null;
-  const outletIds   = isAdmin
-    ? null
-    : await getAccessibleOutletIds(user);
+  const isSuperadmin = user.role === "superadmin";
+  const isAdmin      = user.role === "admin" || isSuperadmin;
+  const tenantId     = user.tenant_id || null;
 
-  if (!isAdmin && !outletIds.length) {
+  // ======================
+  // SUPERADMIN — wajib @slug untuk semua report modes
+  // Fix: sebelum ni superadmin dapat data SEMUA tenant (cross-tenant leak)
+  // ======================
+  if (isSuperadmin) {
+    const slugArg = parts[1];
+    if (!slugArg?.startsWith("@")) {
+      await reply(chatId, "❌ FORMAT: REPORT @slugtenant [MODE] [bulan]\n\nContoh:\nREPORT @kedaimaju FULL\nREPORT @kedaimaju SUMMARY may-26\nREPORT @kedaimaju FLOW jun-26");
+      return res.end();
+    }
+
+    const slug = slugArg.slice(1);
+    const tenant = await getTenantBySlug(slug);
+    if (!tenant) {
+      await reply(chatId, `❌ TENANT TAK WUJUD: ${slug}`);
+      return res.end();
+    }
+
+    // Rebuild parts tanpa @slug supaya logic bawah boleh reuse
+    // parts[0] = REPORT, parts[1] = @slug, parts[2] = MODE, parts[3] = bulan
+    // → remap jadi parts[0] = REPORT, parts[1] = MODE, parts[2] = bulan
+    const remappedParts = ["REPORT", ...parts.slice(2)];
+
+    return await handleReport(ctx, {
+      tenantId:  tenant.id,
+      parts:     remappedParts,
+      isAdmin:   true,
+      isSuperadmin,
+      outletIds: null // akan resolve dalam handleReport ikut mode
+    });
+  }
+
+  // ======================
+  // ADMIN (tenant-scoped)
+  // ======================
+  if (isAdmin) {
+    return await handleReport(ctx, {
+      tenantId,
+      parts,
+      isAdmin:   true,
+      isSuperadmin: false,
+      outletIds: null
+    });
+  }
+
+  // ======================
+  // MANAGER / OWNER
+  // ======================
+  const outletIds = await getAccessibleOutletIds(user);
+
+  if (!outletIds?.length) {
     await reply(chatId, "❌ TIADA AKSES OUTLET");
     return res.end();
   }
 
-  const REPORT_MODES = ["FLOW", "DEAD", "DETAIL", "INVENTORY", "COMPARE"];
+  return await handleReport(ctx, {
+    tenantId,
+    parts,
+    isAdmin:   false,
+    isSuperadmin: false,
+    outletIds
+  });
+});
+
+// ======================
+// CORE HANDLER — semua role masuk sini lepas resolve tenantId + outletIds
+// ======================
+async function handleReport(ctx, { tenantId, parts, isAdmin, isSuperadmin, outletIds: passedOutletIds }) {
+
+  const { chatId, user, reply, res } = ctx;
+
+  const REPORT_MODES = ["FLOW", "DEAD", "DETAIL", "INVENTORY", "COMPARE", "FULL"];
   const first = parts[1]?.toUpperCase();
 
-  let mode = null;
+  let mode       = null;
   let monthInput = "current";
 
   if (!first) {
@@ -36,30 +103,70 @@ module.exports = withRole(["manager", "owner", "admin"], async (ctx) => {
     monthInput = parts[2]?.toLowerCase() || "current";
   } else if (REPORT_MODES.includes(first)) {
     mode       = first;
-    monthInput = parts[2] || "current";
+    monthInput = parts[2]?.toLowerCase() || "current";
   } else {
     mode       = null;
     monthInput = first.toLowerCase();
   }
 
+  // Resolve outletIds — admin/superadmin guna null (all outlets in tenant),
+  // manager/owner guna passedOutletIds yang dah di-resolve sebelum masuk sini
+  const outletIds = passedOutletIds;
+
   // ======================
-  // COMPARE — OWNER ONLY
+  // FULL — OWNER MONTHLY (with insights)
+  // Manager & admin boleh juga, tapi tiada outlet comparison jika 1 outlet je
+  // ======================
+  if (mode === "FULL") {
+
+    try {
+      // Untuk FULL, owner/manager guna passedOutletIds
+      // Admin guna null → semua outlet dalam tenant
+      const fullOutletIds = isAdmin ? null : outletIds;
+
+      const result = await getMonthlyOwnerReport({
+        mode:       monthInput !== "current" ? "monthly" : "dayrange",
+        monthInput: monthInput !== "current" ? monthInput : null,
+        outletIds:  fullOutletIds,
+        tenantId
+      });
+
+      if (result.error === "INVALID_MONTH") {
+        await reply(chatId, "❌ FORMAT: REPORT FULL [bulan]\n\nContoh: REPORT FULL may-26");
+        return res.end();
+      }
+
+      if (result.error) throw result.error;
+
+      await reply(chatId, formatMonthlyOwnerReport(result));
+
+    } catch (err) {
+      console.log("FULL REPORT ERROR:", err);
+      await reply(chatId, "❌ REPORT ERROR");
+    }
+
+    return res.end();
+  }
+
+  // ======================
+  // COMPARE — OWNER + ADMIN
   // ======================
   if (mode === "COMPARE") {
 
-    if (user.role !== "owner" && user.role !== "superadmin") {
+    if (user.role === "manager") {
       await reply(chatId, "❌ NO ACCESS");
       return res.end();
     }
 
-    const ownerOutletIds = await getAccessibleOutletIds(user);
-    const compareMode = parts[2] ? "monthly" : "dayrange";
+    // Owner guna outletIds dia, admin/superadmin guna null
+    const compareOutletIds = isAdmin ? null : outletIds;
+    const compareMode      = monthInput !== "current" ? "monthly" : "dayrange";
 
     try {
       const result = await getOwnerReport({
-        mode: compareMode,
-        monthInput: parts[2],
-        outletIds: ownerOutletIds,
+        mode:       compareMode,
+        monthInput: monthInput !== "current" ? monthInput : null,
+        outletIds:  compareOutletIds,
         tenantId
       });
 
@@ -85,8 +192,7 @@ module.exports = withRole(["manager", "owner", "admin"], async (ctx) => {
   // ======================
   if (mode === "INVENTORY") {
 
-    const invMonthInput = parts[2]?.toLowerCase() || "current";
-    const range = parseMonthInput(invMonthInput);
+    const range = parseMonthInput(monthInput);
 
     if (!range) {
       await reply(chatId, "❌ FORMAT: REPORT INVENTORY may-26");
@@ -98,14 +204,13 @@ module.exports = withRole(["manager", "owner", "admin"], async (ctx) => {
       const todayKL = DateTime.now().setZone("Asia/Kuala_Lumpur");
       const endKL   = DateTime.fromJSDate(range.end).setZone("Asia/Kuala_Lumpur");
       const target  = endKL.hasSame(todayKL, "day") ? todayKL.minus({ days: 1 }) : endKL;
-      snapshotDate = target.toFormat("yyyy-MM-dd");
+      snapshotDate  = target.toFormat("yyyy-MM-dd");
     } else {
-      // range.end = awal bulan seterusnya (KL). Snapshot penutup bulan = end - 1 hari, dikira dalam KL zone
-      const endKL = DateTime.fromJSDate(range.end).setZone("Asia/Kuala_Lumpur").minus({ days: 1 });
+      const endKL  = DateTime.fromJSDate(range.end).setZone("Asia/Kuala_Lumpur").minus({ days: 1 });
       snapshotDate = endKL.toFormat("yyyy-MM-dd");
     }
 
-    const monthLabel = formatMonthLabel(invMonthInput, range.start.toISOString());
+    const monthLabel = formatMonthLabel(monthInput, range.start.toISOString());
 
     try {
       const result = await getInventoryReport({ outletIds, snapshotDate, tenantId });
@@ -121,7 +226,7 @@ module.exports = withRole(["manager", "owner", "admin"], async (ctx) => {
   }
 
   // ======================
-  // DEAD STOCK — guna asOfDate, bukan start/end range
+  // DEAD STOCK
   // ======================
   if (mode === "DEAD") {
 
@@ -134,7 +239,7 @@ module.exports = withRole(["manager", "owner", "admin"], async (ctx) => {
 
     const asOfDate = range.isDayRange
       ? new Date(range.end).toISOString()
-      : new Date(new Date(range.end).getTime() - 1).toISOString(); // last moment of whole month
+      : new Date(new Date(range.end).getTime() - 1).toISOString();
 
     const monthLabel = formatMonthLabel(monthInput, range.start.toISOString());
 
@@ -152,7 +257,7 @@ module.exports = withRole(["manager", "owner", "admin"], async (ctx) => {
   }
 
   // ======================
-  // MONTH PARSE — FLOW / DETAIL / SUMMARY
+  // FLOW / DETAIL / SUMMARY — month parse
   // ======================
   const range = parseMonthInput(monthInput);
 
@@ -165,9 +270,6 @@ module.exports = withRole(["manager", "owner", "admin"], async (ctx) => {
   const end        = range.end.toISOString();
   const monthLabel = formatMonthLabel(monthInput, start);
 
-  // ======================
-  // ROUTING
-  // ======================
   try {
 
     let result;
@@ -199,4 +301,4 @@ module.exports = withRole(["manager", "owner", "admin"], async (ctx) => {
   }
 
   return res.end();
-});
+}
