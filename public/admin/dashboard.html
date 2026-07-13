@@ -120,6 +120,8 @@ input[type=file]{padding:6px;}
 .modal{background:#fff;border-radius:14px;padding:2rem;max-width:400px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.2);}
 .modal h2{font-size:1.1rem;margin-bottom:0.5rem;}
 .modal p{font-size:0.875rem;color:var(--text-muted);margin-bottom:1.25rem;}
+/* forced PIN change — highlight instruction */
+#changePinModal.forced p{color:#92400e;font-weight:600;}
 
 /* ── LOGIN / CHANGE PIN SCREEN ── */
 .auth-screen{
@@ -174,27 +176,6 @@ input[type=file]{padding:6px;}
       <button class="btn btn--primary" style="flex:1" onclick="doLogin()">Log Masuk</button>
     </div>
     <div class="error" id="loginError"></div>
-  </div>
-</div>
-
-<!-- ════════════════════════════════════════
-     CHANGE PIN SCREEN (first login)
-════════════════════════════════════════ -->
-<div id="changePinScreen" class="auth-screen hidden">
-  <div class="auth-card">
-    <div class="auth-card__icon">🔑</div>
-    <h1>Tetapkan PIN Baru</h1>
-    <p>Ini adalah log masuk pertama anda. Sila tukar PIN default kepada PIN baru (6 digit, tidak boleh 123456).</p>
-    <label>PIN Semasa</label>
-    <input type="password" id="cpCurrentPin" placeholder="123456" maxlength="6">
-    <label>PIN Baru</label>
-    <input type="password" id="cpNewPin" placeholder="6 digit baru" maxlength="6">
-    <label>Sahkan PIN Baru</label>
-    <input type="password" id="cpConfirmPin" placeholder="6 digit baru" maxlength="6">
-    <div class="btn-row">
-      <button class="btn btn--primary" style="flex:1" onclick="doChangePin()">Simpan PIN</button>
-    </div>
-    <div class="error" id="cpError"></div>
   </div>
 </div>
 
@@ -464,11 +445,14 @@ input[type=file]{padding:6px;}
   </div><!-- /main -->
 </div><!-- /dashboardMain -->
 
-<!-- CHANGE PIN MODAL (from dashboard) -->
+<!-- ════════════════════════════════════════
+     CHANGE PIN MODAL
+     Used for BOTH forced firsttime and voluntary change from nav
+════════════════════════════════════════ -->
 <div class="modal-overlay" id="changePinModal">
   <div class="modal">
-    <h2>🔑 Tukar PIN</h2>
-    <p>Masukkan PIN semasa dan PIN baru anda.</p>
+    <h2 id="changePinModalTitle">🔑 Tukar PIN</h2>
+    <p id="changePinModalDesc">Masukkan PIN semasa dan PIN baru anda.</p>
     <label>PIN Semasa</label>
     <input type="password" id="mpCurrentPin" placeholder="••••••" maxlength="6">
     <label>PIN Baru (6 digit)</label>
@@ -477,7 +461,7 @@ input[type=file]{padding:6px;}
     <input type="password" id="mpConfirmPin" placeholder="••••••" maxlength="6">
     <div class="btn-row">
       <button class="btn btn--primary" onclick="submitChangePinModal()">Simpan</button>
-      <button class="btn btn--secondary" onclick="closeChangePinModal()">Batal</button>
+      <button class="btn btn--secondary" id="cancelChangePinBtn" onclick="closeChangePinModal()">Batal</button>
     </div>
     <div class="error" id="mpError"></div>
     <div class="success-msg" id="mpSuccess"></div>
@@ -488,7 +472,7 @@ input[type=file]{padding:6px;}
 // ════════════════════════════════════════
 // STATE
 // ════════════════════════════════════════
-let SESSION = null; // { chat_id, nickname, role, tenant_id }
+let SESSION = null;
 let VOID_TENANT_SLUG = null;
 
 // ════════════════════════════════════════
@@ -538,16 +522,6 @@ async function api(path, opts = {}) {
 // ════════════════════════════════════════
 // LOGIN
 // ════════════════════════════════════════
-async function detectRole() {
-  const chatId = document.getElementById('loginChatId').value.trim();
-  if (!chatId) return;
-  // hint: try fetch users row to detect role (just visual hint)
-  document.getElementById('roleHint').textContent = '';
-  document.getElementById('credentialLabel').textContent = 'PIN / Token';
-}
-
-document.getElementById('loginChatId').addEventListener('blur', detectRole);
-
 async function doLogin() {
   const chatId     = document.getElementById('loginChatId').value.trim();
   const credential = document.getElementById('loginCredential').value.trim();
@@ -573,89 +547,69 @@ async function doLogin() {
 
     SESSION = data.user;
 
-    if (data.mustChangePin) {
-      document.getElementById('loginScreen').classList.add('hidden');
-      document.getElementById('changePinScreen').classList.remove('hidden');
-      return;
+    // Masuk dashboard dulu — hide login screen, show dashboard
+    await enterDashboard();
+
+    // Lepas dalam dashboard, init manage tab untuk superadmin
+    if (SESSION.role === 'superadmin') {
+      initManage().catch(err => console.error('initManage:', err));
     }
 
-    enterDashboard();
+    // Superadmin tak perlu force change PIN
+    if (data.mustChangePin && SESSION.role !== 'superadmin') {
+      showForcedChangePinModal(credential);
+    }
+
   } catch (err) {
     errEl.textContent = '❌ ' + err.message;
   }
 }
 
-// Enter key support for login
+// Enter key support
 document.getElementById('loginCredential').addEventListener('keydown', e => {
   if (e.key === 'Enter') doLogin();
 });
 
 // ════════════════════════════════════════
-// CHANGE PIN (first login screen)
-// ════════════════════════════════════════
-async function doChangePin() {
-  const chatId  = document.getElementById('loginChatId').value.trim() || SESSION?.chat_id;
-  const current = document.getElementById('cpCurrentPin').value.trim();
-  const newPin  = document.getElementById('cpNewPin').value.trim();
-  const confirm = document.getElementById('cpConfirmPin').value.trim();
-  const errEl   = document.getElementById('cpError');
-  errEl.textContent = '';
-
-  if (!/^\d{6}$/.test(newPin)) { errEl.textContent = '❌ PIN mesti 6 digit nombor'; return; }
-  if (newPin !== confirm)       { errEl.textContent = '❌ PIN baru tidak sepadan'; return; }
-  if (newPin === '123456')      { errEl.textContent = '❌ PIN tidak boleh 123456'; return; }
-
-  try {
-    await fetch('/voidapi/change-pin', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify({ chat_id: chatId, current_pin: current, new_pin: newPin })
-    }).then(async r => {
-      const d = await r.json();
-      if (!r.ok) throw new Error(d.error);
-      return d;
-    });
-
-    document.getElementById('changePinScreen').classList.add('hidden');
-    enterDashboard();
-  } catch (err) {
-    errEl.textContent = '❌ ' + err.message;
-  }
-}
-
-// ════════════════════════════════════════
 // ENTER DASHBOARD
 // ════════════════════════════════════════
 async function enterDashboard() {
+  // Kalau SESSION kosong, cuba restore dari cookie
   if (!SESSION) {
-    // restore from cookie
     const chatId = getCookie('stokbot_dash_chatid');
     if (!chatId) { showLogin(); return; }
     try {
       const data = await api('/me');
       SESSION = data.user;
-    } catch (e) { showLogin(); return; }
+    } catch (e) {
+      clearCookie('stokbot_dash_chatid');
+      showLogin();
+      return;
+    }
   }
 
-  // update nav
+  // Update nav UI
   document.getElementById('navAvatar').textContent = SESSION.nickname?.[0]?.toUpperCase() || '?';
   document.getElementById('navName').textContent   = SESSION.nickname || SESSION.chat_id;
   document.getElementById('ddName').textContent    = SESSION.nickname || SESSION.chat_id;
   document.getElementById('ddRole').textContent    = SESSION.role?.toUpperCase();
 
-  // hide "Tukar PIN" for superadmin (superadmin guna token bukan PIN)
+  // Superadmin: tunjuk manage tab, sembunyi tukar PIN
   if (SESSION.role === 'superadmin') {
     document.getElementById('changePinBtn').style.display = 'none';
     document.getElementById('manageNavBtn').style.display = '';
+  } else {
+    document.getElementById('changePinBtn').style.display = '';
+    document.getElementById('manageNavBtn').style.display = 'none';
   }
 
+  // Transition — sembunyikan login, tunjuk dashboard
   document.getElementById('loginScreen').classList.add('hidden');
-  document.getElementById('changePinScreen').classList.add('hidden');
   document.getElementById('dashboardMain').classList.remove('hidden');
 
-  initVoidSection();
-  initImportSlugs();
+  // Init sections — run in background, jangan block UI transition
+  initVoidSection().catch(err => console.error('initVoidSection:', err));
+  initImportSlugs().catch(err => console.error('initImportSlugs:', err));
 }
 
 function showLogin() {
@@ -690,6 +644,111 @@ async function doLogout() {
   SESSION = null;
   location.reload();
 }
+
+// ════════════════════════════════════════
+// CHANGE PIN MODAL — FORCED (firsttime login)
+// ════════════════════════════════════════
+function showForcedChangePinModal(currentPin = '') {
+  document.getElementById('mpCurrentPin').value    = currentPin;
+  document.getElementById('mpNewPin').value        = '';
+  document.getElementById('mpConfirmPin').value    = '';
+  document.getElementById('mpError').textContent   = '';
+  document.getElementById('mpSuccess').textContent = '';
+
+  const modal = document.getElementById('changePinModal');
+  modal.dataset.forced = 'true';
+  modal.classList.add('forced');
+
+  document.getElementById('changePinModalTitle').textContent = '🔑 Tetapkan PIN Baru';
+  document.getElementById('changePinModalDesc').textContent  =
+    'Log masuk pertama dikesan. Sila tukar PIN default sebelum meneruskan. PIN semasa sudah diisi secara automatik.';
+
+  // Sorok Batal — forced modal tak boleh tutup
+  document.getElementById('cancelChangePinBtn').style.display = 'none';
+
+  modal.classList.add('open');
+}
+
+// ════════════════════════════════════════
+// CHANGE PIN MODAL — VOLUNTARY (dari nav dropdown)
+// ════════════════════════════════════════
+function showChangePinFromDashboard() {
+  closeDropdown();
+
+  document.getElementById('mpCurrentPin').value    = '';
+  document.getElementById('mpNewPin').value        = '';
+  document.getElementById('mpConfirmPin').value    = '';
+  document.getElementById('mpError').textContent   = '';
+  document.getElementById('mpSuccess').textContent = '';
+
+  const modal = document.getElementById('changePinModal');
+  delete modal.dataset.forced;
+  modal.classList.remove('forced');
+
+  document.getElementById('changePinModalTitle').textContent = '🔑 Tukar PIN';
+  document.getElementById('changePinModalDesc').textContent  = 'Masukkan PIN semasa dan PIN baru anda.';
+
+  // Tunjuk Batal untuk voluntary change
+  document.getElementById('cancelChangePinBtn').style.display = '';
+
+  modal.classList.add('open');
+}
+
+function closeChangePinModal() {
+  const modal = document.getElementById('changePinModal');
+  // Forced modal tidak boleh ditutup sehingga PIN berjaya ditukar
+  if (modal.dataset.forced === 'true') return;
+  modal.classList.remove('open');
+}
+
+async function submitChangePinModal() {
+  const current = document.getElementById('mpCurrentPin').value.trim();
+  const newPin  = document.getElementById('mpNewPin').value.trim();
+  const confirm = document.getElementById('mpConfirmPin').value.trim();
+  const errEl   = document.getElementById('mpError');
+  const sucEl   = document.getElementById('mpSuccess');
+  errEl.textContent = '';
+  sucEl.textContent = '';
+
+  if (!/^\d{6}$/.test(newPin)) { errEl.textContent = '❌ PIN mesti 6 digit nombor'; return; }
+  if (newPin !== confirm)       { errEl.textContent = '❌ PIN baru tidak sepadan'; return; }
+  if (newPin === '123456')      { errEl.textContent = '❌ PIN tidak boleh 123456'; return; }
+
+  try {
+    await fetch('/voidapi/change-pin', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({
+        chat_id:     SESSION.chat_id,
+        current_pin: current,
+        new_pin:     newPin
+      })
+    }).then(async r => {
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error);
+      return d;
+    });
+
+    sucEl.textContent = '✅ PIN berjaya ditukar';
+
+    // Clear forced state, restore Batal button
+    const modal = document.getElementById('changePinModal');
+    delete modal.dataset.forced;
+    modal.classList.remove('forced');
+    document.getElementById('cancelChangePinBtn').style.display = '';
+
+    setTimeout(() => { modal.classList.remove('open'); }, 1500);
+
+  } catch (e) {
+    errEl.textContent = '❌ ' + e.message;
+  }
+}
+
+// Overlay click — hanya close kalau tidak forced
+document.getElementById('changePinModal').addEventListener('click', e => {
+  if (e.target === e.currentTarget) closeChangePinModal();
+});
 
 // ════════════════════════════════════════
 // VOID SECTION
@@ -864,8 +923,7 @@ function showImportResult(prefix, data, dryRun) {
     if (data.hardErrors?.length) msg += '\n\n' + data.hardErrors.join('\n');
     document.getElementById(prefix + 'Error').textContent = msg;
   } else {
-    const isDry = dryRun;
-    document.getElementById(prefix + 'Success').textContent = isDry
+    document.getElementById(prefix + 'Success').textContent = dryRun
       ? `✅ Dry run OK — ${data.validCount} row valid`
       : `✅ Done — ${data.created ?? 0} created | ${data.skipped ?? 0} skipped | ${data.failed ?? 0} failed`;
   }
@@ -876,7 +934,6 @@ function showImportResult(prefix, data, dryRun) {
 }
 
 async function initImportSlugs() {
-  // populate tenant dropdown for "Add Item" section
   try {
     const data = await api('/tenants-list');
     const sel  = document.getElementById('siSlug');
@@ -886,7 +943,7 @@ async function initImportSlugs() {
       o.value = t.slug; o.textContent = `${t.slug} (${t.name})`;
       sel.appendChild(o);
     });
-  } catch (e) {}
+  } catch (e) { console.error('initImportSlugs:', e); }
 }
 
 async function onSiSlugChange() {
@@ -918,13 +975,13 @@ async function onSiSlugChange() {
 async function runAddItem() {
   resetImport('si');
   const payload = {
-    slug: document.getElementById('siSlug').value,
-    outlet: document.getElementById('siOutlet').value,
-    item: document.getElementById('siItem').value.trim(),
+    slug:     document.getElementById('siSlug').value,
+    outlet:   document.getElementById('siOutlet').value,
+    item:     document.getElementById('siItem').value.trim(),
     category: document.getElementById('siCat').value.trim(),
-    minQty: document.getElementById('siMin').value,
-    cost: document.getElementById('siCost').value,
-    uom: document.getElementById('siUom').value.trim()
+    minQty:   document.getElementById('siMin').value,
+    cost:     document.getElementById('siCost').value,
+    uom:      document.getElementById('siUom').value.trim()
   };
   if (!payload.slug || !payload.outlet || !payload.item || !payload.category || !payload.uom || !payload.minQty || !payload.cost) {
     document.getElementById('siError').textContent = '❌ Semua field wajib diisi';
@@ -941,10 +998,10 @@ async function runAddItem() {
 async function runUpdateItem() {
   resetImport('ui');
   const payload = {
-    slug: document.getElementById('uiSlug').value.trim(),
-    item: document.getElementById('uiItem').value.trim(),
+    slug:   document.getElementById('uiSlug').value.trim(),
+    item:   document.getElementById('uiItem').value.trim(),
     outlet: document.getElementById('uiOutlet').value.trim(),
-    cost: document.getElementById('uiCost').value,
+    cost:   document.getElementById('uiCost').value,
     minQty: document.getElementById('uiMin').value
   };
   try {
@@ -956,13 +1013,12 @@ async function runUpdateItem() {
 async function runRemoveItem() {
   if (!confirm('Confirm remove item ni?')) return;
   resetImport('ri');
-  const payload = {
-    slug: document.getElementById('riSlug').value.trim(),
-    item: document.getElementById('riItem').value.trim(),
-    outlet: document.getElementById('riOutlet').value.trim()
-  };
   try {
-    const data = await api('/import/remove-item', { method: 'POST', body: payload });
+    const data = await api('/import/remove-item', { method: 'POST', body: {
+      slug:   document.getElementById('riSlug').value.trim(),
+      item:   document.getElementById('riItem').value.trim(),
+      outlet: document.getElementById('riOutlet').value.trim()
+    }});
     document.getElementById('riSuccess').textContent = `✅ Removed — ${data.item} @ ${data.outlet}`;
   } catch (e) { document.getElementById('riError').textContent = '❌ ' + e.message; }
 }
@@ -970,11 +1026,11 @@ async function runRemoveItem() {
 async function runSetRole() {
   resetImport('sr');
   const payload = {
-    slug: document.getElementById('srSlug').value.trim(),
-    phone: document.getElementById('srPhone').value.trim(),
-    role: document.getElementById('srRole').value,
+    slug:     document.getElementById('srSlug').value.trim(),
+    phone:    document.getElementById('srPhone').value.trim(),
+    role:     document.getElementById('srRole').value,
     nickname: document.getElementById('srNickname').value.trim(),
-    outlets: document.getElementById('srOutlets').value.trim()
+    outlets:  document.getElementById('srOutlets').value.trim()
   };
   try {
     const data = await api('/import/set-role', { method: 'POST', body: payload });
@@ -987,7 +1043,7 @@ async function runRemoveRole() {
   resetImport('rr');
   try {
     const data = await api('/import/remove-role', { method: 'POST', body: {
-      slug: document.getElementById('rrSlug').value.trim(),
+      slug:  document.getElementById('rrSlug').value.trim(),
       phone: document.getElementById('rrPhone').value.trim()
     }});
     document.getElementById('rrSuccess').textContent = `✅ User ${data.phone} dinyahaktifkan`;
@@ -998,7 +1054,7 @@ async function runReactivate() {
   resetImport('ra');
   try {
     const data = await api('/import/reactivate-user', { method: 'POST', body: {
-      slug: document.getElementById('raSlug').value.trim(),
+      slug:  document.getElementById('raSlug').value.trim(),
       phone: document.getElementById('raPhone').value.trim()
     }});
     document.getElementById('raSuccess').textContent = `✅ User ${data.phone} diaktifkan`;
@@ -1009,7 +1065,7 @@ async function runAddOutlet() {
   resetImport('ao');
   try {
     const data = await api('/import/add-outlet', { method: 'POST', body: {
-      slug: document.getElementById('aoSlug').value.trim(),
+      slug:   document.getElementById('aoSlug').value.trim(),
       outlet: document.getElementById('aoName').value.trim()
     }});
     document.getElementById('aoSuccess').textContent = `✅ Outlet created — ${data.outlet.name}`;
@@ -1021,8 +1077,8 @@ async function runRemoveOutlet() {
   resetImport('ro');
   try {
     const data = await api('/import/remove-outlet-access', { method: 'POST', body: {
-      slug: document.getElementById('roSlug').value.trim(),
-      phone: document.getElementById('roPhone').value.trim(),
+      slug:   document.getElementById('roSlug').value.trim(),
+      phone:  document.getElementById('roPhone').value.trim(),
       outlet: document.getElementById('roOutlet').value.trim()
     }});
     document.getElementById('roSuccess').textContent = `✅ ${data.outlet} dibuang dari ${data.phone}`;
@@ -1040,7 +1096,7 @@ async function loadManageUsers() {
   if (!slug) return;
 
   try {
-    const data = await api(`/manage/users?slug=${encodeURIComponent(slug)}`);
+    const data  = await api(`/manage/users?slug=${encodeURIComponent(slug)}`);
     const tbody = document.getElementById('mgUsersBody');
     tbody.innerHTML = '';
     data.users.forEach(u => {
@@ -1061,7 +1117,7 @@ async function loadManageUsers() {
 }
 
 async function resetPin(targetChatId, name) {
-  if (!confirm(`Reset PIN ${name} kepada 123456? Mereka perlu tukar PIN semula bila log masuk.`)) return;
+  if (!confirm(`Reset PIN ${name} kepada 123456?`)) return;
   document.getElementById('mgSuccess').textContent = '';
   document.getElementById('mgError').textContent   = '';
   try {
@@ -1073,7 +1129,6 @@ async function resetPin(targetChatId, name) {
   }
 }
 
-// init manage tenant dropdown
 async function initManage() {
   if (SESSION?.role !== 'superadmin') return;
   try {
@@ -1085,77 +1140,30 @@ async function initManage() {
       o.value = t.slug; o.textContent = `${t.slug} (${t.name})`;
       sel.appendChild(o);
     });
-  } catch (e) {}
+  } catch (e) { console.error('initManage:', e); }
 }
 
 // ════════════════════════════════════════
-// CHANGE PIN MODAL (from dashboard nav)
-// ════════════════════════════════════════
-function showChangePinFromDashboard() {
-  closeDropdown();
-  document.getElementById('mpCurrentPin').value  = '';
-  document.getElementById('mpNewPin').value      = '';
-  document.getElementById('mpConfirmPin').value  = '';
-  document.getElementById('mpError').textContent = '';
-  document.getElementById('mpSuccess').textContent = '';
-  document.getElementById('changePinModal').classList.add('open');
-}
-
-function closeChangePinModal() {
-  document.getElementById('changePinModal').classList.remove('open');
-}
-
-async function submitChangePinModal() {
-  const current = document.getElementById('mpCurrentPin').value.trim();
-  const newPin  = document.getElementById('mpNewPin').value.trim();
-  const confirm = document.getElementById('mpConfirmPin').value.trim();
-  const errEl   = document.getElementById('mpError');
-  const sucEl   = document.getElementById('mpSuccess');
-  errEl.textContent = '';
-  sucEl.textContent = '';
-
-  if (!/^\d{6}$/.test(newPin)) { errEl.textContent = '❌ PIN mesti 6 digit nombor'; return; }
-  if (newPin !== confirm)       { errEl.textContent = '❌ PIN baru tidak sepadan'; return; }
-  if (newPin === '123456')      { errEl.textContent = '❌ PIN tidak boleh 123456'; return; }
-
-  try {
-    await fetch('/voidapi/change-pin', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify({ chat_id: SESSION.chat_id, current_pin: current, new_pin: newPin })
-    }).then(async r => {
-      const d = await r.json();
-      if (!r.ok) throw new Error(d.error);
-      return d;
-    });
-    sucEl.textContent = '✅ PIN berjaya ditukar';
-    setTimeout(closeChangePinModal, 1500);
-  } catch (e) {
-    errEl.textContent = '❌ ' + e.message;
-  }
-}
-
-// close modal on overlay click
-document.getElementById('changePinModal').addEventListener('click', e => {
-  if (e.target === e.currentTarget) closeChangePinModal();
-});
-
-// ════════════════════════════════════════
-// INIT — check existing session on load
+// INIT — restore session on page load
 // ════════════════════════════════════════
 (async () => {
   const chatId = getCookie('stokbot_dash_chatid');
   if (chatId) {
     try {
       const data = await fetch(`/voidapi/me?chat_id=${encodeURIComponent(chatId)}`, { credentials: 'include' })
-        .then(async r => { const d = await r.json(); if (!r.ok) throw new Error(); return d; });
+        .then(async r => {
+          const d = await r.json();
+          if (!r.ok) throw new Error();
+          return d;
+        });
       SESSION = data.user;
       await enterDashboard();
-      if (SESSION.role === 'superadmin') initManage();
+      if (SESSION.role === 'superadmin') initManage().catch(console.error);
+      // Session restore — mustChangePin tidak di-check semula
+      // (user perlu login semula kalau nak trigger forced change)
     } catch (e) {
       clearCookie('stokbot_dash_chatid');
-      showLogin();
+      // Kekal kat login screen, jangan redirect
     }
   }
 })();
