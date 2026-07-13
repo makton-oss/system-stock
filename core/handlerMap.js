@@ -20,8 +20,6 @@ module.exports = {
   REMOVEOUTLET: require("../handlers/removeOutlet"),
   UPDATE: require("../handlers/update"),
   REACTIVATE: require("../handlers/reactivate"),
-  REPORTMENU: require("../handlers/reportMenu"),
-  REPORT_MONTH: require("../handlers/reportMonth"),
   PENDING: require("../handlers/pending"),
   UPDATEITEM: require("../handlers/updateItem"),
   WATCHLIST: require("../handlers/watchlist"),

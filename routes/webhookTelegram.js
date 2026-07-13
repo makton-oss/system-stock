@@ -224,20 +224,6 @@ async function processMessage({ telegramId, user, rawMessage }) {
   if (type?.startsWith("APPROVE_ALL_")) type = "APPROVE";
   else if (type?.startsWith("REJECT_ALL_")) type = "REJECT";
 
-  if (type === "REPORT" && parts.length === 1) {
-    const handler = handlerMap.REPORTMENU;
-    const ctx = createContext({
-      chatId: telegramId,
-      user,
-      parts,
-      message,
-      res: { end: () => {} },
-      reply: replyFn,
-      channel: "telegram"
-    });
-    return await handler(ctx);
-  }
-
   const handler = handlerMap[type];
   if (!handler) {
     console.log("TELEGRAM NO HANDLER:", type);

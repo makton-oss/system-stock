@@ -1,9 +1,7 @@
 const helpers      = require("./helpers");
 const stockFormat  = require("./formatters/stockFormat");
-const reportFormat = require("./formatters/reportFormat");
 const staffFormat  = require("./formatters/staffFormat");
 const dbHelpers    = require("./formatters/dbHelpers");
-const { ROLE_GUIDE, getRoleGuide } = require("./formatters/roleGuide");
 
 module.exports = {
   // helpers
@@ -28,16 +26,6 @@ module.exports = {
   formatLowStockAlert: stockFormat.formatLowStockAlert,
   formatLowStockAlertGroup: stockFormat.formatLowStockAlertGroup,
 
-  // reports
-  formatMainReport:      reportFormat.formatMainReport,
-  formatInventoryReport: reportFormat.formatInventoryReport,
-  formatFlowReport:      reportFormat.formatFlowReport,
-  formatDetailReport:    reportFormat.formatDetailReport,
-  formatDeadReport:      reportFormat.formatDeadReport,
-  formatSummaryReport:   reportFormat.formatSummaryReport,
-  formatUsageReport:     reportFormat.formatUsageReport,
-  formatWastageReport:   reportFormat.formatWastageReport,
-
   // staff
   formatStaffList:      staffFormat.formatStaffList,
   formatStaffListAdmin: staffFormat.formatStaffListAdmin,
@@ -50,7 +38,4 @@ module.exports = {
   checkRole:      dbHelpers.checkRole,
   writeLog:       dbHelpers.writeLog,
 
-  // role guide
-  ROLE_GUIDE,
-  getRoleGuide
 };

@@ -1,5 +1,4 @@
 const { getOutletByCode } = require("../db/outlets/getOutletByCode");
-const reportModeStore = require("./reportModeStore");
 
 async function parseButtonMessage({ raw, chatId, body, user, channel = "botcommerce" }) {
 
@@ -25,31 +24,6 @@ async function parseButtonMessage({ raw, chatId, body, user, channel = "botcomme
     const outlet = await getOutletByCode(value, tenantId);
     if (!outlet) return upperClean;
     return `${action}_ALL_${outlet.id}`;
-  }
-
-  // ======================
-  // REPORT TYPE SELECTION
-  // ======================
-  const REPORT_MODES = ["SUMMARY", "INVENTORY", "FLOW", "DEAD", "DETAIL", "COMPARE"];
-
-  if (REPORT_MODES.includes(upperClean) && hasReplyId) {
-    reportModeStore.set(chatId, upperClean);
-    console.log("SET REPORT MODE:", chatId, upperClean);
-    return `REPORT_MONTH ${upperClean}`;
-  }
-
-  // ======================
-  // MONTH SELECTION
-  // ======================
-  if (hasReplyId) {
-    const mode = reportModeStore.get(chatId);
-
-    if (upperClean === "CURRENT" || /^[A-Z]{3}-\d{2}$/i.test(clean)) {
-      if (mode) {
-        reportModeStore.del(chatId);
-        return `REPORT ${mode} ${clean.toLowerCase()}`;
-      }
-    }
   }
 
   // ======================

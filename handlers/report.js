@@ -5,7 +5,6 @@ const { getSummaryReport } = require("../services/reports/summaryReport");
 const { getOwnerReport } = require("../services/reports/ownerSummary");
 const { getTenantBySlug } = require("../db/tenants/getTenantBySlug");
 const { formatSummaryReport, formatInventoryReport, formatDetailReport, formatDeadReport, formatFlowReport, parseMonthInput, formatMonthLabel } = require("../utils/formatter");
-const { formatOwnerReport } = require("../utils/formatters/ownerFormat");
 const { formatMonthlyOwnerReport } = require("../utils/formatters/monthlyReportFormat");
 const { getMonthlyOwnerReport } = require("../services/reports/monthlyOwnerReport");
 const { DateTime } = require("luxon");
@@ -177,7 +176,14 @@ async function handleReport(ctx, { tenantId, parts, isAdmin, isSuperadmin, outle
 
       if (result.error) throw result.error;
 
-      await reply(chatId, formatOwnerReport(result.data, result.label));
+      await reply(chatId, formatMonthlyOwnerReport({
+        data:          result.data,
+        label:         result.label,
+        lowStock:      [],
+        deadStockCount: 0,
+        insights:      [],
+        health:        null
+      }));
 
     } catch (err) {
       console.log("COMPARE REPORT ERROR:", err);

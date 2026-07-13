@@ -81,20 +81,6 @@ router.post("/", globalLimiter, async (req, res) => {
   if (type?.startsWith("APPROVE_ALL_")) type = "APPROVE";
   else if (type?.startsWith("REJECT_ALL_")) type = "REJECT";
 
-  if (type === "REPORT" && parts.length === 1) {
-    const handler = handlerMap.REPORTMENU;
-    const ctx = createContext({
-      chatId,
-      user,
-      parts,
-      message,
-      res,
-      reply,
-      channel: "botcommerce"
-    });
-    return await handler(ctx);
-  }
-
   const handler = handlerMap[type];
 
   if (!handler) {
