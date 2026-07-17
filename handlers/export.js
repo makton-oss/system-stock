@@ -1,162 +1,111 @@
 const { withRole } = require("../core/withRole");
-const { exportInventory } = require("../services/exports/exportInventory");
-const { exportSummary }   = require("../services/exports/exportSummary");
-const { exportFlow }      = require("../services/exports/exportFlow");
-const { exportDetail }    = require("../services/exports/exportDetail");
-const { exportDead }      = require("../services/exports/exportDead");
-const { exportCompare }   = require("../services/exports/exportCompare");
 const { getAccessibleOutletIds } = require("../db/outlets/getAccessibleOutletIds");
-const { getOutletByCode }  = require("../db/outlets/getOutletByCode");
-const { getAllOutlets }     = require("../db/outlets/getAllOutlets");
-const { parseSuperadminTarget } = require("../utils/parseSuperadminTarget");
+const { getTenantBySlug } = require("../db/tenants/getTenantBySlug");
+const { exportMonthlyFull } = require("../services/exports/exportMonthlyFull");
 
-const SUPPORTED_TYPES = ["INVENTORY", "SUMMARY", "FLOW", "DETAIL", "DEAD", "COMPARE"];
-
-// COMPARE: owner & manager guna semua outlet — tiada outlet arg
-const COMPARE_TYPE = "COMPARE";
-
-const EXPORT_FN = {
-  INVENTORY: exportInventory,
-  SUMMARY:   exportSummary,
-  FLOW:      exportFlow,
-  DETAIL:    exportDetail,
-  DEAD:      exportDead,
-  COMPARE:   exportCompare
-};
-
-async function sendResult(reply, chatId, result, type) {
-  if (result.error === "NO_DATA" || result.error === "NO_SNAPSHOT") {
-    await reply(chatId, `📭 TIADA DATA: ${type}\nBulan lepas tiada rekod dijumpai.`);
-    return;
-  }
-  if (result.error) {
-    console.log(`EXPORT_${type}_ERROR:`, result.error);
-    await reply(chatId, `❌ GAGAL EXPORT ${type}. Cuba lagi.`);
-    return;
-  }
-
-  let msg = `📊 EXPORT ${type}\n${result.monthLabel}\n\n🔗 ${result.url}\n\n⏳ Link sah 1 jam.`;
-
-  if (result.sheetCount > 1) {
-    msg += `\n\n📋 ${result.sheetCount} outlet dalam fail ini.`;
-  }
-  if (result.noDataOutlets?.length) {
-    msg += `\n\n⚠️ Tiada snapshot: ${result.noDataOutlets.join(", ")}`;
-  }
-
-  await reply(chatId, msg);
-}
-
-module.exports = withRole(["manager", "owner"], async (ctx) => {
+module.exports = withRole(["manager", "owner", "admin"], async (ctx) => {
 
   const { chatId, parts, user, reply, res } = ctx;
+
   const isSuperadmin = user.role === "superadmin";
-  const type         = parts[1]?.toUpperCase();
-  const isCompare    = type === COMPARE_TYPE;
+  const isAdmin      = user.role === "admin" || isSuperadmin;
+  const tenantId     = user.tenant_id || null;
 
   // ======================
-  // VALIDATE TYPE
+  // VALIDATE COMMAND
+  // FORMAT:
+  //   EXPORT FULL [bulan]           ← manager/owner/admin
+  //   EXPORT FULL @slug [bulan]     ← superadmin
   // ======================
-  if (!type || !SUPPORTED_TYPES.includes(type)) {
-    await reply(chatId,
-      `❌ FORMAT: EXPORT [JENIS]\n\nJenis disokong:\n${SUPPORTED_TYPES.join(", ")}\n\n` +
-      `Contoh:\nEXPORT INVENTORY\nEXPORT SUMMARY\nEXPORT COMPARE`
-    );
+  const first = parts[1]?.toUpperCase();
+
+  if (first !== "FULL") {
+    const fmt = isSuperadmin
+      ? "❌ FORMAT: EXPORT FULL @slug [bulan]\n\nContoh:\nEXPORT FULL @kedaimaju\nEXPORT FULL @kedaimaju may-26"
+      : "❌ FORMAT: EXPORT FULL [bulan]\n\nContoh:\nEXPORT FULL\nEXPORT FULL may-26";
+    await reply(chatId, fmt);
     return res.end();
   }
 
-  let outletIds, tenantId;
+  // ======================
+  // SUPERADMIN — wajib @slug
+  // ======================
+  let resolvedTenantId = tenantId;
+  let resolvedOutletIds;
+  let monthArg;
 
-  // ======================
-  // SUPERADMIN
-  // ======================
   if (isSuperadmin) {
-
-    if (isCompare) {
-      // FORMAT: EXPORT COMPARE @slug
-      const raw = parts[2];
-      if (!raw?.startsWith("@")) {
-        await reply(chatId, "❌ FORMAT: EXPORT COMPARE @<slug>");
-        return res.end();
-      }
-      const { tenantId: t, error } = await parseSuperadminTarget(raw, true, null);
-      if (error) { await reply(chatId, error); return res.end(); }
-      tenantId = t;
-      const { data: allOutlets } = await getAllOutlets(tenantId);
-      outletIds = (allOutlets || []).map(o => o.id);
-
-    } else {
-      // FORMAT: EXPORT <TYPE> <outlet>@slug
-      const raw = parts[2];
-      if (!raw?.includes("@")) {
-        await reply(chatId, `❌ FORMAT: EXPORT ${type} <outlet>@<slug>`);
-        return res.end();
-      }
-      const { cleanValue: outletName, tenantId: t, error } = await parseSuperadminTarget(raw, true, null);
-      if (error) { await reply(chatId, error); return res.end(); }
-      tenantId = t;
-      const outlet = await getOutletByCode(outletName, tenantId);
-      if (!outlet) {
-        await reply(chatId, `❌ OUTLET TAK WUJUD: ${outletName}`);
-        return res.end();
-      }
-      outletIds = [outlet.id];
-    }
-  }
-
-  // ======================
-  // OWNER
-  // ======================
-  else if (user.role === "owner") {
-
-    tenantId = user.tenant_id || null;
-
-    if (isCompare) {
-      // owner — semua outlet dalam tenant dia
-      outletIds = await getAccessibleOutletIds(user);
-
-    } else {
-      // owner mesti specify outlet
-      const outletName = parts[2];
-      if (!outletName) {
-        await reply(chatId, `❌ FORMAT: EXPORT ${type} <outlet>`);
-        return res.end();
-      }
-      const outlet = await getOutletByCode(outletName, tenantId);
-      if (!outlet) {
-        await reply(chatId, `❌ OUTLET TAK WUJUD: ${outletName}`);
-        return res.end();
-      }
-      const allIds = await getAccessibleOutletIds(user);
-      if (!allIds.includes(outlet.id)) {
-        await reply(chatId, "❌ NO ACCESS");
-        return res.end();
-      }
-      outletIds = [outlet.id];
-    }
-  }
-
-  // ======================
-  // MANAGER — auto semua outlet dia
-  // ======================
-  else {
-    tenantId  = user.tenant_id || null;
-    outletIds = await getAccessibleOutletIds(user);
-    if (!outletIds.length) {
-      await reply(chatId, "❌ TIADA OUTLET DIBERI AKSES");
+    const slugArg = parts[2];
+    if (!slugArg?.startsWith("@")) {
+      await reply(chatId, "❌ FORMAT: EXPORT FULL @slug [bulan]\n\nContoh:\nEXPORT FULL @kedaimaju\nEXPORT FULL @kedaimaju may-26");
       return res.end();
     }
+
+    const slug   = slugArg.slice(1);
+    const tenant = await getTenantBySlug(slug);
+    if (!tenant) {
+      await reply(chatId, `❌ TENANT TAK WUJUD: ${slug}`);
+      return res.end();
+    }
+
+    resolvedTenantId  = tenant.id;
+    resolvedOutletIds = null; // semua outlet dalam tenant
+    monthArg          = parts[3]?.toLowerCase();
+
+  } else if (isAdmin) {
+    // Admin tenant-scoped — semua outlet dalam tenant
+    resolvedOutletIds = null;
+    monthArg          = parts[2]?.toLowerCase();
+
+  } else {
+    // Manager / Owner — outlet yang accessible je
+    resolvedOutletIds = await getAccessibleOutletIds(user);
+    if (!resolvedOutletIds?.length) {
+      await reply(chatId, "❌ TIADA AKSES OUTLET");
+      return res.end();
+    }
+    monthArg = parts[2]?.toLowerCase();
   }
 
-  if (!outletIds?.length) {
-    await reply(chatId, "❌ TIADA OUTLET UNTUK DI-EXPORT");
-    return res.end();
-  }
+  const mode = monthArg ? "monthly" : "dayrange";
 
   // ======================
   // GENERATE
   // ======================
-  const result = await EXPORT_FN[type]({ outletIds, tenantId, chatId });
-  await sendResult(reply, chatId, result, type);
+  await reply(chatId, "⏳ Sedang menjana laporan Excel... Sila tunggu.");
+
+  try {
+    const result = await exportMonthlyFull({
+      outletIds:  resolvedOutletIds,
+      tenantId:   resolvedTenantId,
+      chatId,
+      monthInput: monthArg,
+      mode
+    });
+
+    if (result.error === "INVALID_MONTH") {
+      await reply(chatId, "❌ FORMAT BULAN SALAH\n\nContoh: EXPORT FULL may-26");
+      return res.end();
+    }
+
+    if (result.error === "BUCKET_ERROR") {
+      await reply(chatId, "❌ STORAGE ERROR. Cuba lagi.");
+      return res.end();
+    }
+
+    if (result.error) throw result.error;
+
+    await reply(chatId,
+      `📊 EXPORT FULL\n${result.monthLabel}\n\n` +
+      `🔗 ${result.url}\n\n` +
+      `📋 ${result.sheetCount} sheet dalam fail ini.\n` +
+      `⏳ Link sah 1 jam.`
+    );
+
+  } catch (err) {
+    console.log("EXPORT FULL ERROR:", err);
+    await reply(chatId, "❌ EXPORT GAGAL. Cuba lagi.");
+  }
+
   return res.end();
 });
